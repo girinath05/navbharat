@@ -1,0 +1,1054 @@
+/* ================================================= */
+/* ROOT */
+/* ================================================= */
+
+@charset "UTF-8";
+html,
+body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    font-family:Inter,sans-serif;
+    background:#eef2f7;
+}
+
+#chtRoot{
+    width:100%;
+    height:100vh;
+    overflow:hidden;
+    background:#eef2f7;
+}
+
+/* ================================================= */
+/* HEADER */
+/* ================================================= */
+
+.cts-header{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    height:92px;
+    background:#0f2557;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 28px;
+    z-index:1000;
+    color:#ffffff;
+}
+
+.hdr-left,
+.hdr-center,
+.hdr-right{
+    display:flex;
+    align-items:center;
+    gap:16px;
+}
+
+.hdr-logo-badge{
+    width:56px;
+    height:56px;
+    border-radius:16px;
+    background:#2563eb;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+    font-weight:700;
+}
+
+.hdr-bank-name{
+    font-size:22px;
+    font-weight:700;
+}
+
+.hdr-bank-sub{
+    margin-top:2px;
+    color:#facc15;
+    font-size:13px;
+    font-weight:600;
+}
+
+.hdr-module-tag{
+    background:#2563eb;
+    height:44px;
+    padding:0 22px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    font-size:15px;
+    font-weight:700;
+}
+
+.hdr-module-badge{
+    margin-left:10px;
+    background:rgba(255,255,255,0.25);
+    padding:4px 10px;
+    border-radius:8px;
+    font-size:12px;
+}
+
+.hdr-online-dot{
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:#22c55e;
+}
+
+.hdr-username{
+    font-size:15px;
+    font-weight:700;
+}
+
+.hdr-role-pill{
+    background:#1e40af;
+    padding:5px 10px;
+    border-radius:10px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.hdr-clock{
+    font-size:15px;
+    font-weight:600;
+}
+
+.hdr-logout-btn{
+    height:46px;
+    padding:0 18px;
+    border:none;
+    border-radius:12px;
+    background:#08152f;
+    color:#ffffff;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+/* ================================================= */
+/* MODULE NAV */
+/* ================================================= */
+
+.mod-nav{
+    position:fixed;
+    top:92px;
+    left:0;
+    right:0;
+    height:46px;
+    background:#23448c;
+    display:flex;
+    z-index:999;
+    border-top:2px solid #facc15;
+}
+
+.mod-tab{
+    height:46px;
+    display:flex;
+    align-items:center;
+    padding:0 24px;
+    color:#ffffff;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.mod-tab.active{
+    border-bottom:3px solid #facc15;
+}
+
+/* ================================================= */
+/* SIDEBAR */
+/* ================================================= */
+.cts-sidebar{
+    position:fixed;
+    top:138px;
+    left:0;
+    bottom:40px;
+    width:310px;
+    background:#ffffff;
+    border-right:1px solid #dbe2ea;
+    overflow-y:auto;
+    z-index:500;
+}
+
+.cts-user-panel{
+    padding:22px 24px;
+    border-bottom:1px solid #e5e7eb;
+}
+
+.cts-user-role{
+    font-size:14px;
+    font-weight:600;
+    color:#111827;
+}
+
+.cts-user-name{
+    margin-top:6px;
+    font-size:15px;
+    font-weight:700;
+    color:#2563eb;
+}
+
+.cts-menu-section{
+    padding:22px 24px 12px;
+    font-size:12px;
+    font-weight:700;
+    color:#94a3b8;
+    letter-spacing:1px;
+}
+
+.menu-link{
+    text-decoration:none !important;
+    color:inherit !important;
+    display:block;
+}
+
+.menu-link:hover{
+    text-decoration:none !important;
+    color:inherit !important;
+}
+
+.menu-link:visited{
+    text-decoration:none !important;
+    color:inherit !important;
+}
+
+.cts-menu-item{
+    height:54px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:0 24px;
+    color:#334155;
+    font-size:15px;
+    font-weight:500;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.cts-menu-item:hover{
+    background:#f8fafc;
+}
+
+.cts-menu-item.active{
+    background:#eef4ff;
+    border-left:4px solid #2563eb;
+    color:#0f172a;
+    font-weight:700;
+}
+
+.cts-menu-icon{
+    width:18px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:16px;
+}
+
+.cts-menu-text{
+    flex:1;
+}
+
+.cts-badge{
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:12px;
+    font-weight:700;
+}
+
+.cts-badge.blue{
+    background:#dbeafe;
+    color:#2563eb;
+}
+
+.cts-badge.orange{
+    background:#fef3c7;
+    color:#d97706;
+}
+
+.cts-badge.green{
+    background:#dcfce7;
+    color:#16a34a;
+}
+
+.cts-badge.red{
+    background:#fee2e2;
+    color:#dc2626;
+}
+
+/* ================================================= */
+/* MAIN CONTENT */
+/* ================================================= */
+
+.main-content{
+    position:fixed;
+    top:138px;
+    left:310px;
+    right:0;
+    bottom:40px;
+    padding:30px;
+    background:#eef2f7;
+    overflow:auto;
+}
+
+.content-pad{
+    width:100%;
+}
+
+.pg-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:24px;
+}
+
+.pg-title{
+    font-size:34px;
+    font-weight:700;
+    color:#0f172a;
+}
+
+.pg-subtitle{
+    margin-top:8px;
+    color:#64748b;
+    font-size:15px;
+}
+
+.pg-actions{
+    display:flex;
+    gap:14px;
+}
+
+/* ================================================= */
+/* BUTTONS */
+/* ================================================= */
+
+.primary-btn{
+    height:46px;
+    min-width:160px;
+    padding:0 24px;
+    border:none;
+    border-radius:12px;
+    background:#0f2557;
+    color:#ffffff;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,0.15);
+}
+
+.primary-btn:hover{
+    background:#163777;
+}
+
+.outline-btn{
+    height:46px;
+    min-width:160px;
+    padding:0 24px;
+    border:1px solid #d1d5db;
+    border-radius:12px;
+    background:#ffffff;
+    color:#0f172a;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+
+.outline-btn:hover{
+    background:#f8fafc;
+}
+
+/* ================================================= */
+/* ALERT */
+/* ================================================= */
+
+.alert{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:18px 20px;
+    border-radius:14px;
+    margin-bottom:26px;
+}
+
+.alert-info{
+    background:#dbeafe;
+    color:#1d4ed8;
+}
+
+.alert-icon{
+    font-size:18px;
+}
+
+/* ================================================= */
+/* STEPPER */
+/* ================================================= */
+
+.stepper{
+    display:flex;
+    gap:16px;
+    margin-bottom:28px;
+}
+
+.step{
+    height:46px;
+    padding:0 24px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    background:#dbeafe;
+    color:#1e3a8a;
+    font-size:15px;
+    font-weight:600;
+}
+
+.step.active{
+    background:#2563eb;
+    color:#ffffff;
+}
+
+/* ================================================= */
+/* STATS */
+/* ================================================= */
+
+.stats-row{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:20px;
+    margin-bottom:30px;
+}
+
+.stat-card{
+    background:#ffffff;
+    border-radius:18px;
+    padding:24px;
+}
+
+.stat-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.stat-lbl{
+    font-size:15px;
+    color:#64748b;
+    font-weight:600;
+}
+
+.stat-val{
+    margin-top:18px;
+    font-size:42px;
+    font-weight:700;
+}
+
+.blue{
+    border-top:4px solid #2563eb;
+}
+
+.green{
+    border-top:4px solid #16a34a;
+}
+
+.amber{
+    border-top:4px solid #d97706;
+}
+
+.red{
+    border-top:4px solid #dc2626;
+}
+
+/* ================================================= */
+/* TABLE */
+/* ================================================= */
+
+.card{
+    background:#ffffff;
+    border-radius:18px;
+    overflow:hidden;
+}
+
+.card-head{
+    padding:24px;
+    border-bottom:1px solid #e2e8f0;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.card-title{
+    font-size:24px;
+    font-weight:700;
+}
+
+.tbl-wrap{
+    overflow:auto;
+}
+
+.cts-tbl{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.cts-tbl th{
+    background:#f8fafc;
+    padding:20px;
+    text-align:left;
+    font-size:14px;
+    font-weight:700;
+}
+
+.cts-tbl td{
+    padding:20px;
+    border-top:1px solid #e2e8f0;
+    font-size:14px;
+}
+
+/* ================================================= */
+/* STATUS CHIP */
+/* ================================================= */
+
+.chip{
+    padding:6px 14px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.ch-green{
+    background:#dcfce7;
+    color:#166534;
+}
+
+.ch-blue{
+    background:#dbeafe;
+    color:#1d4ed8;
+}
+
+/* ================================================= */
+/* FOOTER */
+/* ================================================= */
+
+.status-bar{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    height:40px;
+    background:#0f2557;
+    display:flex;
+    align-items:center;
+    gap:24px;
+    padding:0 24px;
+    color:#ffffff;
+    z-index:1000;
+}
+
+.sb{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+}
+
+.sb-dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#22c55e;
+}
+
+.outline-btn{
+    height:46px;
+    min-width:160px;
+    padding:0 24px;
+    border:1px solid #d1d5db !important;
+    border-radius:12px !important;
+    background:#ffffff !important;
+    color:#0f172a !important;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+
+.outline-btn:hover{
+    background:#f8fafc !important;
+    color:#0f172a !important;
+    border:1px solid #cbd5e1 !important;
+}
+
+.outline-btn:focus{
+    background:#ffffff !important;
+    color:#0f172a !important;
+}
+
+.outline-btn:active{
+    background:#f1f5f9 !important;
+    color:#0f172a !important;
+}
+/* ================================================= */
+/* MICR TABLE */
+/* ================================================= */
+
+.micr-table-card{
+    background:#ffffff;
+    border-radius:14px;
+    border:1px solid #dbe2ea;
+    overflow:hidden;
+    margin-top:18px;
+}
+
+.micr-table-header{
+    height:54px;
+    background:#13349a;
+    color:white;
+    display:flex;
+    align-items:center;
+    padding:0 22px;
+    font-size:16px;
+    font-weight:700;
+}
+
+.micr-grid{
+    border:none !important;
+}
+
+.micr-grid .z-column{
+    background:#13349a !important;
+    color:white !important;
+    border:none !important;
+    font-size:13px;
+    font-weight:700;
+}
+
+.micr-grid .z-row{
+    background:white;
+}
+
+.micr-grid .z-row-content{
+    border-bottom:1px solid #edf2f7;
+    height:54px;
+    font-size:14px;
+}
+
+.tag-red{
+    background:#fee2e2;
+    color:#dc2626;
+    padding:6px 12px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.tag-green{
+    background:#dcfce7;
+    color:#16a34a;
+    padding:6px 12px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.repair-btn{
+    background:#13349a;
+    color:white;
+    border:none;
+    border-radius:8px;
+    height:36px;
+    padding:0 16px;
+    font-weight:700;
+}
+
+.type-tag{
+    background:#dbeafe;
+    color:#2563eb;
+    padding:6px 12px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.status-yellow{
+    background:#fef3c7;
+    color:#b45309;
+    padding:6px 12px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.status-blue{
+    background:#dbeafe;
+    color:#2563eb;
+    padding:6px 12px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.status-green{
+    background:#dcfce7;
+    color:#16a34a;
+    padding:6px 12px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:700;
+}
+
+
+
+/* ================================================= */
+/* VERIFICATION PAGE */
+/* ================================================= */
+
+.micr-table-card{
+    background:#ffffff;
+    border-radius:12px;
+    overflow:hidden;
+    border:1px solid #dbe2ea;
+    margin-top:20px;
+}
+
+.micr-table-header{
+    height:52px;
+    background:#12349a;
+    color:white;
+    display:flex;
+    align-items:center;
+    padding:0 22px;
+    font-size:15px;
+    font-weight:700;
+}
+
+.micr-grid{
+    border:none !important;
+}
+
+.micr-grid .z-column{
+    background:#12349a !important;
+    color:white !important;
+    border:none !important;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:1px;
+}
+
+.micr-grid .z-row-content{
+    border-bottom:1px solid #e5e7eb;
+    height:44px;
+    font-size:14px;
+}
+
+.type-tag{
+    background:#dbeafe;
+    color:#2563eb;
+    padding:5px 10px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.status-yellow{
+    background:#fef3c7;
+    color:#b45309;
+    padding:5px 10px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.status-blue{
+    background:#dbeafe;
+    color:#2563eb;
+    padding:5px 10px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.status-green{
+    background:#dcfce7;
+    color:#16a34a;
+    padding:5px 10px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:700;
+}
+/* ================================================= */
+/* VERIFICATION PAGE */
+/* ================================================= */
+
+.table-topbar{
+    height:56px;
+    background:#13339a;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 20px;
+    border-radius:12px 12px 0 0;
+}
+
+.table-title{
+    color:white;
+    font-size:16px;
+    font-weight:700;
+}
+
+.table-search{
+    width:90px;
+    border-radius:8px;
+    border:none;
+    height:34px;
+}
+
+.cts-table{
+    width:100%;
+    border:1px solid #dbe2ea;
+    border-top:none;
+    background:white;
+}
+
+.cts-table .z-column-content{
+    background:#13339a;
+    color:white;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:1px;
+    height:44px;
+}
+
+.cts-table .z-row-content{
+    height:52px;
+    font-size:14px;
+    color:#334155;
+    border-bottom:1px solid #e2e8f0;
+}
+
+.data-card{
+    background:white;
+    border-radius:14px;
+    overflow:hidden;
+    border:1px solid #dbe2ea;
+}
+
+/* MINI TAG */
+
+.mini-tag{
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:6px;
+    background:#dbeafe;
+    color:#2563eb;
+    font-size:12px;
+    font-weight:700;
+}
+
+/* BADGE */
+
+.badge-orange{
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:6px;
+    background:#fef3c7;
+    color:#b45309;
+    font-size:12px;
+    font-weight:700;
+}
+
+/* STATUS */
+
+.status-green{
+    display:inline-block;
+    padding:5px 12px;
+    border-radius:6px;
+    background:#dcfce7;
+    color:#15803d;
+    font-size:12px;
+    font-weight:700;
+}
+
+.status-blue{
+    display:inline-block;
+    padding:5px 12px;
+    border-radius:6px;
+    background:#dbeafe;
+    color:#1d4ed8;
+    font-size:12px;
+    font-weight:700;
+}
+
+.status-yellow{
+    display:inline-block;
+    padding:5px 12px;
+    border-radius:6px;
+    background:#fef3c7;
+    color:#b45309;
+    font-size:12px;
+    font-weight:700;
+}
+/* ================================================= */
+/* VERIFICATION ALERT */
+/* ================================================= */
+
+.alert{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:16px 18px;
+    border-radius:12px;
+    margin-bottom:20px;
+}
+
+.alert-info{
+    background:#eaf2ff;
+    border:1px solid #c7dcff;
+    color:#1e3a8a;
+}
+
+.alert-icon{
+    font-size:18px;
+    font-weight:700;
+}
+
+/* ================================================= */
+/* INSTRUCTION PANEL */
+/* ================================================= */
+
+.instruction-panel{
+    background:white;
+    border-radius:14px;
+    border:1px solid #dbe2ea;
+    padding:20px;
+    margin-bottom:22px;
+}
+
+.instruction-title{
+    font-size:18px;
+    font-weight:700;
+    color:#0f172a;
+    margin-bottom:14px;
+}
+
+.instruction-list{
+    margin:0;
+    padding-left:18px;
+    color:#475569;
+    line-height:30px;
+    font-size:14px;
+}
+
+/* ================================================= */
+/* SUMMARY CARDS */
+/* ================================================= */
+
+.stats-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:20px;
+    margin-bottom:24px;
+}
+
+.stat-card{
+    background:white;
+    border-radius:16px;
+    padding:22px;
+    border:1px solid #dbe2ea;
+    position:relative;
+}
+
+.blue-top{
+    border-top:4px solid #2563eb;
+}
+
+.orange-top{
+    border-top:4px solid #d97706;
+}
+
+.green-top{
+    border-top:4px solid #16a34a;
+}
+
+.red-top{
+    border-top:4px solid #dc2626;
+}
+
+.stat-title{
+    font-size:15px;
+    color:#64748b;
+    font-weight:600;
+}
+
+.stat-value{
+    margin-top:14px;
+    font-size:42px;
+    font-weight:800;
+    color:#0f172a;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ZK BUILT-IN "Processing..." SPINNER — Enterprise Override
+   ZK renders:  body > .z-loading > .z-loading-indicator
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Kill default */
+.z-loading-indicator { display: none !important; }
+
+/* Outer wrapper — fixed top-left card */
+.z-loading {
+    position: fixed !important;
+    top: 14px !important;
+    left: 14px !important;
+    width: 210px !important;
+    padding: 12px 14px 14px 14px !important;
+    background: #0f172a !important;
+    border: 1px solid rgba(56,189,248,0.25) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(56,189,248,0.08) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 9px !important;
+    z-index: 99999 !important;
+    pointer-events: none !important;
+}
+
+/* Scan beam bar at top of card */
+.z-loading::before {
+    content: '' !important;
+    display: block !important;
+    width: 100% !important;
+    height: 2px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        #38bdf8 40%,
+        #7dd3fc 60%,
+        transparent 100%) !important;
+    background-size: 200% 100% !important;
+    animation: zk-beam 1.4s linear infinite !important;
+}
+@keyframes zk-beam {
+    0%   { background-position: -100% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Label row */
+.z-loading::after {
+    content: '◈  Scanning Instruments' !important;
+    display: block !important;
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.09em !important;
+    text-transform: uppercase !important;
+    color: #7dd3fc !important;
+}

@@ -1,0 +1,17 @@
+<?page title="CXF CXBF Submission"?>
+<!--
+ ============================================================
+  Project     : Navbharat CTS Outward
+  File        : cxf-cxbf.zul
+  Package     : webapp/zul/outward
+  Author      : Pavan C.
+  Created     : June 2026
+  Description : CXF/CXBF format submission screen. Generates
+                outward clearing file for RBI/clearing house.
+ ============================================================
+-->
+
+
+<zk>
+	<label value="CXF-CXBF Page" />
+</zk>

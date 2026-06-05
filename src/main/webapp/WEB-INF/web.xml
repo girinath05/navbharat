@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    web.xml — ClearPay CTS / NavbharatCTS
+    =====================================================================
+    Tomcat version: 10.0.27
+    Jakarta EE:     Web Profile 5.0  (Tomcat 10.0.x max — NOT 6.0)
+    ZK version:     10.0.0-jakarta
+
+    FIXES vs previous version
+    ─────────────────────────────────────────────────────────────────────
+    FIX 1 — web-app version changed 6.0 → 5.0
+             Tomcat 10.0.x implements Jakarta EE 9 = Servlet 5.0.
+             Version 6.0 is Jakarta EE 10 = Tomcat 10.1+.
+             Tomcat 10.0 logged "Unknown version string [6.0]" and
+             fell back to its default, which skipped listener scanning.
+
+    FIX 2 — HttpSessionListener declared explicitly
+             ZK registers org.zkoss.zk.ui.http.HttpSessionListener via
+             a @WebListener annotation inside the ZK JAR. Tomcat scans
+             for @WebListener only when JARs are in WEB-INF/lib AND
+             metadata-complete is false. When running inside Eclipse WTP
+             the Maven dependency JARs are on the classloader path but
+             NOT physically in WEB-INF/lib, so Tomcat's annotation
+             scanner misses the @WebListener. Declaring it explicitly
+             in web.xml makes Tomcat load it regardless.
+
+    FIX 3 — DHtmlLayoutServlet declared (from previous session)
+             Without this, Tomcat has no handler for *.zul → 404.
+
+    FIX 4 — welcome-file-list added (from previous session)
+             / → index.zul automatically.
+    =====================================================================
+-->
+
+<web-app
+    xmlns="https://jakarta.ee/xml/ns/jakartaee"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="
+        https://jakarta.ee/xml/ns/jakartaee
+        https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd"
+    version="5.0">
+
+    <!-- =================================================================
+         FIX 2: ZK SESSION LISTENER — declared explicitly so Tomcat finds
+         it even when running via Eclipse WTP (where JAR annotation scanning
+         doesn't reach Maven classpath container JARs).
+         Must come BEFORE the servlets.
+    ================================================================= -->
+
+    <listener>
+        <listener-class>
+            org.zkoss.zk.ui.http.HttpSessionListener
+        </listener-class>
+    </listener>
+
+    <!-- =================================================================
+         FIX 3: ZK LAYOUT SERVLET
+         Processes *.zul files and renders them as HTML.
+         Without this every .zul URL returns 404.
+    ================================================================= -->
+
+    <servlet>
+        <servlet-name>zkLoader</servlet-name>
+        <servlet-class>
+            org.zkoss.zk.ui.http.DHtmlLayoutServlet
+        </servlet-class>
+        <init-param>
+            <param-name>update-uri</param-name>
+            <param-value>/zkau</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>zkLoader</servlet-name>
+        <url-pattern>*.zul</url-pattern>
+    </servlet-mapping>
+
+    <!-- =================================================================
+         ZK AU ENGINE — handles ZK AJAX callbacks (server push, events).
+    ================================================================= -->
+
+    <servlet>
+        <servlet-name>auEngine</servlet-name>
+        <servlet-class>
+            org.zkoss.zk.au.http.DHtmlUpdateServlet
+        </servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+    
+    
+    <!-- =================================================================
+     CHEQUE IMAGE SERVLET — serves cheque front/rear images
+================================================================= -->
+
+<servlet>
+    <servlet-name>chequeImageServlet</servlet-name>
+    <servlet-class>
+        com.cts.outward.servlet.ChequeImageServlet
+    </servlet-class>
+</servlet>
+
+<servlet-mapping>
+    <servlet-name>chequeImageServlet</servlet-name>
+    <url-pattern>/chequeImage</url-pattern>
+</servlet-mapping>
+
+
+    <servlet-mapping>
+        <servlet-name>auEngine</servlet-name>
+        <url-pattern>/zkau/*</url-pattern>
+    </servlet-mapping>
+
+    <!-- =================================================================
+         FIX 4: WELCOME FILE — / loads index.zul automatically.
+    ================================================================= -->
+
+    <welcome-file-list>
+        <welcome-file>zul/index.zul</welcome-file>
+    </welcome-file-list>
+
+    <!-- =================================================================
+         SESSION TIMEOUT
+    ================================================================= -->
+
+    <session-config>
+        <session-timeout>120</session-timeout>
+    </session-config>
+    
+</web-app>

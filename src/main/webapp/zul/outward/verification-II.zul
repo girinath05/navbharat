@@ -1,0 +1,16 @@
+<!--
+ ============================================================
+  Project     : Navbharat CTS Outward
+  File        : verification-II.zul
+  Package     : webapp/zul/outward
+  Author      : Anusha & Girinath.
+  Created     : June 2026
+  Description : Level-2 verification screen. Supervisor sign-off
+                on batch. Triggers final outward processing.
+ ============================================================
+-->
+
+
+<zk>
+	<label value="Verification-II Page" />
+</zk>

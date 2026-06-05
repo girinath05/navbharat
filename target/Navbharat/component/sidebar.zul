@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+	sidebar.zul — ClearPay CTS Sidebar Component
+	Sub-items: indentation + font styling only, no icon boxes.
+	Emoji/icons to be added later.
+-->
+<div id="sidebarRoot" apply="com.cts.composer.SidebarComposer"
+	sclass="cts-sidebar">
+
+	<!-- ── MAIN MENU ─────────────────────────── -->
+	<div sclass="cts-section-label">
+		<label value="MAIN MENU" />
+	</div>
+
+	<div sclass="cts-menu-item active">
+
+		<custom-attributes perm="DASHBOARD_VIEW"
+			pagePath="/zul/outward/outwardDashboard.zul" />
+		<div sclass="cts-row">
+			<div sclass="cts-icon-badge cts-icon-home">
+				<label value="🏠" />
+			</div>
+			<label sclass="cts-item-label" value="Dashboard" />
+		</div>
+	</div>
+
+	<!-- ── CLEARING ──────────────────────────── -->
+	<div sclass="cts-section-label">
+		<label value="CLEARING" />
+	</div>
+
+	<div id="outwardHeader" sclass="cts-menu-header">
+		<div sclass="cts-row">
+			<div sclass="cts-icon-badge cts-icon-outward">
+				<label value="🏧" />
+			</div>
+			<label sclass="cts-item-label" value="Outward Clearing" />
+			<label id="outwardArrow" sclass="cts-arrow" value="▶" />
+		</div>
+	</div>
+
+	<div id="outwardMenu" sclass="cts-submenu" visible="false">
+		<custom-attributes perm=""
+			pagePath="/zul/outward/scanModule.zul" />
+		<div sclass="cts-menu-item">
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Scan Module" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/batchManagement.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Batch Management" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/verification-I.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Verification - I" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/verification-II.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Verification - II" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/cxf-cxbf.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label"
+					value="CXF-CIBF Generation" />
+			</div>
+		</div>
+	</div>
+
+	<!-- INWARD CLEARING -->
+
+	<div id="inwardHeader" sclass="cts-menu-header">
+		<div sclass="cts-row">
+			<div sclass="cts-icon-badge cts-icon-inward">
+				<label value="🏦" />
+			</div>
+			<label sclass="cts-item-label" value="Inward Clearing" />
+			<label id="inwardArrow" sclass="cts-arrow" value="▶" />
+		</div>
+	</div>
+
+	<div id="inwardMenu" sclass="cts-submenu" visible="false">
+		<custom-attributes perm=""
+			pagePath="/zul/outward/cxf-cxbf.zul" />
+		<div sclass="cts-menu-item">
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Upload Service" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/cxf-cxbf.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="MICR Service" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/cxf-cxbf.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Return Cheques" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/cxf-cxbf.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Checker Queue" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/cxf-cxbf.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Escalation Queue" />
+			</div>
+		</div>
+	</div>
+
+	<!-- ── REPORTS ───────────────────────────── -->
+	<div sclass="cts-section-label">
+		<label value="REPORTS" />
+	</div>
+
+	<div id="outwardReportsHeader" sclass="cts-menu-header">
+		<div sclass="cts-row">
+			<div sclass="cts-icon-badge cts-icon-report-out">
+				<label value="📊" />
+			</div>
+			<label sclass="cts-item-label" value="Outward Reports" />
+			<label id="outwardReportsArrow" sclass="cts-arrow"
+				value="▶" />
+		</div>
+	</div>
+
+	<div id="outwardReportsMenu" sclass="cts-submenu" visible="false">
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/reports/cxfReport.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="CXF Report" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/reports/cxbfReport.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="CXBF Report" />
+			</div>
+		</div>
+	</div>
+
+	<div id="inwardReportsHeader" sclass="cts-menu-header">
+		<div sclass="cts-row">
+			<div sclass="cts-icon-badge cts-icon-report-in">
+				<label value="📋" />
+			</div>
+			<label sclass="cts-item-label" value="Inward Reports" />
+			<label id="inwardReportsArrow" sclass="cts-arrow" value="▶" />
+		</div>
+	</div>
+
+	<div id="inwardReportsMenu" sclass="cts-submenu" visible="false">
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/cxf-cxbf.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Maker Report" />
+				<label id="inwardMakerArrow" sclass="cts-arrow"
+					value="▶" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/cxf-cxbf.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Checker Report" />
+				<label id="inwardCheckerArrow" sclass="cts-arrow"
+					value="▶" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/cxf-cxbf.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Checker Report" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/cxf-cxbf.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Checker Report" />
+			</div>
+		</div>
+	</div>
+
+	<!-- ── SETTINGS ──────────────────────────── -->
+	<div sclass="cts-section-label">
+		<label value="SETTINGS" />
+	</div>
+
+	<div id="userHeader" sclass="cts-menu-header">
+		<div sclass="cts-row">
+			<div sclass="cts-icon-badge cts-icon-user">
+				<label value="👤" />
+			</div>
+			<label sclass="cts-item-label" value="User Management" />
+			<label id="userArrow" sclass="cts-arrow" value="▶" />
+		</div>
+	</div>
+
+	<div id="userMenu" sclass="cts-submenu" visible="false">
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/cxf-cxbf.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Role Management" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/cxf-cxbf.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="User Management" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/cxf-cxbf.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label"
+					value="Pending User Approval" />
+			</div>
+		</div>
+		<div sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/cxf-cxbf.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label"
+					value="Pending Role Approval" />
+			</div>
+		</div>
+	</div>
+
+</div>

@@ -1,0 +1,254 @@
+/* ================================================================
+   header.css  —  NAV BHARAT BANK / ClearPay CTS  Post-Login Header
+   ----------------------------------------------------------------
+   Matches the new header screenshot:
+     Left  : Red NB badge + Bank name + tagline
+     Centre: Large HH:MM:SS clock + DD MMM YYYY date below
+     Right : ClearPay CTS logo | ● online dot | [A▾] avatar | ADMINISTRATOR pill
+   ================================================================ */
+
+/* ── Google Font import (fallback-safe) ─────────────────────── */
+@import
+	url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&family=Nunito+Sans:wght@400;600;700&display=swap')
+	;
+
+/* ── Design tokens ──────────────────────────────────────────── */
+:root {
+	--hdr-bg: #1a1633; /* deep navy-purple, matches screenshot */
+	--hdr-bg2: #221e42; /* slightly lighter section bg */
+	--hdr-accent: #e8334a; /* CTS red — NB badge, role pill */
+	--hdr-gold: #f0c040; /* warm gold for bank name */
+	--hdr-white: #ffffff;
+	--hdr-muted: #9490b8; /* dim purple-grey for taglines */
+	--hdr-online: #34d399; /* green dot */
+	--hdr-clock-color: #e8eaf6; /* near-white for big clock */
+	--hdr-date-color: #9a9996;
+	--hdr-border: rgba(255, 255, 255, 0.08);
+	--hdr-height: 65px;
+	--hdr-font-ui: 'Rajdhani', sans-serif;
+	--hdr-font-mono: 'Share Tech Mono', monospace;
+	--hdr-font-body: 'Nunito Sans', sans-serif;
+}
+
+/* ── Outer wrapper ──────────────────────────────────────────── */
+.cts-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: var(--hdr-height);
+	background: var(--hdr-bg);
+	border-bottom: 1px solid var(--hdr-border);
+	padding: 0 18px;
+	box-sizing: border-box;
+	width: 100%;
+	position: sticky;
+	top: 0;
+	z-index: 1000;
+	user-select: none;
+	/* subtle inner glow */
+	box-shadow: 0 2px 16px rgba(0, 0, 0, 0.45), inset 0 -1px 0
+		rgba(255, 255, 255, 0.04);
+}
+
+/* ════════════════════════════════════════════════════════════
+   LEFT — Nav Bharat Bank branding
+   ════════════════════════════════════════════════════════════ */
+.hdr-left {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex: 0 0 auto;
+}
+
+/* Nav Bharat Bank logo image */
+.hdr-nbb-logo {
+	height: 38px;
+	width: auto;
+	display: block;
+	object-fit: contain;
+}
+
+/* ════════════════════════════════════════════════════════════
+   CENTRE — Live clock + date
+   ════════════════════════════════════════════════════════════ */
+.hdr-centre {
+	display: flex;
+	/* flex-direction: column; */
+	align-items: center;
+	justify-content: center;
+	flex: 1 1 auto;
+	gap: 5%;
+}
+
+/* Big monospaced clock — 17:16:27 */
+.hdr-clock-label, label.hdr-clock-label {
+	font-family: var(--hdr-font-ui);
+	font-size: 20px;
+	font-weight: 600;
+	color: var(--hdr-clock-color);
+	letter-spacing: 4px;
+	line-height: 1;
+	/* ZK label resets */
+	display: inline-block;
+	padding: 0;
+	margin: 0;
+	border: none;
+	background: transparent;
+	/* Subtle glow */
+	text-shadow: 0 0 18px rgba(200, 210, 255, 0.3);
+}
+
+/* Smaller date below — 01 JUN 2026 */
+.hdr-date-label, label.hdr-date-label {
+	font-family: var(--hdr-font-ui);
+	font-size: 20px;
+	font-weight: 500;
+	color: var(--hdr-date-color);
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	line-height: 1;
+	display: inline-block;
+	padding: 0;
+	margin: 0;
+	border: none;
+	background: transparent;
+}
+
+/* ════════════════════════════════════════════════════════════
+   RIGHT — ClearPay CTS + user controls
+   ════════════════════════════════════════════════════════════ */
+.hdr-right {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex: 0 0 auto;
+}
+
+/* ClearPay CTS logo image */
+.hdr-cp-block {
+	display: flex;
+	align-items: center;
+}
+
+.hdr-cp-logo-img {
+	height: 38px;
+	width: auto;
+	display: block;
+	object-fit: contain;
+}
+
+/* Vertical separator */
+.hdr-sep {
+	display: block;
+	width: 1px;
+	height: 28px;
+	background: var(--hdr-border);
+}
+
+/* Green online dot */
+.hdr-online-dot {
+	display: block;
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: var(--hdr-online);
+	flex-shrink: 0;
+	box-shadow: 0 0 6px rgba(52, 211, 153, 0.7);
+	/* pulse animation */
+	animation: hdrPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes hdrPulse { 
+
+0%,100%{
+	opacity: 1;
+	box-shadow: 0 0 6px rgba(52, 211, 153, 0.7);
+}
+
+50%{
+	opacity:0.6;
+	box-shadow:0 0 12px
+	rgba(52,211,153,0.4);
+	}
+}
+
+/* User avatar circle — shows first letter of name */
+.hdr-avatar, label.hdr-avatar {
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	background: var(--hdr-bg2);
+	border: 1.5px solid rgba(255, 255, 255, 0.18);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-family: var(--hdr-font-ui);
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--hdr-white);
+	letter-spacing: 0;
+	/* ZK label resets */
+	padding: 0;
+	margin: 0;
+	line-height: 30px;
+	text-align: center;
+	cursor: default;
+}
+
+/* Dropdown chevron */
+.hdr-chevron {
+	font-size: 8px;
+	color: var(--hdr-muted);
+	margin-left: -6px;
+}
+
+/* Role pill — red badge reading "ADMINISTRATOR" */
+.hdr-role-pill, label.hdr-role-pill {
+	background: var(--hdr-accent);
+	color: var(--hdr-white);
+	font-family: var(--hdr-font-ui);
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	padding: 3px 9px;
+	border-radius: 3px;
+	line-height: 1;
+	/* ZK label resets */
+	display: inline-block;
+	margin: 0;
+	border: none;
+	cursor: default;
+	box-shadow: 0 1px 5px rgba(232, 51, 74, 0.4);
+}
+
+
+
+/* ── ZK label/button global resets inside header ───────────── */
+.cts-header label {
+	color: inherit;
+	font-size: inherit;
+}
+
+.cts-header .z-label {
+	display: inline-block;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media ( max-width : 900px) {
+	.hdr-nbb-logo {
+		height: 30px;
+	}
+	.hdr-cp-logo-img {
+		height: 30px;
+	}
+}
+
+@media ( max-width : 640px) {
+	.hdr-cp-block {
+		display: none;
+	}
+	.hdr-clock-label {
+		font-size: 20px;
+	}
+}

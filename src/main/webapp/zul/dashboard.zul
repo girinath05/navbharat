@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+ ============================================================
+  Project     : Navbharat CTS Outward
+  File        : dashboard.zul
+  Package     : webapp/zul
+  Author      : Girinath M.
+  Created     : June 2026
+  Description : Main application dashboard. Entry point after
+                login. Renders role-based module summary tiles.
+ ============================================================
+-->
+
+
+<?link rel="stylesheet" href="/css/dashboard.css"?>
+<?link rel="stylesheet" href="/css/sidebar.css"?>
+<?link rel="stylesheet" href="/css/header.css"?>
+
+<zk>
+
+	<borderlayout sclass="cts-dashboard-layout">
+
+		<!-- NORTH — Header bar -->
+		<!-- size="60px" is mandatory — north collapses without it -->
+		<north size="60px" border="none" splittable="false"
+			collapsible="false">
+			<include src="/component/header.zul" />
+		</north>
+
+		<!-- WEST — Sidebar -->
+		<!--
+			CHANGED: <ctsSidebar /> replaced with <include src="..."/>
+			
+			WHY:
+			<ctsSidebar /> is a ZK macro component. ZK wraps it in
+			extra generated layers (.z-macro, additional z-div wrappers)
+			which break the height: 100% chain completely.
+			
+			<include src="..."/> directly inlines the sidebar.zul content
+			into the west region with NO extra wrapper layers.
+			This means our .cts-sidebar div sits directly inside
+			.z-west-body — the height chain works perfectly.
+		-->
+		<west size="260px" border="none" splittable="false"
+			collapsible="false">
+			<include src="/component/sidebar.zul" />
+		</west>
+
+		<!-- CENTER — Main content area -->
+		<center border="none" autoscroll="true">
+
+			<div sclass="cts-content" 
+					id="contentArea"
+					apply="com.cts.composer.DashboardComposer" >
+				<label value="Welcome To CTS Dashboard"
+					sclass="cts-page-title" />
+			</div>
+
+		</center>
+
+	</borderlayout>
+
+</zk>

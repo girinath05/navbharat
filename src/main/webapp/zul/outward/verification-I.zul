@@ -1,0 +1,16 @@
+<!--
+ ============================================================
+  Project     : Navbharat CTS Outward
+  File        : verification-I.zul
+  Package     : webapp/zul/outward
+  Author      : Anusha .
+  Created     : June 2026
+  Description : Level-1 verification screen. First-pass cheque
+                data entry validation before TV2 review.
+ ============================================================
+-->
+
+
+<zk>
+	<label value="Verification-I Page" />
+</zk>

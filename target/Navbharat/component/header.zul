@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+	header.zul — Post-Login Header
+	CSS is loaded from dashboard.zul at root level
+	apply= uses com.iispl.* package (your project package)
+-->
+<zk xmlns:n="native">
+
+	<!-- Timer fires every 1000ms — updates clock in HeaderComposer -->
+
+	<n:div class="cts-header"
+		apply="com.cts.composer.HeaderComposer">
+
+
+		<!-- LEFT : Nav Bharat Bank logo image -->
+		<n:div class="hdr-left">
+			<n:img src="../images/navbharat.jpg" class="hdr-nbb-logo"
+				alt="Nav Bharat Bank" />
+		</n:div>
+
+		<timer id="hdrTimer" delay="1000" repeats="true" running="true" />
+		<!-- CENTRE : Live clock + date -->
+		<n:div class="hdr-centre">
+			<label id="lblHdrDate" sclass="hdr-date-label"
+				value="01 JAN 2000" />
+			<label id="lblHdrTime" sclass="hdr-clock-label"
+				value="00:00:00" />
+		</n:div>
+
+		<!-- RIGHT : ClearPay CTS logo + user controls -->
+		<n:div class="hdr-right">
+
+			<n:div class="hdr-cp-block">
+				<n:img src="../images/clearpay.jpg" class="hdr-cp-logo-img"
+					alt="ClearPay CTS" />
+			</n:div>
+
+			<n:span class="hdr-sep" />
+			<n:span class="hdr-online-dot" title="Online" />
+
+			<!-- Avatar — first letter of logged in user, set by HeaderComposer -->
+			<label id="lblHdrAvatar" sclass="hdr-avatar" value="A" />
+
+			<n:span class="hdr-chevron">&#9660;</n:span>
+
+			<!-- Role pill — set by HeaderComposer from session -->
+			<label id="lblHdrRole" sclass="hdr-role-pill"
+				value="OPERATOR" />
+
+		</n:div>
+
+	</n:div>
+
+</zk>

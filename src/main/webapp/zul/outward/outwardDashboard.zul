@@ -1,0 +1,15 @@
+<!--
+ ============================================================
+  Project     : Navbharat CTS Outward
+  File        : outwardDashboard.zul
+  Package     : webapp/zul/outward
+  Author      : Girinath M.
+  Created     : June 2026
+  Description : Outward module dashboard. Summary widgets for
+                pending batches, processed count, daily totals.
+ ============================================================
+-->
+
+<zk>
+	<label value="Outward Dashboard Page"/>
+</zk>
