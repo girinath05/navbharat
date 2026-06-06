@@ -1,18 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!--
- ============================================================
-  Project     : Navbharat CTS Outward
-  File        : dashboard.zul
-  Package     : webapp/zul
-  Author      : Girinath M.
-  Created     : June 2026
-  Description : Main application dashboard. Entry point after
-                login. Renders role-based module summary tiles.
- ============================================================
--->
-
-
 <?link rel="stylesheet" href="/css/dashboard.css"?>
 <?link rel="stylesheet" href="/css/sidebar.css"?>
 <?link rel="stylesheet" href="/css/header.css"?>

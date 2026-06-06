@@ -1,63 +1,95 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<!--
- ============================================================
-  Project     : Navbharat CTS Outward
-  File        : header.zul
-  Package     : webapp/component
-  Author      : Girinath M.
-  Created     : June 2026
-  Description : Global header component. Renders top nav bar,
-                app title, user session info, logout action. 
- ============================================================
--->
-
+<?link rel="stylesheet" href="/css/header.css"?>
 
 <zk xmlns:n="native">
 
-	<!-- Timer fires every 1000ms — updates clock in HeaderComposer -->
-
-	<n:div class="cts-header"
-		apply="com.cts.composer.HeaderComposer">
-
-
-		<!-- LEFT : Nav Bharat Bank logo image -->
-		<n:div class="hdr-left">
-			<n:img src="../images/navbharat.jpg" class="hdr-nbb-logo"
-				alt="Nav Bharat Bank" />
-		</n:div>
+	<div id="hdrRoot" apply="com.cts.composer.HeaderComposer">
 
 		<timer id="hdrTimer" delay="1000" repeats="true" running="true" />
-		<!-- CENTRE : Live clock + date -->
-		<n:div class="hdr-centre">
-			<label id="lblHdrDate" sclass="hdr-date-label"
-				value="01 JAN 2000" />
-			<label id="lblHdrTime" sclass="hdr-clock-label"
-				value="00:00:00" />
-		</n:div>
 
-		<!-- RIGHT : ClearPay CTS logo + user controls -->
-		<n:div class="hdr-right">
+		<!-- ── HEADER BAR ─────────────────────────────────────────── -->
+		<div id="ctsHeader" sclass="cts-header">
 
-			<n:div class="hdr-cp-block">
-				<n:img src="../images/clearpay.jpg" class="hdr-cp-logo-img"
-					alt="ClearPay CTS" />
+			<!-- LEFT — Nav Bharat Bank logo -->
+			<n:div class="hdr-left">
+				<n:img src="../images/navbharat.jpg"
+					class="hdr-nbb-logo" alt="Nav Bharat Bank" />
 			</n:div>
 
-			<n:span class="hdr-sep" />
-			<n:span class="hdr-online-dot" title="Online" />
+			<!-- CENTRE — Date and Clock (hidden/shown by composer) -->
+			<div id="hdrCentre" sclass="hdr-centre">
+				<label id="lblHdrDate" sclass="hdr-date-label" value="01 JAN 2000" />
+				<label id="lblHdrTime" sclass="hdr-clock-label" value="00:00 AM" />
+			</div>
 
-			<!-- Avatar — first letter of logged in user, set by HeaderComposer -->
-			<label id="lblHdrAvatar" sclass="hdr-avatar" value="A" />
+			<!-- RIGHT — ClearPay logo + avatar button -->
+			<div sclass="hdr-right">
+				<n:div class="hdr-cp-block">
+					<n:img src="../images/clearpay.jpg"
+						class="hdr-cp-logo-img" alt="ClearPay CTS" />
+				</n:div>
+				<div id="avatarBtn" sclass="hdr-avatar-btn">
+					<label id="lblHdrAvatar" sclass="hdr-avatar" value="A" />
+				</div>
+			</div>
 
-			<n:span class="hdr-chevron">&#9660;</n:span>
+		</div>
 
-			<!-- Role pill — set by HeaderComposer from session -->
-			<label id="lblHdrRole" sclass="hdr-role-pill"
-				value="OPERATOR" />
+		<!-- PROFILE POPUP -->
+		<div id="profilePopup" sclass="profile-popup">
 
-		</n:div>
+			<n:div class="pp-top">
+				<n:div class="pp-avatar-big">
+					<label id="lblPopupAvatar" sclass="pp-avatar-letter" value="A" />
+				</n:div>
+				<label id="lblPopupName"  sclass="pp-name"      value="Administrator" />
+				<label id="lblPopupEmail" sclass="pp-email"      value="user@navbharatbank.in" />
+				<label id="lblPopupRole"  sclass="pp-role-badge" value="ADMINISTRATOR" />
+			</n:div>
 
-	</n:div>
+			<n:div class="pp-divider" />
+
+			<n:div class="pp-menu">
+
+				<div id="btnViewProfile" sclass="pp-menu-item">
+					<n:span class="pp-icon pp-icon-profile">&#128100;</n:span>
+					<n:span class="pp-menu-label">View Profile</n:span>
+				</div>
+
+				<div id="btnChangePassword" sclass="pp-menu-item">
+					<n:span class="pp-icon pp-icon-password">&#128273;</n:span>
+					<n:span class="pp-menu-label">Change Password</n:span>
+				</div>
+
+				<div id="btnEditAccount" sclass="pp-menu-item">
+					<n:span class="pp-icon pp-icon-edit">&#9998;</n:span>
+					<n:span class="pp-menu-label">Edit Account</n:span>
+				</div>
+
+				<!-- CLOCK TOGGLE ROW -->
+				<div id="btnToggleClock" sclass="pp-menu-item">
+					<n:span class="pp-icon pp-icon-clock">&#128336;</n:span>
+					<n:span class="pp-menu-label">Show Clock</n:span>
+					<div id="clockTogglePill" sclass="pp-toggle pp-toggle-on">
+						<label id="lblClockToggle" sclass="pp-toggle-label" value="ON" />
+					</div>
+				</div>
+
+				<div id="btnLogout" sclass="pp-menu-item pp-logout">
+					<n:span class="pp-icon pp-icon-logout">&#9211;</n:span>
+					<n:span class="pp-menu-label">Logout</n:span>
+				</div>
+
+			</n:div>
+
+			<n:div class="pp-footer">
+				<n:span class="pp-online-dot" />
+				<label id="lblSessionTime" sclass="pp-session-label"
+					value="Active session · 00:00:00" />
+			</n:div>
+
+		</div>
+
+	</div>
 
 </zk>

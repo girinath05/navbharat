@@ -1,19 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-
 <!--
- ============================================================
-  Project     : Navbharat CTS Outward
-  File        : sidebar.zul
-  Package     : webapp/component
-  Author      : Girinath M.
-  Created     : June 2026
-  Description : Navigation sidebar. Renders module menu links
-                for outward cheque, batch management, reports.
-                Role-filtered via session permissions.
- ============================================================
+	sidebar.zul — ClearPay CTS Sidebar Component
+	Sub-items: indentation + font styling only, no icon boxes.
+	Emoji/icons to be added later.
 -->
-
 <div id="sidebarRoot" apply="com.cts.composer.SidebarComposer"
 	sclass="cts-sidebar">
 
@@ -22,8 +13,8 @@
 		<label value="MAIN MENU" />
 	</div>
 
-	<div sclass="cts-menu-item active">
-
+	<!-- FIX: id added, active class removed (composer manages it) -->
+	<div id="menuDashboard" sclass="cts-menu-item">
 		<custom-attributes perm="DASHBOARD_VIEW"
 			pagePath="/zul/outward/outwardDashboard.zul" />
 		<div sclass="cts-row">
@@ -42,7 +33,7 @@
 	<div id="outwardHeader" sclass="cts-menu-header">
 		<div sclass="cts-row">
 			<div sclass="cts-icon-badge cts-icon-outward">
-				<label value="🏧" />
+				<label value="🏦" />
 			</div>
 			<label sclass="cts-item-label" value="Outward Clearing" />
 			<label id="outwardArrow" sclass="cts-arrow" value="▶" />
@@ -50,35 +41,35 @@
 	</div>
 
 	<div id="outwardMenu" sclass="cts-submenu" visible="false">
-		<custom-attributes perm=""
-			pagePath="/zul/outward/scanModule.zul" />
-		<div sclass="cts-menu-item">
+		<div id="menuScanModule" sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/scanModule.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="Scan Module" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuBatchManagement" sclass="cts-menu-item">
 			<custom-attributes perm=""
 				pagePath="/zul/outward/batchManagement.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="Batch Management" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuVerification1" sclass="cts-menu-item">
 			<custom-attributes perm=""
 				pagePath="/zul/outward/verification-I.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="Verification - I" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuVerification2" sclass="cts-menu-item">
 			<custom-attributes perm=""
 				pagePath="/zul/outward/verification-II.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="Verification - II" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuCxfCibf" sclass="cts-menu-item">
 			<custom-attributes perm=""
 				pagePath="/zul/outward/cxf-cxbf.zul" />
 			<div sclass="cts-sub-row">
@@ -101,37 +92,37 @@
 	</div>
 
 	<div id="inwardMenu" sclass="cts-submenu" visible="false">
-		<custom-attributes perm=""
-			pagePath="/zul/outward/cxf-cxbf.zul" />
-		<div sclass="cts-menu-item">
+		<div id="menuUploadService" sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/inward/uploadService.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="Upload Service" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuMicrService" sclass="cts-menu-item">
 			<custom-attributes perm=""
-				pagePath="/zul/outward/cxf-cxbf.zul" />
+				pagePath="/zul/inward/micrService.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="MICR Service" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuReturnCheques" sclass="cts-menu-item">
 			<custom-attributes perm=""
-				pagePath="/zul/outward/cxf-cxbf.zul" />
+				pagePath="/zul/inward/returnCheques.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="Return Cheques" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuCheckerQueue" sclass="cts-menu-item">
 			<custom-attributes perm=""
-				pagePath="/zul/outward/cxf-cxbf.zul" />
+				pagePath="/zul/inward/checkerQueue.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="Checker Queue" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuEscalationQueue" sclass="cts-menu-item">
 			<custom-attributes perm=""
-				pagePath="/zul/outward/cxf-cxbf.zul" />
+				pagePath="/zul/inward/escalationQueue.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="Escalation Queue" />
 			</div>
@@ -155,14 +146,14 @@
 	</div>
 
 	<div id="outwardReportsMenu" sclass="cts-submenu" visible="false">
-		<div sclass="cts-menu-item">
+		<div id="menuCxfReport" sclass="cts-menu-item">
 			<custom-attributes perm=""
 				pagePath="/zul/outward/reports/cxfReport.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="CXF Report" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuCxbfReport" sclass="cts-menu-item">
 			<custom-attributes perm=""
 				pagePath="/zul/outward/reports/cxbfReport.zul" />
 			<div sclass="cts-sub-row">
@@ -182,34 +173,30 @@
 	</div>
 
 	<div id="inwardReportsMenu" sclass="cts-submenu" visible="false">
-		<div sclass="cts-menu-item">
+		<div id="menuMakerReport" sclass="cts-menu-item">
 			<custom-attributes perm=""
-				pagePath="/zul/outward/cxf-cxbf.zul" />
+				pagePath="/zul/inward/reports/makerReport.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="Maker Report" />
-				<label id="inwardMakerArrow" sclass="cts-arrow"
-					value="▶" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuCheckerReport1" sclass="cts-menu-item">
 			<custom-attributes perm=""
-				pagePath="/zul/outward/cxf-cxbf.zul" />
-			<div sclass="cts-sub-row">
-				<label sclass="cts-sub-label" value="Checker Report" />
-				<label id="inwardCheckerArrow" sclass="cts-arrow"
-					value="▶" />
-			</div>
-		</div>
-		<div sclass="cts-menu-item">
-			<custom-attributes perm=""
-				pagePath="/zul/outward/cxf-cxbf.zul" />
+				pagePath="/zul/inward/reports/checkerReport1.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="Checker Report" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuCheckerReport2" sclass="cts-menu-item">
 			<custom-attributes perm=""
-				pagePath="/zul/outward/cxf-cxbf.zul" />
+				pagePath="/zul/inward/reports/checkerReport2.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Checker Report" />
+			</div>
+		</div>
+		<div id="menuCheckerReport3" sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/inward/reports/checkerReport3.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="Checker Report" />
 			</div>
@@ -232,31 +219,31 @@
 	</div>
 
 	<div id="userMenu" sclass="cts-submenu" visible="false">
-		<div sclass="cts-menu-item">
+		<div id="menuRoleManagement" sclass="cts-menu-item">
 			<custom-attributes perm=""
-				pagePath="/zul/outward/cxf-cxbf.zul" />
+				pagePath="/zul/settings/roleManagement.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="Role Management" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuUserManagement" sclass="cts-menu-item">
 			<custom-attributes perm=""
-				pagePath="/zul/outward/cxf-cxbf.zul" />
+				pagePath="/zul/settings/userManagement.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label" value="User Management" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuPendingUserApproval" sclass="cts-menu-item">
 			<custom-attributes perm=""
-				pagePath="/zul/outward/cxf-cxbf.zul" />
+				pagePath="/zul/settings/pendingUserApproval.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label"
 					value="Pending User Approval" />
 			</div>
 		</div>
-		<div sclass="cts-menu-item">
+		<div id="menuPendingRoleApproval" sclass="cts-menu-item">
 			<custom-attributes perm=""
-				pagePath="/zul/outward/cxf-cxbf.zul" />
+				pagePath="/zul/settings/pendingRoleApproval.zul" />
 			<div sclass="cts-sub-row">
 				<label sclass="cts-sub-label"
 					value="Pending Role Approval" />
