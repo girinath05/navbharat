@@ -1,51 +1,8 @@
 /* ==================================================
-   SIDEBAR — ClearPay CTS
-   Loaded via dashboard.zul <?link?> tag.
-   sidebar.zul is included using <include src="..."/>
-   so this CSS is guaranteed to be available.
-   ================================================== */
-
-/* ==================================================
-   ROOT SIDEBAR DIV
-   
-   height: 100% works now because dashboard.css
-   forces height: 100% on the entire parent chain:
-     .z-west-body        → height: 100%
-     .z-west-body > .z-div → height: 100%
-     .cts-sidebar        → height: 100%  ✓
-   
-   overflow-y: auto — sidebar scrolls when submenus
-   expand beyond the screen height.
-   overflow-x: hidden — never show horizontal scroll.
-   ================================================== */
-/*
- * SIDEBAR ROOT
- *
- * Professional scroll strategy:
- *   - The west panel (.z-west-body) is overflow:hidden and height:100vh.
- *   - .cts-sidebar fills that container (height:100%) and is the ONLY
- *     element that scrolls (overflow-y:auto).
- *   - Result: the header and center content area NEVER move.
- *     Only the sidebar nav scrolls when menus expand beyond screen height.
- *     This is the standard pattern used by Ant Design, Material, etc.
- *
- * position:absolute + inset:0 is used instead of height:100% as a
- * belt-and-suspenders fallback for browsers that resolve percentage
- * heights differently on block children.
- */
-.cts-sidebar {
-	position: absolute;
-	inset: 0; /* top:0 right:0 bottom:0 left:0 */
-	width: 100%;
-	background: #17004d;
-	color: white;
-	box-sizing: border-box;
-	overflow-y: auto; /* sidebar scrolls; nothing else does */
-	overflow-x: hidden;
-	display: block;
-}
-
-/* Slim scrollbar — matches sidebar theme */
+  SIDEBAR height: 100%
+    .z-west-body > .z-div height: 100%   sidebar scrolls when submenus
+  expand beyond the screen height.
+  overflow-x: hidden matches sidebar theme */
 .cts-sidebar::-webkit-scrollbar {
 	width: 4px;
 }
@@ -60,24 +17,8 @@
 }
 
 /* ==================================================
-   ZK ELEMENT RESETS — scoped inside sidebar only
-   ================================================== */
-.cts-sidebar .z-div:focus, .cts-sidebar .z-div:focus-within {
-	outline: none !important;
-	border: none !important;
-	box-shadow: none !important;
-}
-
-.cts-sidebar .z-label {
-	border: none !important;
-	background: transparent !important;
-	padding: 0 !important;
-	margin: 0 !important;
-}
-
-/* ==================================================
-   SECTION LABEL — MAIN MENU / CLEARING / REPORTS
-   ================================================== */
+  ZK ELEMENT RESETS MAIN MENU / CLEARING / REPORTS
+  ================================================== */
 .cts-section-label {
 	padding: 18px 16px 6px 16px;
 	margin: 0;
@@ -97,8 +38,8 @@
 }
 
 /* ==================================================
-   MENU ITEM
-   ================================================== */
+  MENU ITEM
+  ================================================== */
 .cts-menu-item {
 	padding: 0;
 	margin: 0;
@@ -121,26 +62,8 @@
 }
 
 /* ==================================================
-   MENU HEADER — parent rows with dropdown arrow
-   ================================================== */
-.cts-menu-header {
-	padding: 0;
-	margin: 0;
-	cursor: pointer;
-	transition: background 0.15s ease;
-	display: block;
-	width: 100%;
-	border: none !important;
-	outline: none !important;
-}
-
-.cts-menu-header:hover {
-	background: #28107a;
-}
-
-/* ==================================================
-   ROW — flex row: icon + label + arrow
-   ================================================== */
+  MENU HEADER flex row: icon + label + arrow
+  ================================================== */
 .cts-row {
 	display: flex;
 	flex-direction: row;
@@ -152,8 +75,8 @@
 }
 
 /* ==================================================
-   ICON BADGE
-   ================================================== */
+  ICON BADGE
+  ================================================== */
 .cts-icon-badge {
 	width: 32px;
 	min-width: 32px;
@@ -199,8 +122,8 @@
 }
 
 /* ==================================================
-   ITEM LABEL
-   ================================================== */
+  ITEM LABEL
+  ================================================== */
 .cts-item-label, .cts-item-label.z-label {
 	flex: 1 1 auto;
 	font-size: 14px;
@@ -218,8 +141,8 @@
 }
 
 /* ==================================================
-   ARROW
-   ================================================== */
+  ARROW
+  ================================================== */
 .cts-arrow, .cts-arrow.z-label {
 	font-size: 9px;
 	color: #8892b0;
@@ -238,10 +161,8 @@
 }
 
 /* ==================================================
-   SUBMENU — plain <div>, hidden by default
-   visible="false" in ZK sets display:none directly
-   on the rendered element — no CSS needed for hide.
-   ================================================== */
+  SUBMENU no CSS needed for hide.
+  ================================================== */
 .cts-submenu {
 	display: block;
 	background: #0f0038;
@@ -268,25 +189,8 @@
 }
 
 /* ==================================================
-   SUBMENU ROW — indented flex row, no icon box
-   Left indent aligns text under the parent label
-   (12px pad + 32px icon + 10px gap = 54px)
-   ================================================== */
-.cts-sub-row {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	width: 100%;
-	box-sizing: border-box;
-	padding: 9px 14px 9px 54px;
-	gap: 8px;
-}
-
-/* Subtle left accent line connecting sub-items */
-
-/* ==================================================
-   SUBMENU ITEM LABEL — font styling only
-   ================================================== */
+  SUBMENU ROW font styling only
+  ================================================== */
 .cts-sub-label, .cts-sub-label.z-label {
 	flex: 1 1 auto;
 	font-size: 13px;
