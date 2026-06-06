@@ -1,15 +1,144 @@
-<!--
- ============================================================
-  Project     : Navbharat CTS Outward
-  File        : outwardDashboard.zul
-  Package     : webapp/zul/outward
-  Author      : Girinath M.
-  Created     : June 2026
-  Description : Outward module dashboard. Summary widgets for
-                pending batches, processed count, daily totals.
- ============================================================
--->
+<?xml version="1.0" encoding="UTF-8"?>
 
-<zk>
-	<label value="Outward Dashboard Page"/>
+<?page title="Outward Clearing Dashboard"?>
+
+<zk xmlns="http://www.zkoss.org/2005/zul">
+
+    <div id="outwardDashboardRoot"
+         apply=""
+         width="100%">
+
+        <!-- External CSS -->
+        <style src="/css/outward/outwardDashboard.css"/>
+
+        <div sclass="od-page-bg">
+
+            <!-- ── Breadcrumb ── -->
+            <div sclass="od-breadcrumb">
+                <label value="Home"              sclass="od-bc-home"/>
+                <label value="›"                 sclass="od-bc-sep"/>
+                <label value="Outward Dashboard" sclass="od-bc-cur"/>
+            </div>
+
+            <!-- ── Page Header ── -->
+            <div sclass="od-page-header">
+                <div>
+                    <div sclass="od-page-title">Outward Clearing</div>
+                    <label id="lblPageMeta" sclass="od-page-meta"/>
+                </div>
+                <div sclass="od-header-right">
+                    <button id="btnRefresh" sclass="od-btn-refresh" label="↺ Refresh"/>
+                </div>
+            </div>
+
+            <!-- ── Stat Cards ── -->
+            <div sclass="od-cards-row">
+
+                <div sclass="od-stat-card od-card-indigo">
+                    <div>
+                        <label id="lblTotalBatches" value="0" sclass="od-stat-number"/>
+                        <div sclass="od-stat-label">Total Batches</div>
+                    </div>
+                    <div sclass="od-stat-icon">&#128230;</div>
+                </div>
+
+                <div sclass="od-stat-card od-card-teal">
+                    <div>
+                        <label id="lblSubmittedBatches" value="0" sclass="od-stat-number"/>
+                        <div sclass="od-stat-label">Submitted</div>
+                    </div>
+                    <div sclass="od-stat-icon">&#10003;</div>
+                </div>
+
+                <div sclass="od-stat-card od-card-amber">
+                    <div>
+                        <label id="lblPendingBatches" value="0" sclass="od-stat-number"/>
+                        <div sclass="od-stat-label">Pending</div>
+                    </div>
+                    <div sclass="od-stat-icon">&#9202;</div>
+                </div>
+
+                <div sclass="od-stat-card od-card-rose">
+                    <div>
+                        <label id="lblRejectedBatches" value="0" sclass="od-stat-number"/>
+                        <div sclass="od-stat-label">Rejected</div>
+                    </div>
+                    <div sclass="od-stat-icon">&#10007;</div>
+                </div>
+
+            </div>
+
+            <!-- ── Batch List Card ── -->
+            <div sclass="od-list-card">
+
+                <!-- Card Header -->
+                <div sclass="od-list-card-header">
+                    <div sclass="od-list-card-title">Outward Batch List</div>
+                    <button id="btnRefreshList" sclass="od-btn-hdr" label="↺ Refresh List"/>
+                </div>
+
+                <!-- ── Filter Bar ── -->
+                <div sclass="od-filter-bar">
+
+                    <div sclass="od-filter-group od-filter-grow">
+                        <label value="SEARCH BATCH ID" sclass="od-filter-label"/>
+                        <textbox id="txtBatchId"
+                                 placeholder="e.g. OB-20260605-001"
+                                 width="100%"/>
+                    </div>
+
+                    <div sclass="od-filter-group">
+                        <label value="STATUS" sclass="od-filter-label"/>
+                        <combobox id="cmbStatus"
+                                  readonly="true"
+                                  width="148px"
+                                  value="All">
+                            <comboitem label="All"/>
+                            <comboitem label="DRAFT"/>
+                            <comboitem label="SUBMITTED"/>
+                            <comboitem label="PENDING"/>
+                            <comboitem label="REJECTED"/>
+                        </combobox>
+                    </div>
+
+                    <div sclass="od-filter-group">
+                        <label value="DATE" sclass="od-filter-label"/>
+                        <datebox id="filterDate"
+                                 width="152px"
+                                 format="dd-MMM-yyyy"/>
+                    </div>
+
+                    <button id="btnSearch" sclass="od-btn-search" label="&#128269; Search"/>
+                    <button id="btnClear"  sclass="od-btn-clear"  label="&#10005; Clear"/>
+
+                </div>
+
+                <!-- ── Batch Table ── -->
+                <listbox id="batchListbox"
+                         mold="paging"
+                         pageSize="10"
+                         width="100%"
+                         emptyMessage="No outward batches found for this date.">
+
+                    <listhead sizable="false">
+                        <listheader label="BATCH ID"       width="175px"/>
+                        <listheader label="CREATED DATE"   width="165px"/>
+                        <listheader label="TOTAL CHEQUES"  width="140px"/>
+                        <listheader label="SUBMITTED"      width="130px"/>
+                        <listheader label="REJECTED"       width="130px"/>
+                        <listheader label="TOTAL AMOUNT"   width="155px"/>
+                        <listheader label="STATUS"         width="130px"/>
+                        <listheader label="ACTION"         width="100px"/>
+                    </listhead>
+
+                </listbox>
+
+            </div>
+            <!-- end od-list-card -->
+
+        </div>
+        <!-- end od-page-bg -->
+
+    </div>
+
 </zk>

@@ -34,7 +34,7 @@ public class DashboardComposer extends SelectorComposer<Component> {
            return;
        }
 
-       session.setAttribute(LoginComposer.SESS_CURRENT_PAGE, "zul/dashboard.zul");
+       session.setAttribute(LoginComposer.SESS_CURRENT_PAGE, DEFAULT_PAGE);
 
        instance = this;
 
@@ -44,6 +44,10 @@ public class DashboardComposer extends SelectorComposer<Component> {
        String lastSubPage = (String) session.getAttribute(SESS_LAST_SUB_PAGE);
        if (lastSubPage != null && !lastSubPage.trim().isEmpty()) {
            loadPage(lastSubPage);   // first time login, load default
+       }
+       else
+       {
+    	   loadPage(DEFAULT_PAGE);
        }
    }
 

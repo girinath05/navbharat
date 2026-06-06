@@ -112,7 +112,7 @@ html, body, .z-page {
    CONTENT AREA — inner padding for page content
    ================================================== */
 .cts-content {
-	padding: 25px;
+	padding: 0px !important;
 	min-height: 100%;
 	box-sizing: border-box;
 	background: #f4f6f9;
