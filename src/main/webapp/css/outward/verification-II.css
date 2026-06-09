@@ -1,0 +1,857 @@
+/*
+ * verification2.css
+ * ClearPay CTS — Verification-II (High Value Cheque Authorisation)
+ *
+ * All rules scoped under .v2-root or #v2Root to prevent conflicts
+ * with batch-detail.css or any other page stylesheets.
+ */
+
+/* ──────────────────────────────────────────────────
+   ROOT
+────────────────────────────────────────────────── */
+.v2-root {
+    padding: 24px 28px;
+    background: #f0f2f5;
+    min-height: 100%;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    box-sizing: border-box;
+}
+
+/* ──────────────────────────────────────────────────
+   PAGE HEADER
+────────────────────────────────────────────────── */
+.v2-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.v2-page-title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.v2-page-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a2a4a;
+    letter-spacing: 0.3px;
+}
+
+.v2-page-subtitle {
+    font-size: 13px;
+    color: #6b7a96;
+}
+
+.v2-hv-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #b45309, #d97706);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(180, 83, 9, 0.30);
+}
+
+.v2-hv-icon {
+    font-size: 15px;
+    font-weight: 900;
+}
+
+/* ──────────────────────────────────────────────────
+   THRESHOLD / INFO STRIP
+────────────────────────────────────────────────── */
+.v2-threshold-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 18px;
+    font-size: 13px;
+    color: #92400e;
+    font-weight: 500;
+    flex-wrap: wrap;
+}
+
+.v2-threshold-icon { font-size: 16px; flex-shrink: 0; }
+
+.v2-strip-right {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* ──────────────────────────────────────────────────
+   STAT CHIPS
+────────────────────────────────────────────────── */
+.v2-stat-chip {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+.pending-chip  { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+.passed-chip   { background: #d1fae5; color: #065f46; border: 1px solid #34d399; }
+.rejected-chip { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
+.hv-chip       { background: #fff7ed; color: #c2410c; border: 1px solid #fb923c; }
+
+/* ──────────────────────────────────────────────────
+   CARD
+────────────────────────────────────────────────── */
+.v2-card {
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+    overflow: visible;      /* allow popup to escape */
+}
+
+.v2-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #e8edf3;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.v2-card-header-left  { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.v2-card-header-right { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.v2-card-title { font-size: 15px; font-weight: 700; color: #1a2a4a; }
+.v2-card-hint  { font-size: 12px; color: #8896b0; }
+
+.v2-batch-badge {
+    background: #1a2a4a;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 5px;
+    letter-spacing: 0.5px;
+}
+
+/* ──────────────────────────────────────────────────
+   GRID / TABLE
+────────────────────────────────────────────────── */
+.v2-grid { width: 100%; border-collapse: collapse; }
+
+/* Column headers */
+.v2-col-hd,
+.v2-col-hd > .z-column-content {
+    background: #1a2a4a !important;
+    color: #ffffff !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    padding: 12px 14px !important;
+    border-right: 1px solid rgba(255,255,255,0.10) !important;
+    white-space: nowrap !important;
+}
+
+.v2-center > .z-column-content, .v2-center { text-align: center !important; }
+.v2-right  > .z-column-content, .v2-right  { text-align: right  !important; }
+
+/* Rows */
+.v2-grid .z-row > .z-row-inner,
+.v2-grid .z-row td {
+    padding: 11px 14px !important;
+    font-size: 13px !important;
+    color: #2d3a52 !important;
+    border-bottom: 1px solid #edf0f5 !important;
+    vertical-align: middle !important;
+}
+.v2-grid .z-row:hover td,
+.v2-grid .z-row:hover > .z-row-inner { background: #f4f7fb !important; }
+
+/* Batch number bold */
+.v2-batch-no-cell { font-weight: 700; color: #1a2a4a !important; letter-spacing: 0.3px; }
+
+/* HV count orange */
+.v2-hv-count { color: #b45309; font-weight: 700; }
+
+/* Status badges */
+.v2-status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+.v2-status-pending  { background: #fef3c7; color: #b45309; }
+.v2-status-passed   { background: #d1fae5; color: #065f46; }
+.v2-status-rejected { background: #fee2e2; color: #991b1b; }
+.v2-status-complete { background: #dbeafe; color: #1e40af; }
+
+/* HV flag chip */
+.v2-hv-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fdba74;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 8px;
+}
+
+/* Action buttons in grid */
+.v2-process-btn,
+.v2-open-btn {
+    background: #1a2a4a;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.v2-process-btn:hover,
+.v2-open-btn:hover { background: #243860; }
+
+/* ──────────────────────────────────────────────────
+   EMPTY STATE
+────────────────────────────────────────────────── */
+.v2-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 20px;
+    gap: 12px;
+}
+.v2-empty-icon { font-size: 42px; }
+.v2-empty-msg  { font-size: 14px; color: #8896b0; text-align: center; }
+
+/* ──────────────────────────────────────────────────
+   PROGRESS BAR
+────────────────────────────────────────────────── */
+.v2-progress-bar-wrap {
+    padding: 10px 20px 12px;
+    border-bottom: 1px solid #edf0f5;
+}
+.v2-progress-label {
+    display: block;
+    font-size: 12px;
+    color: #6b7a96;
+    margin-bottom: 6px;
+}
+.v2-progress-track {
+    height: 6px;
+    background: #e8edf3;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.v2-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+/* ──────────────────────────────────────────────────
+   QUEUE HEADER
+────────────────────────────────────────────────── */
+.v2-queue-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    border-bottom: 1px solid #edf0f5;
+}
+.v2-queue-label { font-size: 13px; font-weight: 600; color: #1a2a4a; }
+
+/* ──────────────────────────────────────────────────
+   BACK BUTTON
+────────────────────────────────────────────────── */
+.v2-back-btn {
+    background: transparent;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    border-radius: 5px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.v2-back-btn:hover { background: #f0f2f5; border-color: #94a3b8; color: #1a2a4a; }
+
+/* ──────────────────────────────────────────────────
+   POPUP WINDOW
+────────────────────────────────────────────────── */
+.v2-popup-window {
+    border-radius: 12px !important;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.28) !important;
+    overflow: hidden !important;
+    border: none !important;
+}
+
+.v2-popup-inner {
+    background: #ffffff;
+    max-height: 88vh;
+    overflow-y: auto;
+}
+
+/* Popup title bar */
+.v2-popup-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #1a2a4a;
+    padding: 14px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.v2-popup-title { font-size: 17px; font-weight: 700; color: #ffffff; letter-spacing: 0.3px; }
+
+.v2-popup-hv-tag {
+    background: #d97706;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.v2-ro-tag {
+    background: #1d4ed8;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.v2-close-btn {
+    margin-left: auto;
+    background: rgba(255,255,255,0.15);
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.30);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.v2-close-btn:hover { background: rgba(255,255,255,0.28); }
+
+/* ──────────────────────────────────────────────────
+   CHEQUE IMAGES
+────────────────────────────────────────────────── */
+.v2-images-row {
+    display: flex;
+    gap: 16px;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e8edf3;
+}
+
+.v2-image-panel {
+    flex: 1;
+    border: 1px solid #dde3ec;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.v2-image-label {
+    background: #f0f2f5;
+    border-bottom: 1px solid #e4e9f0;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #1a2a4a;
+    letter-spacing: 0.5px;
+}
+
+.v2-image-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+    background: #fafafa;
+    padding: 8px;
+}
+
+.v2-cheque-img {
+    max-width: 100%;
+    max-height: 190px;
+    object-fit: contain;
+}
+
+.v2-img-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 140px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+/* ──────────────────────────────────────────────────
+   SECTION LABEL
+────────────────────────────────────────────────── */
+.v2-section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #1a2a4a;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    border-top: 1px solid #e8edf3;
+}
+
+/* ──────────────────────────────────────────────────
+   DATA FIELDS (read-only labels styled like inputs)
+────────────────────────────────────────────────── */
+.v2-fields-row {
+    display: flex;
+    gap: 12px;
+    padding: 8px 20px;
+    flex-wrap: wrap;
+}
+
+.v2-field-group          { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.v2-field-group.narrow   { flex: 1; min-width: 100px; max-width: 160px; }
+.v2-field-group.medium   { flex: 2; min-width: 140px; }
+.v2-field-group.wide     { flex: 3; min-width: 200px; }
+.v2-field-group.full     { flex: 1 0 100%; }
+
+.v2-field-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    color: #8896b0;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.v2-field-val {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1e293b;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    padding: 7px 10px;
+    min-height: 34px;
+    display: block;
+    word-break: break-all;
+    /* Mimic a disabled input — clearly read-only */
+    cursor: default;
+}
+
+/* Amount highlighted */
+.highlight-amount {
+    color: #1e3a8a !important;
+    font-weight: 700 !important;
+    background: #eff6ff !important;
+    border-color: #93c5fd !important;
+    font-size: 14px !important;
+}
+
+/* ──────────────────────────────────────────────────
+   POPUP FOOTER
+────────────────────────────────────────────────── */
+.v2-popup-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 14px 20px;
+    border-top: 1px solid #e8edf3;
+    background: #f8fafc;
+    position: sticky;
+    bottom: 0;
+}
+
+.v2-popup-counter { font-size: 13px; color: #475569; font-weight: 500; }
+
+.v2-nav-btn {
+    background: #1a2a4a;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.v2-nav-btn:hover    { background: #243860; }
+.v2-nav-btn:disabled,
+.v2-nav-btn[disabled] { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
+
+/* ──────────────────────────────────────────────────
+   ZK OVERRIDE GUARDS
+────────────────────────────────────────────────── */
+#v2Root .z-label   { font-family: inherit; }
+#v2Root .z-button  { outline: none; }
+#v2Root .z-grid-body td { box-sizing: border-box; }
+/* Prevent ZK default window chrome from conflicting */
+.v2-popup-window > .z-window-header { display: none !important; }
+
+/* ──────────────────────────────────────────────────
+   POPUP CENTERING & SIZE FIXES
+   (added to fix overlapped window positioning)
+────────────────────────────────────────────────── */
+
+/* Remove ZK's default window chrome completely */
+.v2-popup-window.z-window-overlapped > .z-window-header,
+.v2-popup-window > .z-window-header {
+    display: none !important;
+    height: 0 !important;
+    padding: 0 !important;
+}
+
+/* Remove ZK default window content padding */
+.v2-popup-window > .z-window-content,
+.v2-popup-window.z-window-overlapped > .z-window-content {
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+}
+
+/* The popup itself */
+.v2-popup-window.z-window-overlapped,
+.v2-popup-window {
+    width: 920px !important;
+    max-width: 96vw !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35) !important;
+    border: none !important;
+}
+
+/* Inner scroll container */
+.v2-popup-inner {
+    background: #ffffff;
+    max-height: 88vh;
+    overflow-y: auto;
+    border-radius: 0 0 12px 12px;
+}
+
+/* ──────────────────────────────────────────────────
+   FIELD LAYOUT FIXES (match reference design)
+────────────────────────────────────────────────── */
+
+/* Fields row — ensure proper wrapping */
+.v2-fields-row {
+    display: flex;
+    gap: 14px;
+    padding: 10px 20px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+/* Field group sizing — match reference: chequeNo/city/bank/branch in one row */
+.v2-field-group.narrow  { flex: 1; min-width: 90px;  max-width: 150px; }
+.v2-field-group.medium  { flex: 2; min-width: 130px; max-width: 260px; }
+.v2-field-group.wide    { flex: 3; min-width: 200px; }
+.v2-field-group.full    { flex: 1 0 100%; }
+
+/* Read-only value boxes — darker border, cleaner look */
+.v2-field-val {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1e293b;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px 11px;
+    min-height: 36px;
+    display: block;
+    word-break: break-all;
+    cursor: default;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+/* Amount field highlight */
+.highlight-amount {
+    color: #1e3a8a !important;
+    font-weight: 700 !important;
+    background: #eff6ff !important;
+    border-color: #93c5fd !important;
+    font-size: 14px !important;
+}
+
+/* ──────────────────────────────────────────────────
+   POPUP FOOTER FIX
+────────────────────────────────────────────────── */
+.v2-popup-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px;
+    border-top: 1px solid #e8edf3;
+    background: #f8fafc;
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+}
+
+/* Prev/Next disabled state */
+.v2-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ──────────────────────────────────────────────────
+   GRID OVERFLOW FIX — prevent horizontal scrollbar
+────────────────────────────────────────────────── */
+
+/* Force the grid to never exceed its container */
+#v2Root .z-grid,
+#v2Root .z-grid-body,
+#v2Root .z-grid table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    overflow: hidden !important;
+}
+
+/* Clip long text instead of expanding columns */
+#v2Root .z-grid td,
+#v2Root .z-grid th,
+#v2Root .z-grid .z-row td {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+}
+
+/* STATUS column may have long text like READY_FOR_VERIFICATION
+   — allow it to show fully by reducing font size */
+#v2Root .z-grid td .z-label {
+    font-size: 12px !important;
+}
+
+/* Remove the horizontal scrollbar from grid body */
+#v2Root .z-grid-body {
+    overflow-x: hidden !important;
+}
+/* ══════════════════════════════════════════════════════════════
+   VERIFICATION ACTION SECTION
+   New classes for Accept / Reject buttons and Remarks textbox.
+   Added for V2 verification write-back feature.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Remarks textbox */
+.v2-remarks-box,
+.v2-remarks-box.z-textbox {
+    width: 100% !important;
+    font-size: 13px !important;
+    font-family: 'Segoe UI', Arial, sans-serif !important;
+    color: #1e293b !important;
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    padding: 8px 11px !important;
+    resize: vertical !important;
+    box-sizing: border-box !important;
+    transition: border-color 0.15s !important;
+}
+.v2-remarks-box:focus,
+.v2-remarks-box.z-textbox:focus {
+    border-color: #3b82f6 !important;
+    outline: none !important;
+    background: #fff !important;
+}
+
+/* Action bar — Accept / Reject side by side */
+.v2-action-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px 14px;
+}
+
+/* Accept button — green */
+.v2-accept-btn,
+.v2-accept-btn.z-button {
+    background: #16a34a !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 9px 28px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3px !important;
+    cursor: pointer !important;
+    transition: background 0.15s !important;
+    min-width: 120px !important;
+}
+.v2-accept-btn:hover,
+.v2-accept-btn.z-button:hover {
+    background: #15803d !important;
+}
+.v2-accept-btn:disabled,
+.v2-accept-btn.z-button[disabled] {
+    background: #bbf7d0 !important;
+    color: #6ee7b7 !important;
+    cursor: not-allowed !important;
+}
+
+/* Reject button — red */
+.v2-reject-btn,
+.v2-reject-btn.z-button {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 9px 28px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3px !important;
+    cursor: pointer !important;
+    transition: background 0.15s !important;
+    min-width: 120px !important;
+}
+.v2-reject-btn:hover,
+.v2-reject-btn.z-button:hover {
+    background: #b91c1c !important;
+}
+.v2-reject-btn:disabled,
+.v2-reject-btn.z-button[disabled] {
+    background: #fecaca !important;
+    color: #fca5a5 !important;
+    cursor: not-allowed !important;
+}
+
+/* v2-status-accepted and v2-status-rejected for list badges */
+.v2-status-accepted { background: #d1fae5; color: #065f46; }
+.v2-status-rejected { background: #fee2e2; color: #991b1b; }
+
+
+/* ─────────────────────────────────────────────────
+   ADD THESE RULES to your verification2.css file
+   (paste them at the bottom of the existing file)
+   ───────────────────────────────────────────────── */
+
+/* ── Filter bar ─────────────────────────────────── */
+
+.v2-queue-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;   /* queue label on left, filter bar on right */
+    padding: 10px 16px;
+}
+
+.v2-filter-bar {
+    display: flex;
+    gap: 8px;
+}
+
+/* Base filter button style */
+.v2-filter-btn,
+.v2-filter-btn .z-button {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.v2-filter-btn:hover .z-button,
+.v2-filter-btn.z-button:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+/* Active filter button — highlighted */
+.v2-filter-active,
+.v2-filter-active .z-button {
+    background: #1e3a5f !important;
+    color: #ffffff !important;
+    border-color: #1e3a5f !important;
+}
+
+/* ── Pagination bar ──────────────────────────────── */
+
+.v2-pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 12px 16px;
+}
+
+.v2-page-btn,
+.v2-page-btn .z-button {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 5px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.v2-page-btn:hover .z-button,
+.v2-page-btn.z-button:hover {
+    background: #e2e8f0;
+}
+
+/* Disabled state for Prev / Next */
+.v2-page-btn[disabled] .z-button,
+.v2-page-btn .z-button[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.v2-page-info,
+.v2-page-info .z-label {
+    font-size: 13px;
+    color: #64748b;
+    min-width: 90px;
+    text-align: center;
+}
+
+.v2-ref-flag,
+.v2-ref-flag .z-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
