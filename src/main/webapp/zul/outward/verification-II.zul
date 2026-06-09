@@ -1,16 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?page title="Verification II — ClearPay CTS"?>
+<?link rel="stylesheet" type="text/css" href="/navbharat/css/verification2.css"?>
+
 <!--
- ============================================================
-  Project     : Navbharat CTS Outward
-  File        : verification-II.zul
-  Package     : webapp/zul/outward
-  Author      : Anusha & Girinath.
-  Created     : June 2026
-  Description : Level-2 verification screen. Supervisor sign-off
-                on batch. Triggers final outward processing.
- ============================================================
+	verification2.zul
+	Verification-II : High Value Cheque Authorisation
+	Composer : com.cts.outward.composer.Verification2Composer
+
+	Three logical screens share this single ZUL file:
+	Screen 1 — batchListView  : HV batch table
+	Screen 2 — chequeListView : HV cheques inside the selected batch
+	Screen 3 — chequeDetailPopup : detail overlay with Accept / Reject action
+
+	Changes:
+	  Batch list  — filter bar (All / Verified / In Progress) + pagination bar
+	  Cheque list — filter bar (All / Pending / Accepted / Rejected) + pagination bar
 -->
+<zk xmlns="http://www.zkoss.org/2005/zul"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
+	<div id="v2Root" sclass="v2-root"
+		apply="com.cts.outward.composer.Verification2Composer">
 
-<zk>
-	<label value="Verification-II Page" />
+		<style src="/css/outward/verification-II.css" />
+
+		<!-- ══════════════════════════════════════════════════════
+			PAGE HEADER
+			═══════════════════════════════════════════════════════ -->
+		<div sclass="v2-page-header">
+			<div sclass="v2-page-title-block">
+				<label sclass="v2-page-title" value="Verification II" />
+				<label sclass="v2-page-subtitle"
+					value="High Value Cheque Authorisation — Select a batch to review flagged instruments" />
+			</div>
+			<div sclass="v2-hv-badge">
+				<span sclass="v2-hv-icon">₹</span>
+				<label value="HIGH VALUE ONLY" />
+			</div>
+		</div>
+
+		<!-- ══════════════════════════════════════════════════════
+			THRESHOLD INFO STRIP
+			═══════════════════════════════════════════════════════ -->
+		<div sclass="v2-threshold-strip">
+			<span sclass="v2-threshold-icon">⚠</span>
+			<label
+				value="Displaying batches containing cheques flagged as High Value" />
+			<div sclass="v2-strip-right">
+				<label sclass="v2-stat-chip pending-chip"
+					id="totalBatchesChip" value="— Batches" />
+				<label sclass="v2-stat-chip hv-chip" id="totalHvChip"
+					value="— HV Cheques" />
+			</div>
+		</div>
+
+		<!-- ══════════════════════════════════════════════════════
+			SCREEN 1 — BATCH LIST VIEW
+			═══════════════════════════════════════════════════════ -->
+		<div id="batchListView" sclass="v2-card">
+
+			<!-- Batch card header: title + filter buttons -->
+			<div sclass="v2-card-header">
+				<div sclass="v2-card-header-left">
+					<label sclass="v2-card-title" value="Batch List" />
+					<label sclass="v2-card-hint" id="batchCountLabel"
+						value="Showing high-value batches" />
+				</div>
+				<div sclass="v2-filter-bar">
+					<button id="btnBatchFilterAll"        sclass="v2-filter-btn v2-filter-active" label="All" />
+					<button id="btnBatchFilterVerified"   sclass="v2-filter-btn" label="Verified" />
+					<button id="btnBatchFilterInProgress" sclass="v2-filter-btn" label="In Progress" />
+				</div>
+			</div>
+
+			<grid id="batchGrid" sclass="v2-grid" width="100%">
+				<columns sclass="v2-grid-columns">
+					<column label="BATCH ID"   width="16%" sclass="v2-col-hd" />
+					<column label="TOTAL"      width="8%"  sclass="v2-col-hd v2-center" />
+					<column label="HV COUNT"   width="10%" sclass="v2-col-hd v2-center" />
+					<column label="PENDING"    width="9%"  sclass="v2-col-hd v2-center" />
+					<column label="PROCESSED"  width="10%" sclass="v2-col-hd v2-center" />
+					<column label="BRANCH"     width="9%"  sclass="v2-col-hd v2-center" />
+					<column label="STATUS"     width="14%" sclass="v2-col-hd v2-center" />
+					<column label="CREATED BY" width="13%" sclass="v2-col-hd v2-center" />
+					<column label="ACTION"     width="11%" sclass="v2-col-hd v2-center" />
+				</columns>
+				<rows id="batchRows" />
+			</grid>
+
+			<div id="batchEmptyState" sclass="v2-empty-state" visible="false">
+				<label sclass="v2-empty-icon" value="📋" />
+				<label sclass="v2-empty-msg"
+					value="No batches match the selected filter" />
+			</div>
+
+			<!-- Batch pagination bar -->
+			<div sclass="v2-pagination-bar">
+				<button id="btnBatchPagePrev" sclass="v2-page-btn" label="‹ Prev" />
+				<label  id="batchPageInfoLabel" sclass="v2-page-info" value="Page 1 of 1" />
+				<button id="btnBatchPageNext" sclass="v2-page-btn" label="Next ›" />
+			</div>
+
+		</div><!-- /batchListView -->
+
+		<!-- ══════════════════════════════════════════════════════
+			SCREEN 2 — HV CHEQUE LIST VIEW
+			═══════════════════════════════════════════════════════ -->
+		<div id="chequeListView" sclass="v2-card" visible="false">
+
+			<!-- Header row -->
+			<div sclass="v2-card-header">
+				<div sclass="v2-card-header-left">
+					<button id="btnBackToBatches" sclass="v2-back-btn"
+						label="← Back to Batches" />
+					<label sclass="v2-card-title" value="High Value Cheques" />
+					<label sclass="v2-batch-badge" id="activeBatchLabel" value="" />
+				</div>
+				<div sclass="v2-card-header-right">
+					<label sclass="v2-stat-chip pending-chip"  id="hvPendingChip"  value="0 Pending" />
+					<label sclass="v2-stat-chip passed-chip"   id="hvPassedChip"   value="0 Passed" />
+					<label sclass="v2-stat-chip rejected-chip" id="hvRejectedChip" value="0 Rejected" />
+				</div>
+			</div>
+
+			<!-- Progress bar -->
+			<div sclass="v2-progress-bar-wrap">
+				<label sclass="v2-progress-label" id="progressLabel"
+					value="Batch Progress  0 / 0 verified" />
+				<div sclass="v2-progress-track">
+					<div sclass="v2-progress-fill" id="progressFill" style="width:0%" />
+				</div>
+			</div>
+
+			<!-- Cheque queue label + filter buttons -->
+			<div sclass="v2-queue-header">
+				<label sclass="v2-queue-label" value="High Value Cheque Queue" />
+				<div sclass="v2-filter-bar">
+					<button id="btnFilterAll"      sclass="v2-filter-btn v2-filter-active" label="All" />
+					<button id="btnFilterPending"  sclass="v2-filter-btn" label="Pending" />
+					<button id="btnFilterAccepted" sclass="v2-filter-btn" label="Accepted" />
+					<button id="btnFilterRejected" sclass="v2-filter-btn" label="Rejected" />
+				</div>
+			</div>
+
+			<grid id="chequeGrid" sclass="v2-grid" width="100%">
+				<columns sclass="v2-grid-columns">
+					<column label="S.NO."          width="6%"  sclass="v2-col-hd v2-center" />
+					<column label="CHEQUE NO."     width="12%" sclass="v2-col-hd" />
+					<column label="PAYEE / DRAWER" width="28%" sclass="v2-col-hd" />
+					<column label="AMOUNT (Rs.)"   width="16%" sclass="v2-col-hd v2-right" />
+					<column label="DATE"           width="12%" sclass="v2-col-hd v2-center" />
+					<column label="FLAG"           width="8%"  sclass="v2-col-hd v2-center" />
+					<column label="VER STATUS"     width="11%" sclass="v2-col-hd v2-center" />
+					<column label="ACTION"         width="7%"  sclass="v2-col-hd v2-center" />
+				</columns>
+				<rows id="chequeRows" />
+			</grid>
+
+			<div id="chequeEmptyState" sclass="v2-empty-state" visible="false">
+				<label sclass="v2-empty-icon" value="✅" />
+				<label sclass="v2-empty-msg"
+					value="No cheques match the selected filter" />
+			</div>
+
+			<!-- Cheque pagination bar -->
+			<div sclass="v2-pagination-bar">
+				<button id="btnPagePrev"  sclass="v2-page-btn" label="‹ Prev" />
+				<label  id="pageInfoLabel" sclass="v2-page-info" value="Page 1 of 1" />
+				<button id="btnPageNext"  sclass="v2-page-btn" label="Next ›" />
+			</div>
+
+		</div><!-- /chequeListView -->
+
+		<!-- ══════════════════════════════════════════════════════
+			SCREEN 3 — CHEQUE DETAIL POPUP WITH VERIFICATION ACTION
+			═══════════════════════════════════════════════════════ -->
+		<window id="chequeDetailPopup" sclass="v2-popup-window"
+			border="none" mode="overlapped" closable="false" width="920px">
+
+			<div sclass="v2-popup-inner">
+
+				<div sclass="v2-popup-titlebar">
+					<label sclass="v2-popup-title" id="popupTitle" value="Cheque #——" />
+					<div sclass="v2-popup-hv-tag">HIGH VALUE</div>
+					<button id="btnClosePopup" sclass="v2-close-btn" label="✕  Close" />
+				</div>
+
+				<div sclass="v2-images-row">
+					<div sclass="v2-image-panel">
+						<div sclass="v2-image-label">🖼 FRONT SIDE</div>
+						<div sclass="v2-image-box">
+							<image id="frontChequeImage" sclass="v2-cheque-img" visible="false" />
+							<div id="frontImagePlaceholder" sclass="v2-img-placeholder">
+								<label value="No image available" />
+							</div>
+						</div>
+					</div>
+					<div sclass="v2-image-panel">
+						<div sclass="v2-image-label">🖼 REAR SIDE</div>
+						<div sclass="v2-image-box">
+							<image id="rearChequeImage" sclass="v2-cheque-img" visible="false" />
+							<div id="rearImagePlaceholder" sclass="v2-img-placeholder">
+								<label value="No image available" />
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div sclass="v2-section-label">📋 CHEQUE DATA ENTRY</div>
+
+				<div sclass="v2-fields-row">
+					<div sclass="v2-field-group narrow">
+						<label sclass="v2-field-lbl" value="CHEQUE NO." />
+						<label sclass="v2-field-val" id="fChequeNo" value="——" />
+					</div>
+					<div sclass="v2-field-group medium">
+						<label sclass="v2-field-lbl" value="SORT CODE" />
+						<label sclass="v2-field-val" id="fSortCode" value="——" />
+					</div>
+					<div sclass="v2-field-group narrow">
+						<label sclass="v2-field-lbl" value="TRANSACTION CODE" />
+						<label sclass="v2-field-val" id="fTransactionCode" value="——" />
+					</div>
+				</div>
+
+				<div sclass="v2-fields-row">
+					<div sclass="v2-field-group wide">
+						<label sclass="v2-field-lbl" value="ACCOUNT NO. (DRAWEE)" />
+						<label sclass="v2-field-val" id="fAccountNo" value="——" />
+					</div>
+					<div sclass="v2-field-group medium">
+						<label sclass="v2-field-lbl" value="CHEQUE DATE" />
+						<label sclass="v2-field-val" id="fChequeDate" value="——" />
+					</div>
+					<div sclass="v2-field-group medium">
+						<label sclass="v2-field-lbl" value="AMOUNT (₹)" />
+						<label sclass="v2-field-val highlight-amount" id="fAmount" value="——" />
+					</div>
+				</div>
+
+				<div sclass="v2-fields-row">
+					<div sclass="v2-field-group wide">
+						<label sclass="v2-field-lbl" value="PAYEE NAME" />
+						<label sclass="v2-field-val" id="fPayeeName" value="——" />
+					</div>
+					<div sclass="v2-field-group wide">
+						<label sclass="v2-field-lbl" value="DRAWER NAME" />
+						<label sclass="v2-field-val" id="fDrawerName" value="——" />
+					</div>
+				</div>
+
+				<div sclass="v2-fields-row">
+					<div sclass="v2-field-group full">
+						<label sclass="v2-field-lbl" value="AMOUNT IN WORDS" />
+						<label sclass="v2-field-val" id="fAmountInWords" value="——" />
+					</div>
+				</div>
+
+				<div sclass="v2-section-label">✅ VERIFICATION ACTION</div>
+
+				<div sclass="v2-fields-row">
+					<div sclass="v2-field-group full">
+						<label sclass="v2-field-lbl" value="REMARKS (OPTIONAL)" />
+						<textbox id="fVerRemarks" sclass="v2-remarks-box"
+							placeholder="Enter remarks before accepting or rejecting..."
+							multiline="true" rows="2" width="100%" />
+					</div>
+				</div>
+
+				<div sclass="v2-action-bar">
+					<button id="btnAccept" sclass="v2-accept-btn" label="✔  Accept" />
+					<button id="btnReject" sclass="v2-reject-btn" label="✘  Reject" />
+				</div>
+
+				<div sclass="v2-popup-footer">
+					<button id="btnPopupPrev" sclass="v2-nav-btn" label="‹ Prev" />
+					<label sclass="v2-popup-counter" id="popupCounter" value="1 / 1" />
+					<button id="btnPopupNext" sclass="v2-nav-btn" label="Next ›" />
+				</div>
+
+			</div><!-- /popup-inner -->
+		</window><!-- /chequeDetailPopup -->
+
+	</div><!-- /v2Root -->
 </zk>
