@@ -36,8 +36,17 @@
 
 		</div>
 
+		<!-- CLICK-OUTSIDE CATCHER — invisible, covers the whole screen.
+		     Shown only while the profile popup is open. Clicking ANYWHERE
+		     on it (header / sidebar / dashboard center, doesn't matter
+		     since this is position:fixed and sits above everything else
+		     except the popup itself) closes the popup.
+		     Styling is INLINE on purpose so it doesn't depend on header.css. -->
+		<div id="ppOverlay" sclass="pp-overlay" visible="false"
+			style="position:fixed; top:0; left:0; width:100%; height:100%; background:transparent; z-index:99998;" />
+
 		<!-- PROFILE POPUP -->
-		<div id="profilePopup" sclass="profile-popup">
+		<div id="profilePopup" sclass="profile-popup" style="z-index:99999;">
 
 			<n:div class="pp-top">
 				<n:div class="pp-avatar-big">

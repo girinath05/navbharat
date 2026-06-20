@@ -1,14 +1,22 @@
 /*
- * verification2.css
- * ClearPay CTS — Verification-II (High Value Cheque Authorisation)
+ * verification-II.css
+ * ClearPay CTS — Verification-II  (High Value & Referred Cheque Authorisation)
  *
- * All rules scoped under .v2-root or #v2Root to prevent conflicts
- * with batch-detail.css or any other page stylesheets.
+ * All rules scoped under .v2-root or #v2Root to prevent conflicts.
+ *
+ * Changes in this version:
+ *   • Popup redesigned: two-column layout (image left | data right), fixed height, NO scroll
+ *   • Image viewer: single panel with FRONT / BACK tab toggle
+ *   • Three data sections: MICR Data | Cheque Data | CBS Data
+ *   • CBS Data section styling (pending integration)
+ *   • HIGH VALUE badge = navy  |  REFERRED badge = orange
+ *   • Action bar (remarks + buttons) sticky above footer
+ *   • Remarks required indicator for Reject
  */
 
-/* ──────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════
    ROOT
-────────────────────────────────────────────────── */
+   ══════════════════════════════════════════════════════ */
 .v2-root {
     padding: 24px 28px;
     background: #f0f2f5;
@@ -17,9 +25,9 @@
     box-sizing: border-box;
 }
 
-/* ──────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════
    PAGE HEADER
-────────────────────────────────────────────────── */
+   ══════════════════════════════════════════════════════ */
 .v2-page-header {
     display: flex;
     align-items: flex-start;
@@ -28,47 +36,48 @@
     flex-wrap: wrap;
     gap: 10px;
 }
+.v2-page-title-block { display: flex; flex-direction: column; gap: 4px; }
+.v2-page-title       { font-size: 22px; font-weight: 700; color: #1a2a4a; letter-spacing: 0.3px; }
+.v2-page-subtitle    { font-size: 13px; color: #6b7a96; }
 
-.v2-page-title-block {
+/* Two separate top-right badges */
+.v2-hv-badges-row {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    gap: 10px;
+    align-items: center;
 }
 
-.v2-page-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: #1a2a4a;
-    letter-spacing: 0.3px;
-}
-
-.v2-page-subtitle {
-    font-size: 13px;
-    color: #6b7a96;
-}
-
-.v2-hv-badge {
+.v2-hv-badge-orange {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     background: linear-gradient(135deg, #b45309, #d97706);
     color: #fff;
-    font-size: 12px;
     font-weight: 700;
     letter-spacing: 1px;
-    padding: 6px 16px;
+    padding: 3px 10px;
     border-radius: 20px;
-    box-shadow: 0 2px 8px rgba(180, 83, 9, 0.30);
+    box-shadow: 0 2px 8px rgba(180,83,9,0.30);
 }
 
-.v2-hv-icon {
-    font-size: 15px;
-    font-weight: 900;
+.v2-hv-badge-blue {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(29,78,216,0.30);
 }
 
-/* ──────────────────────────────────────────────────
-   THRESHOLD / INFO STRIP
-────────────────────────────────────────────────── */
+.v2-hv-icon { font-size: 12px; font-weight: 900; }
+
+/* ══════════════════════════════════════════════════════
+   THRESHOLD STRIP
+   ══════════════════════════════════════════════════════ */
 .v2-threshold-strip {
     display: flex;
     align-items: center;
@@ -83,19 +92,12 @@
     font-weight: 500;
     flex-wrap: wrap;
 }
-
 .v2-threshold-icon { font-size: 16px; flex-shrink: 0; }
+.v2-strip-right    { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 
-.v2-strip-right {
-    margin-left: auto;
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-/* ──────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════
    STAT CHIPS
-────────────────────────────────────────────────── */
+   ══════════════════════════════════════════════════════ */
 .v2-stat-chip {
     display: inline-block;
     padding: 4px 12px;
@@ -108,69 +110,188 @@
 .passed-chip   { background: #d1fae5; color: #065f46; border: 1px solid #34d399; }
 .rejected-chip { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
 .hv-chip       { background: #fff7ed; color: #c2410c; border: 1px solid #fb923c; }
+.ref-chip      { background: #eff6ff; color: #1d4ed8; border: 1px solid #3b82f6; }
 
-/* ──────────────────────────────────────────────────
+/* When chips are used as filter buttons, strip the colour — plain pill only */
+.pending-chip.chip-filter,
+.passed-chip.chip-filter,
+.rejected-chip.chip-filter {
+    background: #ffffff !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+/* ══════════════════════════════════════════════════════
    CARD
-────────────────────────────────────────────────── */
+   ══════════════════════════════════════════════════════ */
 .v2-card {
     background: #ffffff;
     border-radius: 10px;
     box-shadow: 0 1px 6px rgba(0,0,0,0.08);
     margin-bottom: 20px;
-    overflow: visible;      /* allow popup to escape */
+    overflow: visible;
 }
-
 .v2-card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px 12px;
     border-bottom: 1px solid #e8edf3;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    gap: 10px;
+}
+.v2-card-header-left  { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex-shrink: 1; min-width: 0; }
+.v2-card-header-right { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── Cheque card header — two rows ── */
+.v2-cheque-card-header {
+    display: flex;
+    flex-direction: column;
+    padding: 14px 20px 10px;
+    border-bottom: 1px solid #e8edf3;
     gap: 10px;
 }
 
-.v2-card-header-left  { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.v2-card-header-right { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Row 1: three columns — batch (left) | CHEQUE QUEUE (center) | Back to Batches (right) */
+.v2-cheque-header-row1 {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 12px;
+}
 
-.v2-card-title { font-size: 15px; font-weight: 700; color: #1a2a4a; }
-.v2-card-hint  { font-size: 12px; color: #8896b0; }
+.v2-cheque-col-left {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.v2-cheque-col-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.v2-cheque-col-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    justify-content: flex-end;
+}
+
+/* Row 2: search -> date range -> chips -> clear, spread full width, no edge gaps */
+.v2-cheque-filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: nowrap;
+    width: 100%;
+}
+
+/* Chip group — keeps the 5 status/type chips clustered together as one block */
+.v2-chip-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Thin vertical divider between High Value/Referred and status chips */
+.v2-chip-divider {
+    display: inline-block;
+    width: 1px;
+    height: 20px;
+    background: #d0d7e3;
+    margin: 0 4px;
+    vertical-align: middle;
+}
+.v2-card-title { font-size: 18px; font-weight: 800; color: #1a2a4a; white-space: nowrap; letter-spacing: 0.2px; }
+.v2-card-hint  { font-size: 12px; color: #8896b0; white-space: nowrap; }
 
 .v2-batch-badge {
     background: #1a2a4a;
     color: #fff;
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 700;
-    padding: 3px 10px;
+    padding: 5px 14px;
     border-radius: 5px;
     letter-spacing: 0.5px;
 }
 
-/* ──────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════
    GRID / TABLE
-────────────────────────────────────────────────── */
-.v2-grid { width: 100%; border-collapse: collapse; }
+   ══════════════════════════════════════════════════════ */
+.v2-grid { width: 100%; border-collapse: collapse; border: none !important; }
 
-/* Column headers */
+.v2-grid .z-columns,
+.v2-grid .z-columns-inner,
+.v2-grid thead,
+.v2-grid thead tr,
+.v2-grid thead td,
+.v2-grid thead th {
+    border: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    outline: none !important;
+}
+
+/* Kill ZK's default blue bottom border on the header row */
+.v2-grid .z-columns-bar,
+.v2-grid .z-grid-header,
+.v2-grid .z-grid-inner > table > thead,
+.v2-grid .z-grid-inner > table > thead > tr > td {
+    border: none !important;
+    border-bottom: none !important;
+    outline: none !important;
+}
+
 .v2-col-hd,
+.v2-col-hd > .z-column-content {
+    border-bottom: none !important;
+}
+
+/* Outer column cell — single white right border */
+.v2-col-hd {
+    background: #1a2a4a !important;
+    color: #ffffff !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    padding: 0 !important;
+    border-right: none !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    vertical-align: middle !important;
+    text-align: center !important;
+}
+
+/* Inner content wrapper — NO border (it's already on the outer cell) */
 .v2-col-hd > .z-column-content {
     background: #1a2a4a !important;
     color: #ffffff !important;
     font-size: 12px !important;
     font-weight: 700 !important;
     letter-spacing: 0.5px !important;
-    padding: 12px 14px !important;
-    border-right: 1px solid rgba(255,255,255,0.10) !important;
-    white-space: nowrap !important;
+    padding: 12px 10px !important;
+    border-right: none !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.3 !important;
+    vertical-align: middle !important;
+    text-align: center !important;
 }
 
+/* Last column — no trailing border */
+.v2-col-hd:last-child {
+    border-right: none !important;
+}
 .v2-center > .z-column-content, .v2-center { text-align: center !important; }
-.v2-right  > .z-column-content, .v2-right  { text-align: right  !important; }
 
-/* Rows */
 .v2-grid .z-row > .z-row-inner,
 .v2-grid .z-row td {
-    padding: 11px 14px !important;
+    padding: 10px 14px !important;
     font-size: 13px !important;
     color: #2d3a52 !important;
     border-bottom: 1px solid #edf0f5 !important;
@@ -179,29 +300,57 @@
 .v2-grid .z-row:hover td,
 .v2-grid .z-row:hover > .z-row-inner { background: #f4f7fb !important; }
 
-/* Batch number bold */
 .v2-batch-no-cell { font-weight: 700; color: #1a2a4a !important; letter-spacing: 0.3px; }
-
-/* HV count orange */
-.v2-hv-count { color: #b45309; font-weight: 700; }
+.v2-hv-count      { color: #b45309; font-weight: 700; }
 
 /* Status badges */
 .v2-status-badge {
     display: inline-block;
-    padding: 3px 10px;
+    padding: 3px 8px;
     border-radius: 10px;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.4px;
     text-transform: uppercase;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.4;
+    max-width: 110px;
+    word-break: break-word;
+    box-sizing: border-box;
 }
 .v2-status-pending  { background: #fef3c7; color: #b45309; }
+.v2-status-verified { background: #dcfce7; color: #166534; }
+/* READY FOR VERIFICATION — light red, distinct from VERIFIED/IN PROGRESS */
+.v2-status-notstarted {
+    background: #fff1f2;
+    color: #be123c;
+    border: 1.5px solid #fda4af;
+    white-space: normal !important;
+    text-align: center;
+    line-height: 1.3;
+    padding: 4px 8px;
+    font-weight: 700 !important;
+}
 .v2-status-passed   { background: #d1fae5; color: #065f46; }
 .v2-status-rejected { background: #fee2e2; color: #991b1b; }
-.v2-status-complete { background: #dbeafe; color: #1e40af; }
+.v2-status-complete { background: #dcfce7; color: #166534; }
+.v2-status-accepted { background: #d1fae5; color: #065f46; }
 
-/* HV flag chip */
+/* HV / Referred flag chips */
 .v2-hv-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 8px;
+}
+.v2-ref-flag {
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -231,9 +380,9 @@
 .v2-process-btn:hover,
 .v2-open-btn:hover { background: #243860; }
 
-/* ──────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════
    EMPTY STATE
-────────────────────────────────────────────────── */
+   ══════════════════════════════════════════════════════ */
 .v2-empty-state {
     display: flex;
     flex-direction: column;
@@ -244,47 +393,105 @@
 .v2-empty-icon { font-size: 42px; }
 .v2-empty-msg  { font-size: 14px; color: #8896b0; text-align: center; }
 
-/* ──────────────────────────────────────────────────
-   PROGRESS BAR
-────────────────────────────────────────────────── */
-.v2-progress-bar-wrap {
-    padding: 10px 20px 12px;
-    border-bottom: 1px solid #edf0f5;
-}
-.v2-progress-label {
-    display: block;
-    font-size: 12px;
-    color: #6b7a96;
-    margin-bottom: 6px;
-}
-.v2-progress-track {
-    height: 6px;
-    background: #e8edf3;
-    border-radius: 3px;
-    overflow: hidden;
-}
-.v2-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #22c55e, #16a34a);
-    border-radius: 3px;
-    transition: width 0.4s ease;
-}
-
-/* ──────────────────────────────────────────────────
-   QUEUE HEADER
-────────────────────────────────────────────────── */
-.v2-queue-header {
-    display: flex;
+/* ══════════════════════════════════════════════════════
+   QUEUE LABEL — inline next to batch badge in card header
+   ══════════════════════════════════════════════════════ */
+.v2-queue-label {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1a2a4a;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 20px;
-    border-bottom: 1px solid #edf0f5;
 }
-.v2-queue-label { font-size: 13px; font-weight: 600; color: #1a2a4a; }
 
-/* ──────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════
+   CLICKABLE STAT CHIPS — filter toggle behaviour
+   ══════════════════════════════════════════════════════ */
+.chip-filter,
+.chip-filter-all {
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    user-select: none !important;
+}
+
+/* ALL chips inactive — plain white pill, no colour */
+.chip-filter-all,
+.pending-chip.chip-filter,
+.passed-chip.chip-filter,
+.rejected-chip.chip-filter {
+    background: #ffffff !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 4px 14px !important;
+    border-radius: 12px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+}
+
+/* Hover — all chips same subtle grey */
+.chip-filter-all:hover,
+.pending-chip.chip-filter:hover,
+.passed-chip.chip-filter:hover,
+.rejected-chip.chip-filter:hover {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+    border-color: #94a3b8 !important;
+}
+
+/* Active state — dark navy fill for whichever chip is selected */
+.chip-filter-all.chip-filter-active,
+.pending-chip.chip-filter-active,
+.passed-chip.chip-filter-active,
+.rejected-chip.chip-filter-active,
+.chip-filter-hv.chip-filter-active,
+.chip-filter-ref.chip-filter-active {
+    background: #1e3a5f !important;
+    color: #ffffff !important;
+    border-color: #1e3a5f !important;
+}
+
+/* HV chip — blue tint border inactive */
+.chip-filter-hv {
+    background: #ffffff !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 4px 14px !important;
+    border-radius: 12px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+.chip-filter-hv:hover:not(.chip-filter-active) {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+    border-color: #94a3b8 !important;
+}
+
+/* RF chip — plain white pill, same as other chips */
+.chip-filter-ref {
+    background: #ffffff !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 4px 14px !important;
+    border-radius: 12px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+.chip-filter-ref:hover:not(.chip-filter-active) {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+    border-color: #94a3b8 !important;
+}
+
+/* ══════════════════════════════════════════════════════
    BACK BUTTON
-────────────────────────────────────────────────── */
+   ══════════════════════════════════════════════════════ */
 .v2-back-btn {
     background: transparent;
     border: 1px solid #cbd5e1;
@@ -298,482 +505,13 @@
 }
 .v2-back-btn:hover { background: #f0f2f5; border-color: #94a3b8; color: #1a2a4a; }
 
-/* ──────────────────────────────────────────────────
-   POPUP WINDOW
-────────────────────────────────────────────────── */
-.v2-popup-window {
-    border-radius: 12px !important;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.28) !important;
-    overflow: hidden !important;
-    border: none !important;
-}
+/* ══════════════════════════════════════════════════════
+   FILTER BAR
+   ══════════════════════════════════════════════════════ */
+.v2-filter-bar { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
-.v2-popup-inner {
-    background: #ffffff;
-    max-height: 88vh;
-    overflow-y: auto;
-}
-
-/* Popup title bar */
-.v2-popup-titlebar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: #1a2a4a;
-    padding: 14px 20px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.v2-popup-title { font-size: 17px; font-weight: 700; color: #ffffff; letter-spacing: 0.3px; }
-
-.v2-popup-hv-tag {
-    background: #d97706;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    padding: 2px 8px;
-    border-radius: 4px;
-}
-
-.v2-ro-tag {
-    background: #1d4ed8;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    padding: 2px 8px;
-    border-radius: 4px;
-}
-
-.v2-close-btn {
-    margin-left: auto;
-    background: rgba(255,255,255,0.15);
-    color: #ffffff;
-    border: 1px solid rgba(255,255,255,0.30);
-    border-radius: 6px;
-    padding: 6px 14px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.v2-close-btn:hover { background: rgba(255,255,255,0.28); }
-
-/* ──────────────────────────────────────────────────
-   CHEQUE IMAGES
-────────────────────────────────────────────────── */
-.v2-images-row {
-    display: flex;
-    gap: 16px;
-    padding: 16px 20px;
-    background: #f8fafc;
-    border-bottom: 1px solid #e8edf3;
-}
-
-.v2-image-panel {
-    flex: 1;
-    border: 1px solid #dde3ec;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #fff;
-}
-
-.v2-image-label {
-    background: #f0f2f5;
-    border-bottom: 1px solid #e4e9f0;
-    padding: 7px 12px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #1a2a4a;
-    letter-spacing: 0.5px;
-}
-
-.v2-image-box {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 150px;
-    background: #fafafa;
-    padding: 8px;
-}
-
-.v2-cheque-img {
-    max-width: 100%;
-    max-height: 190px;
-    object-fit: contain;
-}
-
-.v2-img-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 140px;
-    color: #94a3b8;
-    font-size: 13px;
-}
-
-/* ──────────────────────────────────────────────────
-   SECTION LABEL
-────────────────────────────────────────────────── */
-.v2-section-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px 6px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #1a2a4a;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    border-top: 1px solid #e8edf3;
-}
-
-/* ──────────────────────────────────────────────────
-   DATA FIELDS (read-only labels styled like inputs)
-────────────────────────────────────────────────── */
-.v2-fields-row {
-    display: flex;
-    gap: 12px;
-    padding: 8px 20px;
-    flex-wrap: wrap;
-}
-
-.v2-field-group          { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.v2-field-group.narrow   { flex: 1; min-width: 100px; max-width: 160px; }
-.v2-field-group.medium   { flex: 2; min-width: 140px; }
-.v2-field-group.wide     { flex: 3; min-width: 200px; }
-.v2-field-group.full     { flex: 1 0 100%; }
-
-.v2-field-lbl {
-    font-size: 10px;
-    font-weight: 700;
-    color: #8896b0;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-
-.v2-field-val {
-    font-size: 13px;
-    font-weight: 500;
-    color: #1e293b;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 5px;
-    padding: 7px 10px;
-    min-height: 34px;
-    display: block;
-    word-break: break-all;
-    /* Mimic a disabled input — clearly read-only */
-    cursor: default;
-}
-
-/* Amount highlighted */
-.highlight-amount {
-    color: #1e3a8a !important;
-    font-weight: 700 !important;
-    background: #eff6ff !important;
-    border-color: #93c5fd !important;
-    font-size: 14px !important;
-}
-
-/* ──────────────────────────────────────────────────
-   POPUP FOOTER
-────────────────────────────────────────────────── */
-.v2-popup-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
-    padding: 14px 20px;
-    border-top: 1px solid #e8edf3;
-    background: #f8fafc;
-    position: sticky;
-    bottom: 0;
-}
-
-.v2-popup-counter { font-size: 13px; color: #475569; font-weight: 500; }
-
-.v2-nav-btn {
-    background: #1a2a4a;
-    color: #ffffff;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 18px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.v2-nav-btn:hover    { background: #243860; }
-.v2-nav-btn:disabled,
-.v2-nav-btn[disabled] { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
-
-/* ──────────────────────────────────────────────────
-   ZK OVERRIDE GUARDS
-────────────────────────────────────────────────── */
-#v2Root .z-label   { font-family: inherit; }
-#v2Root .z-button  { outline: none; }
-#v2Root .z-grid-body td { box-sizing: border-box; }
-/* Prevent ZK default window chrome from conflicting */
-.v2-popup-window > .z-window-header { display: none !important; }
-
-/* ──────────────────────────────────────────────────
-   POPUP CENTERING & SIZE FIXES
-   (added to fix overlapped window positioning)
-────────────────────────────────────────────────── */
-
-/* Remove ZK's default window chrome completely */
-.v2-popup-window.z-window-overlapped > .z-window-header,
-.v2-popup-window > .z-window-header {
-    display: none !important;
-    height: 0 !important;
-    padding: 0 !important;
-}
-
-/* Remove ZK default window content padding */
-.v2-popup-window > .z-window-content,
-.v2-popup-window.z-window-overlapped > .z-window-content {
-    padding: 0 !important;
-    border: none !important;
-    border-radius: 12px !important;
-    overflow: hidden !important;
-}
-
-/* The popup itself */
-.v2-popup-window.z-window-overlapped,
-.v2-popup-window {
-    width: 920px !important;
-    max-width: 96vw !important;
-    border-radius: 12px !important;
-    overflow: hidden !important;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.35) !important;
-    border: none !important;
-}
-
-/* Inner scroll container */
-.v2-popup-inner {
-    background: #ffffff;
-    max-height: 88vh;
-    overflow-y: auto;
-    border-radius: 0 0 12px 12px;
-}
-
-/* ──────────────────────────────────────────────────
-   FIELD LAYOUT FIXES (match reference design)
-────────────────────────────────────────────────── */
-
-/* Fields row — ensure proper wrapping */
-.v2-fields-row {
-    display: flex;
-    gap: 14px;
-    padding: 10px 20px;
-    flex-wrap: wrap;
-    align-items: flex-start;
-}
-
-/* Field group sizing — match reference: chequeNo/city/bank/branch in one row */
-.v2-field-group.narrow  { flex: 1; min-width: 90px;  max-width: 150px; }
-.v2-field-group.medium  { flex: 2; min-width: 130px; max-width: 260px; }
-.v2-field-group.wide    { flex: 3; min-width: 200px; }
-.v2-field-group.full    { flex: 1 0 100%; }
-
-/* Read-only value boxes — darker border, cleaner look */
-.v2-field-val {
-    font-size: 13px;
-    font-weight: 500;
-    color: #1e293b;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    padding: 8px 11px;
-    min-height: 36px;
-    display: block;
-    word-break: break-all;
-    cursor: default;
-    box-sizing: border-box;
-    width: 100%;
-}
-
-/* Amount field highlight */
-.highlight-amount {
-    color: #1e3a8a !important;
-    font-weight: 700 !important;
-    background: #eff6ff !important;
-    border-color: #93c5fd !important;
-    font-size: 14px !important;
-}
-
-/* ──────────────────────────────────────────────────
-   POPUP FOOTER FIX
-────────────────────────────────────────────────── */
-.v2-popup-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 20px;
-    border-top: 1px solid #e8edf3;
-    background: #f8fafc;
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
-}
-
-/* Prev/Next disabled state */
-.v2-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* ──────────────────────────────────────────────────
-   GRID OVERFLOW FIX — prevent horizontal scrollbar
-────────────────────────────────────────────────── */
-
-/* Force the grid to never exceed its container */
-#v2Root .z-grid,
-#v2Root .z-grid-body,
-#v2Root .z-grid table {
-    width: 100% !important;
-    max-width: 100% !important;
-    table-layout: fixed !important;
-    overflow: hidden !important;
-}
-
-/* Clip long text instead of expanding columns */
-#v2Root .z-grid td,
-#v2Root .z-grid th,
-#v2Root .z-grid .z-row td {
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-    box-sizing: border-box !important;
-}
-
-/* STATUS column may have long text like READY_FOR_VERIFICATION
-   — allow it to show fully by reducing font size */
-#v2Root .z-grid td .z-label {
-    font-size: 12px !important;
-}
-
-/* Remove the horizontal scrollbar from grid body */
-#v2Root .z-grid-body {
-    overflow-x: hidden !important;
-}
-/* ══════════════════════════════════════════════════════════════
-   VERIFICATION ACTION SECTION
-   New classes for Accept / Reject buttons and Remarks textbox.
-   Added for V2 verification write-back feature.
-   ══════════════════════════════════════════════════════════════ */
-
-/* Remarks textbox */
-.v2-remarks-box,
-.v2-remarks-box.z-textbox {
-    width: 100% !important;
-    font-size: 13px !important;
-    font-family: 'Segoe UI', Arial, sans-serif !important;
-    color: #1e293b !important;
-    background: #f8fafc !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 6px !important;
-    padding: 8px 11px !important;
-    resize: vertical !important;
-    box-sizing: border-box !important;
-    transition: border-color 0.15s !important;
-}
-.v2-remarks-box:focus,
-.v2-remarks-box.z-textbox:focus {
-    border-color: #3b82f6 !important;
-    outline: none !important;
-    background: #fff !important;
-}
-
-/* Action bar — Accept / Reject side by side */
-.v2-action-bar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 20px 14px;
-}
-
-/* Accept button — green */
-.v2-accept-btn,
-.v2-accept-btn.z-button {
-    background: #16a34a !important;
-    color: #ffffff !important;
-    border: none !important;
-    border-radius: 6px !important;
-    padding: 9px 28px !important;
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.3px !important;
-    cursor: pointer !important;
-    transition: background 0.15s !important;
-    min-width: 120px !important;
-}
-.v2-accept-btn:hover,
-.v2-accept-btn.z-button:hover {
-    background: #15803d !important;
-}
-.v2-accept-btn:disabled,
-.v2-accept-btn.z-button[disabled] {
-    background: #bbf7d0 !important;
-    color: #6ee7b7 !important;
-    cursor: not-allowed !important;
-}
-
-/* Reject button — red */
-.v2-reject-btn,
-.v2-reject-btn.z-button {
-    background: #dc2626 !important;
-    color: #ffffff !important;
-    border: none !important;
-    border-radius: 6px !important;
-    padding: 9px 28px !important;
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.3px !important;
-    cursor: pointer !important;
-    transition: background 0.15s !important;
-    min-width: 120px !important;
-}
-.v2-reject-btn:hover,
-.v2-reject-btn.z-button:hover {
-    background: #b91c1c !important;
-}
-.v2-reject-btn:disabled,
-.v2-reject-btn.z-button[disabled] {
-    background: #fecaca !important;
-    color: #fca5a5 !important;
-    cursor: not-allowed !important;
-}
-
-/* v2-status-accepted and v2-status-rejected for list badges */
-.v2-status-accepted { background: #d1fae5; color: #065f46; }
-.v2-status-rejected { background: #fee2e2; color: #991b1b; }
-
-
-/* ─────────────────────────────────────────────────
-   ADD THESE RULES to your verification2.css file
-   (paste them at the bottom of the existing file)
-   ───────────────────────────────────────────────── */
-
-/* ── Filter bar ─────────────────────────────────── */
-
-.v2-queue-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;   /* queue label on left, filter bar on right */
-    padding: 10px 16px;
-}
-
-.v2-filter-bar {
-    display: flex;
-    gap: 8px;
-}
-
-/* Base filter button style */
 .v2-filter-btn,
-.v2-filter-btn .z-button {
+.v2-filter-btn.z-button {
     background: #f1f5f9;
     color: #475569;
     border: 1px solid #cbd5e1;
@@ -784,33 +522,288 @@
     cursor: pointer;
     transition: all 0.15s ease;
 }
+.v2-filter-btn:hover,
+.v2-filter-btn.z-button:hover { background: #e2e8f0; color: #1e293b; }
 
-.v2-filter-btn:hover .z-button,
-.v2-filter-btn.z-button:hover {
-    background: #e2e8f0;
-    color: #1e293b;
-}
-
-/* Active filter button — highlighted */
 .v2-filter-active,
-.v2-filter-active .z-button {
+.v2-filter-active.z-button {
     background: #1e3a5f !important;
     color: #ffffff !important;
     border-color: #1e3a5f !important;
 }
 
-/* ── Pagination bar ──────────────────────────────── */
+/* ══════════════════════════════════════════════════════
+   BATCH FILTERS — search box, date range, status dropdown, clear
+   (Selectors prefixed with #v2Root to win specificity over ZK's
+   default skin, so radius / colours actually render as set here)
+   ══════════════════════════════════════════════════════ */
+/* Search */
+.v2-search-box,
+.v2-search-box.z-textbox {
+    width: 230px !important;
+    height: 30px !important;
 
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+
+    background: #f8fafc !important;
+    color: #475569 !important;
+
+    font-size: 13px !important;
+    font-weight: 500 !important;
+
+    padding: 0 14px !important;
+
+    box-sizing: border-box !important;
+}
+
+.v2-search-box:focus,
+.v2-search-box.z-textbox:focus {
+    border-color: #1e3a5f !important;
+    background: #ffffff !important;
+    outline: none !important;
+}
+
+/* ── Date range (From — To) ─────────────────────────── */
+.v2-date-range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.v2-date-sep {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+/* NOTE: in ZK's rendered markup, "z-datebox" and "z-datebox-input"
+   end up on the SAME <input> element. Because both selectors below
+   have identical specificity (.v2-date-box + one class), whichever
+   rule is declared LAST in the stylesheet wins for a given property
+   — that's why a separate "wrapper" rule for .z-datebox never showed
+   a border/background. Fix: style the input and the button as two
+   halves of one pill (matching .v2-search-box), joined seamlessly.
+*/
+
+/* Kill ZK wrapper's own border/shadow completely */
+.v2-date-box .z-datebox {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    outline: none !important;
+}
+
+/* Reset the date-picker root box itself (no border/shadow of its own) */
+.v2-date-box .z-datebox {
+    display: inline-flex !important;
+    align-items: center !important;
+    width: 175px !important;
+    height: 30px !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+}
+
+/* LEFT half of the pill — the actual date text input */
+.v2-date-box .z-datebox-input {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    height: 30px !important;
+    min-width: 0 !important;
+
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+
+    background: #f8fafc !important;
+    color: #475569 !important;
+
+    font-size: 13px !important;
+    font-weight: 500 !important;
+
+    padding: 0 12px !important;
+    box-sizing: border-box !important;
+    outline: none !important;
+}
+
+.v2-date-box .z-datebox-input:focus {
+    border-color: #1e3a5f !important;
+    background: #ffffff !important;
+}
+
+/* RIGHT half of the pill — calendar icon button, locked to a small
+   fixed square so it can never blow up to ZK's oversized default */
+.v2-date-box .z-datebox-button {
+    flex: 0 0 28px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 30px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+
+    background: #f1f5f9 !important;
+    box-shadow: none !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: background 0.15s ease !important;
+}
+
+.v2-date-box .z-datebox-button:hover {
+    background: #e2e8f0 !important;
+}
+
+/* When the input is focused, tint the button to match so the pill
+   still reads as one connected control */
+.v2-date-box .z-datebox-input:focus + .z-datebox-button {
+    background: #ffffff !important;
+    border-color: #1e3a5f !important;
+}
+
+/* The calendar glyph itself — force a small, consistent icon size
+   regardless of the font-icon's default size */
+.v2-date-box .z-datebox-button i,
+.v2-date-box .z-datebox-button .z-icon-calendar,
+.v2-date-box .z-datebox-icon {
+    font-size: 13px !important;
+    line-height: 1 !important;
+    width: auto !important;
+    height: auto !important;
+    color: #64748b !important;
+}
+
+/* STATUS DROPDOWN */
+.v2-status-combo {
+    width: 220px !important;
+}
+
+/* Left Side */
+.v2-status-combo .z-combobox-input {
+    height: 30px !important;
+    border-top: 1px solid #cbd5e1 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    background: #f8fafc !important;
+    padding: 0 12px !important;
+    box-shadow: none !important;
+}
+
+/* Right Side */
+.v2-status-combo .z-combobox-button {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 8px !important;
+    background: #f8fafc !important;
+    box-shadow: none !important;
+}
+
+/* Kill separator */
+.v2-status-combo .z-combobox-button:before,
+.v2-status-combo .z-combobox-button:after {
+    border: none !important;
+    display: none !important;
+}
+
+.v2-status-combo .z-combobox-input {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    user-select: none !important;
+}
+
+.v2-status-combo .z-combobox-input::selection {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+.v2-status-combo .z-combobox-input::-moz-selection {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+/* ── Clear button — light grey by default, light red on hover ── */
+.v2-clear-btn,
+.v2-clear-btn.z-button {
+    width: 80px !important;
+    min-width: 80px !important;
+    height: 30px !important;
+
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 18px !important;
+
+    background: #f8fafc !important;
+    color: #64748b !important;
+
+    font-size: 13px !important;
+    font-weight: 500 !important;
+
+    padding: 0 12px !important;
+
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: normal !important;
+}
+
+.v2-clear-btn:hover,
+.v2-clear-btn.z-button:hover {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border-color: #fca5a5 !important;
+}
+
+.v2-date-cell { font-size: 13px; color: #2d3a52; font-weight: 400; }
+
+/* ══════════════════════════════════════════════════════
+   GLOBAL — ZK combobox dropdown popup (rendered as a floating
+   panel outside #v2Root, so it can't be scoped to the page root).
+   Removes the default blue "selected/hover" highlight on options.
+   ══════════════════════════════════════════════════════ */
+.z-combobox-pp .z-comboitem-over,
+.z-combobox-pp .z-comboitem-hover,
+.z-combobox-pp .z-comboitem-selected,
+.z-combobox-pp .z-comboitem-seld {
+    background: #f1f5f9 !important;
+    color: #1e3a5f !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   PAGINATION BAR
+   ══════════════════════════════════════════════════════ */
 .v2-pagination-bar {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 16px;
+    justify-content: space-between;
     padding: 12px 16px;
+    border-top: 1px solid #e8edf3;
+    background: #fafbfd;
 }
 
+/* Far-left label: "Showing 1–5 of 9 cheques" */
+.v2-page-count-label,
+.z-label.v2-page-count-label {
+    font-size: 13px !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+}
+
+/* Far-right group: ‹ Prev  Page 1 of 2  Next › */
+.v2-page-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
 .v2-page-btn,
-.v2-page-btn .z-button {
+.v2-page-btn.z-button {
     background: #f1f5f9;
     color: #475569;
     border: 1px solid #cbd5e1;
@@ -820,38 +813,692 @@
     cursor: pointer;
     transition: background 0.15s ease;
 }
-
-.v2-page-btn:hover .z-button,
-.v2-page-btn.z-button:hover {
-    background: #e2e8f0;
-}
-
-/* Disabled state for Prev / Next */
-.v2-page-btn[disabled] .z-button,
-.v2-page-btn .z-button[disabled] {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
+.v2-page-btn:hover,
+.v2-page-btn .z-button:hover { background: #e2e8f0; }
+.v2-page-btn[disabled],
+.v2-page-btn .z-button[disabled] { opacity: 0.4; cursor: not-allowed; }
 .v2-page-info,
-.v2-page-info .z-label {
-    font-size: 13px;
-    color: #64748b;
-    min-width: 90px;
-    text-align: center;
+.v2-page-info .z-label { font-size: 13px; color: #64748b; min-width: 90px; text-align: center; }
+
+/* ══════════════════════════════════════════════════════
+   GRID OVERFLOW FIX
+   ══════════════════════════════════════════════════════ */
+#v2Root .z-grid,
+#v2Root .z-grid-body,
+#v2Root .z-grid table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    overflow: hidden !important;
+}
+#v2Root .z-grid td,
+#v2Root .z-grid th,
+#v2Root .z-grid .z-row td {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
 }
 
-.v2-ref-flag,
-.v2-ref-flag .z-label {
-    display: inline-flex;
+/* Status cell — allow badge to wrap without causing row overflow */
+.z-grid .z-row td .v2-status-badge {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    display: inline-block !important;
+    max-width: 100% !important;
+    word-break: break-word !important;
+}
+.z-grid td .z-label { font-size: 16px !important; }
+
+/* Status badges and HV/REF flag chips must stay locked to their own size —
+   higher specificity than the rule above so they're never caught by it */
+.z-grid td .z-label.v2-status-badge { font-size: 10px !important; }
+.z-grid td .z-label.v2-hv-flag,
+.z-grid td .z-label.v2-ref-flag { font-size: 11px !important; }
+.z-grid-body { overflow-x: hidden !important; }
+
+/* ══════════════════════════════════════════════════════
+   POPUP WINDOW — OUTER SHELL
+   ══════════════════════════════════════════════════════ */
+
+/* Strip ZK default window chrome — overlapped and modal */
+.v2-popup-window > .z-window-header,
+.v2-popup-window.z-window-overlapped > .z-window-header,
+.v2-popup-window.z-window-modal > .z-window-header,
+.v2-popup-window.z-window-highlighted > .z-window-header {
+    display: none !important;
+    height: 0 !important;
+    padding: 0 !important;
+}
+.v2-popup-window > .z-window-content,
+.v2-popup-window.z-window-overlapped > .z-window-content,
+.v2-popup-window.z-window-modal > .z-window-content,
+.v2-popup-window.z-window-highlighted > .z-window-content {
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+}
+.v2-popup-window,
+.v2-popup-window.z-window-overlapped,
+.v2-popup-window.z-window-modal,
+.v2-popup-window.z-window-highlighted {
+    position: fixed !important;
+    /*
+     * Center within the CONTENT AREA only (sidebar ~250px, header ~60px).
+     * left: 50% would center in full viewport (including sidebar).
+     * Adding half the sidebar width (125px) shifts center into content area.
+     * top: adding half header height (30px) shifts center below the header.
+     * Adjust 125px if your sidebar width differs.
+     */
+    left: calc(50% + 125px) !important;
+    top: calc(50% + 30px) !important;
+    transform: translate(-50%, -50%) !important;
+    width: 1050px !important;
+    max-width: calc(100vw - 280px) !important;  /* never bleed into sidebar */
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35) !important;
+    border: none !important;
+    z-index: 10200 !important;        /* above mask (10100), below messagebox (10400) */
+    margin: 0 !important;
+     /* padding: 0 !important;  */ 
+}
+
+/* ══════════════════════════════════════════════════════
+   BACKDROP & MASK — z-index layering strategy
+   ──────────────────────────────────────────────────────
+   Layer 1  : Page content                              (default)
+   Layer 2  : Cheque popup mask                         z-index 10100
+   Layer 3  : Cheque popup window (.v2-popup-window)    z-index 10200
+   Layer 4  : Messagebox / confirm / logout mask        z-index 10300
+   Layer 5  : Messagebox / confirm / logout window      z-index 10400
+
+   This ensures logout confirm and any ZK Messagebox always
+   appear ON TOP of the cheque popup and are fully clickable.
+   Blur is added so every overlay looks clearly modal.
+   ══════════════════════════════════════════════════════ */
+
+/* ── Primary mask — behind cheque popup ── */
+.z-modal-mask,
+.z-highlighted-mask {
+    backdrop-filter: blur(3px) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
+    background: rgba(0, 0, 0, 0.50) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    pointer-events: all !important;
+    cursor: default !important;
+    z-index: 10100 !important;
+}
+
+/* ── Messagebox mask — ZK uses a second mask layer OR .z-messagebox-mask ── */
+.z-messagebox-mask,
+.z-modal-mask ~ .z-modal-mask,
+.z-highlighted-mask ~ .z-highlighted-mask {
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    background: rgba(0, 0, 0, 0.55) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    pointer-events: all !important;
+    cursor: default !important;
+    z-index: 10300 !important;
+}
+
+/* ── ZK Messagebox window (logout confirm, alerts, info, etc.) ── */
+.z-messagebox,
+.z-messagebox.z-window-modal,
+.z-messagebox.z-window-overlapped,
+.z-messagebox.z-window-highlighted {
+    position: fixed !important;
+    z-index: 10400 !important;
+    pointer-events: all !important;
+}
+
+/*
+ * Shell — fills the ZK window-content container completely.
+ * The outer .v2-popup-window is fixed at 730px tall (see below).
+ * The ZK .z-window-content wrapper is forced to flex so .v2-popup-shell
+ * can fill 100% of it, giving a true flex column with no overflow.
+ */
+.v2-popup-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* ══════════════════════════════════════════════════════
+   POPUP TITLE BAR
+   ══════════════════════════════════════════════════════ */
+.v2-popup-titlebar {
+    display: flex;
     align-items: center;
-    gap: 4px;
-    background: #eff6ff;
-    color: #1d4ed8;
-    border: 1px solid #93c5fd;
-    border-radius: 20px;
+    gap: 10px;
+    background: #1a2a4a;
+    padding: 10px 20px;
+    flex-shrink: 0;
+}
+.v2-popup-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.3px;
+}
+
+/* HIGH VALUE badge — medium dark blue */
+.v2-badge-hv {
+    background: #1e4d8c;
+    color: #fff;
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
     padding: 3px 10px;
-    font-size: 11px;
-    font-weight: 600;
+    border-radius: 4px;
+    text-transform: uppercase;
     white-space: nowrap;
+}
+
+/* REFERRED badge — same medium dark blue as HIGH VALUE */
+.v2-badge-ref {
+    background: #1e4d8c;
+    color: #fff;
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.v2-close-btn,
+.v2-close-btn.z-button {
+    margin-left: auto;
+    background: transparent !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+    font-size: 18px !important;
+    font-weight: 400 !important;
+    cursor: pointer !important;
+    transition: opacity 0.15s !important;
+    line-height: 1 !important;
+}
+.v2-close-btn:hover,
+.v2-close-btn.z-button:hover {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    background: #ef4444 !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   POPUP BODY — image top + data sections below, fills all space between titlebar and action bar
+   ══════════════════════════════════════════════════════ */
+.v2-popup-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* ── TOP: image row (tabs left, image right) ── */
+.v2-img-col {
+    position: relative;
+    width: 100%;
+    flex: 0 0 300px;          /* taller image area */
+    min-height: 0;
+    display: flex;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid #e8edf3;
+    background: #f8fafc;
+    overflow: hidden;
+}
+
+/* Single flip button column — left side of image area, vertically centred */
+.v2-flip-btn-col {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 10;
+}
+
+.v2-flip-btn,
+.v2-flip-btn.z-button {
+    background: #1a2a4a !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 6px 14px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.4px !important;
+    cursor: pointer !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    transform: none !important;
+    transition: background 0.15s !important;
+    white-space: nowrap !important;
+    width: auto !important;
+    min-height: unset !important;
+}
+.v2-flip-btn:hover,
+.v2-flip-btn.z-button:hover {
+    background: #243860 !important;
+}
+
+/* Image panel — fills the remaining space */
+.v2-img-panel {
+    flex: 1;
+    overflow: hidden;
+    height: 100%;
+}
+.v2-img-panel-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 6px;
+} 
+
+.v2-cheque-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+}
+.v2-img-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+.v2-img-ph-icon { font-size: 36px; opacity: 0.3; }
+.v2-img-ph-text { font-size: 13px; color: #94a3b8; }
+
+/* ── BOTTOM: data col — stacked: MICR → Cheque Data → CBS Data ── */
+.v2-data-col {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Each data section — auto height by default (no stretching) */
+.v2-data-section {
+    flex: 0 0 auto;         /* size to content — no empty gap */
+    min-height: 0;
+    overflow: hidden;
+    padding: 8px 16px;
+    border-bottom: 1px solid #edf0f5;
+    border-right: none;
+    display: flex;
+    flex-direction: column;
+}
+/* Last section (Cheque & CBS) fills whatever space remains */
+.v2-data-section:last-child {
+    flex: 1;
+    border-bottom: none;
+}
+
+
+/* grids pin to top so fields don't float in empty space */
+.v2-data-section .v2-data-grid-5,
+.v2-data-section .v2-data-grid-4,
+.v2-data-section .v2-data-grid-3,
+.v2-data-section .v2-data-grid-2 {
+    align-content: start;
+}
+
+.v2-data-section-hdr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px !important;
+    font-weight: 800;
+    letter-spacing: 0.9px;
+    text-transform: uppercase;
+    margin: -8px -16px 10px -16px;   /* bleed to the section edges */
+    padding: 7px 16px 7px 13px;
+    border-bottom: none;
+}
+
+/* MICR DATA — dark navy band (matches Image 2 reference) */
+.v2-data-section-hdr.hdr-blue {
+    background: #e6eef9;
+    color: #000000;
+}
+
+/* CHEQUE & CBS DATA — dark navy band (same as MICR DATA) */
+.v2-data-section-hdr.hdr-green {
+    background: #e6eef9;
+    color: #000000;
+}
+
+/* Colour dots — no longer used, header band itself carries the colour */
+.v2-data-section-dot {
+    display: none;
+}
+
+/* CBS "pending" tag */
+.v2-cbs-pending-tag {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin-left: 6px;
+}
+
+/* 5-column grid — used for MICR section so all 5 fields sit in one row */
+.v2-data-grid-5 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    gap: 6px;
+    align-content: start;
+}
+
+/* 3-column grid — used for Cheque+CBS merged section */
+.v2-data-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px 6px;
+    align-content: start;
+}
+
+/* 4-column and 2-column data grids — fields always at top */
+.v2-data-grid-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 10px 6px;
+    align-content: start;
+}
+.v2-data-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    align-content: start;
+}
+
+/* Field group */
+.v2-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #f1f4f8;
+}
+.v2-field-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    color: #8b95a5;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.v2-field-val {
+    font-size: 13px;
+    font-weight: 600;
+    color: #15213b;
+    background: transparent;
+    border: none;
+    border-bottom: none;
+    border-radius: 0;
+    padding: 1px 0 0 0;
+    min-height: 20px;
+    display: block;
+    word-break: break-all;
+    cursor: default;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+/* Amount — emphasised, this is the figure verifiers check first */
+.v2-amount-val {
+    color: #0f172a !important;
+    font-weight: 800 !important;
+    font-size: 14px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 1px 0 0 0 !important;
+}
+
+/* CBS fields — plain text, dashed style retained, no extra bottom border (group already has one) */
+.v2-cbs-val {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    color: #64748b !important;
+    font-style: italic;
+    padding: 1px 0 0 0 !important;
+}
+
+/* Subtle alternating tints — makes equal-height sections look intentional */
+.v2-data-section:nth-child(odd)  { background: #ffffff; top:1.5vh}
+.v2-data-section:nth-child(even) { background: #f8fafc; top:2.5vh}
+
+/* CBS section override */
+.v2-cbs-section { background: #fffdf8 !important; }
+
+/* ══════════════════════════════════════════════════════
+   BOTTOM BAR — two centred rows
+   Row 1:  ‹ Prev  |  9/9  |  Next ›
+   Row 2:  REMARKS [textbox]  Accept  Reject
+   ══════════════════════════════════════════════════════ */
+.v2-action-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    padding: 8px 20px;
+    background: #f0f2f5;
+    border-top: 1px solid #e8edf3;
+    flex-shrink: 0;
+    min-height: 0;
+}
+
+/* Row 1 — nav: Prev | counter | Next, all centred */
+.v2-nav-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+    padding-right: 20px;
+    border-right: 1px solid #cbd5e1;
+}
+
+/* Row 2 — action: remarks box + Accept + Reject, right-aligned within the row */
+.v2-action-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex: 1;
+    margin-left: 20px;
+    min-width: 0;
+}
+
+/* counter sits between Prev and Next */
+.v2-popup-counter {
+    font-size: 13px;
+    color: #475569;
+    font-weight: 600;
+    text-align: center;
+    min-width: 40px;
+    flex-shrink: 0;
+}
+
+.v2-remarks-wrap {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    max-width: 300px;
+}
+
+.v2-remarks-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    color: #8896b0;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* Mandatory indicator shown via composer on Reject click */
+.v2-remarks-lbl-required {
+    font-size: 10px;
+    font-weight: 700;
+    color: #dc2626;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.v2-remarks-box,
+.v2-remarks-box.z-textbox {
+    width: 100% !important;
+    font-size: 12px !important;
+    font-family: 'Segoe UI', Arial, sans-serif !important;
+    color: #1e293b !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    padding: 4px 10px !important;
+    resize: none !important;
+    box-sizing: border-box !important;
+    transition: border-color 0.15s !important;
+    height: 34px !important;       /* single-line height, compact */
+}
+.v2-remarks-box:focus,
+.v2-remarks-box.z-textbox:focus {
+    border-color: #3b82f6 !important;
+    outline: none !important;
+    background: #fff !important;
+}
+.v2-remarks-box-error,
+.v2-remarks-box-error.z-textbox {
+    border-color: #dc2626 !important;
+    background: #fff5f5 !important;
+}
+
+/* Accept + Reject side by side */
+.v2-action-btns {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Accept button */
+.v2-accept-btn,
+.v2-accept-btn.z-button {
+    background: #16a34a !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 7px 20px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3px !important;
+    cursor: pointer !important;
+    transition: background 0.15s !important;
+    min-width: 110px !important;
+    text-align: center;
+    white-space: nowrap;
+}
+.v2-accept-btn:hover,
+.v2-accept-btn.z-button:hover { background: #15803d !important; }
+.v2-accept-btn:disabled,
+.v2-accept-btn.z-button[disabled] {
+    background: #bbf7d0 !important;
+    color: #6ee7b7 !important;
+    cursor: not-allowed !important;
+}
+
+/* Reject button */
+.v2-reject-btn,
+.v2-reject-btn.z-button {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 7px 20px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3px !important;
+    cursor: pointer !important;
+    transition: background 0.15s !important;
+    min-width: 110px !important;
+    text-align: center;
+    white-space: nowrap;
+}
+.v2-reject-btn:hover,
+.v2-reject-btn.z-button:hover { background: #b91c1c !important; }
+.v2-reject-btn:disabled,
+.v2-reject-btn.z-button[disabled] {
+    background: #fecaca !important;
+    color: #fca5a5 !important;
+    cursor: not-allowed !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   NAV BUTTONS — Prev / Next inside bottom bar
+   ══════════════════════════════════════════════════════ */
+.v2-nav-btn,
+.v2-nav-btn.z-button {
+    background: #1a2a4a !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 7px 18px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: background 0.15s !important;
+    min-width: 80px !important;
+}
+.v2-nav-btn:hover,
+.v2-nav-btn.z-button:hover { background: #243860 !important; }
+.v2-nav-btn:disabled,
+.v2-nav-btn.z-button[disabled],
+.v2-nav-btn[disabled] {
+    background: #cbd5e1 !important;
+    color: #94a3b8 !important;
+    cursor: not-allowed !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   ZK OVERRIDE GUARDS
+   ══════════════════════════════════════════════════════ */
+#v2Root .z-label  { font-family: inherit; }
+#v2Root .z-button { outline: none; }
+#v2Root .z-grid-body td { box-sizing: border-box; }
+
+/* ── Full-width field (spans all grid columns) ── */
+.v2-field-full {
+    grid-column: 1 / -1;
 }

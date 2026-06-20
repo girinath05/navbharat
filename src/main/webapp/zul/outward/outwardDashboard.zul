@@ -4,141 +4,159 @@
 
 <zk xmlns="http://www.zkoss.org/2005/zul">
 
-    <div id="outwardDashboardRoot"
-         apply=""
-         width="100%">
+	<style src="/css/outward/outwardDashboard.css" />
 
-        <!-- External CSS -->
-        <style src="/css/outward/outwardDashboard.css"/>
+	<div id="outwardDashboardRoot"
+		apply="com.cts.outward.composer.OutwardDashboardComposer"
+		width="100%">
 
-        <div sclass="od-page-bg">
+		<div sclass="od-page-bg">
 
-            <!-- ── Breadcrumb ── -->
-            <div sclass="od-breadcrumb">
-                <label value="Home"              sclass="od-bc-home"/>
-                <label value="›"                 sclass="od-bc-sep"/>
-                <label value="Outward Dashboard" sclass="od-bc-cur"/>
-            </div>
+			<!-- ── Breadcrumb ── -->
+			<!-- <div sclass="od-breadcrumb">
+				<label value="Home" sclass="od-bc-home" />
+				<label value="›" sclass="od-bc-sep" />
+				<label value="Outward Dashboard" sclass="od-bc-cur" />
+			</div> -->
 
-            <!-- ── Page Header ── -->
-            <div sclass="od-page-header">
-                <div>
-                    <div sclass="od-page-title">Outward Clearing</div>
-                    <label id="lblPageMeta" sclass="od-page-meta"/>
-                </div>
-                <div sclass="od-header-right">
-                    <button id="btnRefresh" sclass="od-btn-refresh" label="↺ Refresh"/>
-                </div>
-            </div>
+			<!-- ── Stat Cards ── -->
+			<div sclass="od-cards-row">
 
-            <!-- ── Stat Cards ── -->
-            <div sclass="od-cards-row">
+				<!-- Card 1 : Total Batches today (all statuses) -->
+				<div sclass="od-stat-card od-card-indigo">
+					<div>
+						<label id="lblTotalBatches" value="0"
+							sclass="od-stat-number" />
+						<div sclass="od-stat-label">Total Batches</div>
+					</div>
+					<div sclass="od-stat-icon">&#128230;</div>
+				</div>
 
-                <div sclass="od-stat-card od-card-indigo">
-                    <div>
-                        <label id="lblTotalBatches" value="0" sclass="od-stat-number"/>
-                        <div sclass="od-stat-label">Total Batches</div>
-                    </div>
-                    <div sclass="od-stat-icon">&#128230;</div>
-                </div>
+				<!-- Card 2 : Verification Stage
+				     Counts: ReadyForVerification + VerificationInProgress -->
+				<div sclass="od-stat-card od-card-teal">
+					<div>
+						<label id="lblVerificationBatches" value="0"
+							sclass="od-stat-number" />
+						<div sclass="od-stat-label">Verification Stage</div>
+					</div>
+					<div sclass="od-stat-icon">&#128269;</div>
+				</div>
 
-                <div sclass="od-stat-card od-card-teal">
-                    <div>
-                        <label id="lblSubmittedBatches" value="0" sclass="od-stat-number"/>
-                        <div sclass="od-stat-label">Submitted</div>
-                    </div>
-                    <div sclass="od-stat-icon">&#10003;</div>
-                </div>
+				<!-- Card 3 : Verified Batches
+				     Counts: Verified (all cheques in batch have been verified) -->
+				<div sclass="od-stat-card od-card-amber">
+					<div>
+						<label id="lblVerifiedBatches" value="0"
+							sclass="od-stat-number" />
+						<div sclass="od-stat-label">Verified Batches</div>
+					</div>
+					<div sclass="od-stat-icon">&#9989;</div>
+				</div>
 
-                <div sclass="od-stat-card od-card-amber">
-                    <div>
-                        <label id="lblPendingBatches" value="0" sclass="od-stat-number"/>
-                        <div sclass="od-stat-label">Pending</div>
-                    </div>
-                    <div sclass="od-stat-icon">&#9202;</div>
-                </div>
+				<!-- Card 4 : Dispatched Batches
+				     Counts: CxfGenerated + Dispatched -->
+				<div sclass="od-stat-card od-card-rose">
+					<div>
+						<label id="lblDispatchedBatches" value="0"
+							sclass="od-stat-number" />
+						<div sclass="od-stat-label">Dispatched Batches</div>
+					</div>
+					<div sclass="od-stat-icon">&#128640;</div>
+				</div>
 
-                <div sclass="od-stat-card od-card-rose">
-                    <div>
-                        <label id="lblRejectedBatches" value="0" sclass="od-stat-number"/>
-                        <div sclass="od-stat-label">Rejected</div>
-                    </div>
-                    <div sclass="od-stat-icon">&#10007;</div>
-                </div>
+			</div>
 
-            </div>
+			<!-- ── Batch List Card ── -->
+			<div sclass="od-list-card">
 
-            <!-- ── Batch List Card ── -->
-            <div sclass="od-list-card">
+				<!-- ── Card Header + Filter Bar (V2-style, merged row) ── -->
+				<div sclass="od-list-card-header">
 
-                <!-- Card Header -->
-                <div sclass="od-list-card-header">
-                    <div sclass="od-list-card-title">Outward Batch List</div>
-                    <button id="btnRefreshList" sclass="od-btn-hdr" label="↺ Refresh List"/>
-                </div>
+					<div sclass="od-header-left">
+						<label sclass="od-list-card-title" value="BATCH LIST" />
+					</div>
 
-                <!-- ── Filter Bar ── -->
-                <div sclass="od-filter-bar">
+					<div sclass="od-filter-bar">
+						<textbox id="txtBatchId" sclass="od-search-box"
+							placeholder="Search Batch ID..." instant="true" />
 
-                    <div sclass="od-filter-group od-filter-grow">
-                        <label value="SEARCH BATCH ID" sclass="od-filter-label"/>
-                        <textbox id="txtBatchId"
-                                 placeholder="e.g. OB-20260605-001"
-                                 width="100%"/>
-                    </div>
+						<div sclass="od-date-range">
+							<div sclass="od-date-box od-date-from">
+								<datebox id="filterDateFrom" format="dd-MM-yyyy"
+									placeholder="From" />
+							</div>
+							<label sclass="od-date-sep" value="→" />
+							<div sclass="od-date-box od-date-to">
+								<datebox id="filterDateTo" format="dd-MM-yyyy"
+									placeholder="To" />
+							</div>
+						</div>
 
-                    <div sclass="od-filter-group">
-                        <label value="STATUS" sclass="od-filter-label"/>
-                        <combobox id="cmbStatus"
-                                  readonly="true"
-                                  width="148px"
-                                  value="All">
-                            <comboitem label="All"/>
-                            <comboitem label="DRAFT"/>
-                            <comboitem label="SUBMITTED"/>
-                            <comboitem label="PENDING"/>
-                            <comboitem label="REJECTED"/>
-                        </combobox>
-                    </div>
+						<combobox id="cmbStatus" sclass="od-status-combo"
+							readonly="true">
+							<comboitem label="All" value="All" />
+							<comboitem label="Draft"
+								value="Draft" />
+							<comboitem label="Pending (Maker)"
+								value="VerificationInProgressAtMaker" />
+							<comboitem label="Ready for Verification"
+								value="ReadyForVerification" />
+							<comboitem label="Verification In Progress"
+								value="VerificationInProgress" />
+							<comboitem label="Verified"
+								value="Verified" />
+							<comboitem label="Dispatched"
+								value="Dispatched" />
+						</combobox>
 
-                    <div sclass="od-filter-group">
-                        <label value="DATE" sclass="od-filter-label"/>
-                        <datebox id="filterDate"
-                                 width="152px"
-                                 format="dd-MMM-yyyy"/>
-                    </div>
+						<button id="btnClear" sclass="od-clear-btn" label="✕ Clear" />
+					</div>
 
-                    <button id="btnSearch" sclass="od-btn-search" label="&#128269; Search"/>
-                    <button id="btnClear"  sclass="od-btn-clear"  label="&#10005; Clear"/>
+				</div>
 
-                </div>
+				<!-- ── Batch Table ── -->
+				<listbox id="batchListbox"
+					width="100%"
+					emptyMessage="No outward batches found for the selected filters.">
+					<listhead sizable="false">
+						<listheader label="BATCH ID"       hflex="1" />
+						<listheader label="CREATED DATE"   hflex="1.5" />
+						<listheader label="TOTAL CHEQUES"  hflex="1.5" />
+						<listheader label="VERIFIED"       hflex="1" />
+						<listheader label="PENDING"        hflex="1" />
+						<listheader label="TOTAL AMOUNT"   hflex="1.5" />
+						<listheader label="STATUS"         hflex="1.5" />
+						<listheader label="ACTION"         hflex="1" />
+					</listhead>
+				</listbox>
 
-                <!-- ── Batch Table ── -->
-                <listbox id="batchListbox"
-                         mold="paging"
-                         pageSize="10"
-                         width="100%"
-                         emptyMessage="No outward batches found for this date.">
+				<!-- ── Pagination Bar (V2-style) ── -->
+				<div sclass="od-pagination-bar">
 
-                    <listhead sizable="false">
-                        <listheader label="BATCH ID"       width="175px"/>
-                        <listheader label="CREATED DATE"   width="165px"/>
-                        <listheader label="TOTAL CHEQUES"  width="140px"/>
-                        <listheader label="SUBMITTED"      width="130px"/>
-                        <listheader label="REJECTED"       width="130px"/>
-                        <listheader label="TOTAL AMOUNT"   width="155px"/>
-                        <listheader label="STATUS"         width="130px"/>
-                        <listheader label="ACTION"         width="100px"/>
-                    </listhead>
+					<div sclass="od-pagination-left">
+						<label id="lblBatchCount" sclass="od-card-hint" value="Showing 0 of 0 batches" />
 
-                </listbox>
+						<div sclass="od-page-size-wrap">
+							<label sclass="od-page-size-label" value="Rows per page:" />
+							<intbox id="intPageSize" sclass="od-page-size-input"
+								value="5" instant="true" />
+						</div>
+					</div>
 
-            </div>
-            <!-- end od-list-card -->
+					<div sclass="od-pagination-controls">
+						<button id="btnBatchPagePrev" sclass="od-page-btn" label="‹ Prev" />
+						<label id="lblBatchPageInfo" sclass="od-page-info" value="Page 1 of 1" />
+						<button id="btnBatchPageNext" sclass="od-page-btn" label="Next ›" />
+					</div>
+				</div>
 
-        </div>
-        <!-- end od-page-bg -->
+			</div>
+			<!-- end od-list-card -->
 
-    </div>
+		</div>
+		<!-- end od-page-bg -->
+
+	</div>
 
 </zk>

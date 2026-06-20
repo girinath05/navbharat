@@ -137,3 +137,51 @@ html, body, .z-page {
 	padding: 20px;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
+/* ==================================================
+   MODAL MASK & MESSAGEBOX — global z-index fix
+   --------------------------------------------------
+   DevTools inspection shows ZK renders:
+   • Mask:       class="z-modal-mask"           style="z-index:1800"
+   • Msgbox win: class="z-messagebox-window
+                        z-window
+                        z-window-highlighted
+                        z-window-shadow"         style="z-index:1800"
+
+   The mask was getting z-index:10100 from our CSS
+   (CSS !important DOES beat inline on masks because
+   masks have no specificity conflict) — that's why
+   blur started working. BUT the messagebox WINDOW
+   was still at inline z-index:1800, buried under
+   the mask (10100). Fix: push the window above the mask.
+   ================================================== */
+
+/* ── Mask — blur + block background ── */
+.z-modal-mask,
+.z-highlighted-mask {
+    backdrop-filter:         blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    background:   rgba(0, 0, 0, 0.50) !important;
+    position:     fixed    !important;
+    top:          0        !important;
+    left:         0        !important;
+    width:        100vw    !important;
+    height:       100vh    !important;
+    pointer-events: all    !important;
+    cursor:       default  !important;
+    z-index:      10100    !important;
+}
+
+/* ── Messagebox WINDOW — must be ABOVE the mask ── */
+/* DevTools confirmed class list:
+   z-messagebox-window  z-window  z-window-highlighted  z-window-shadow */
+.z-messagebox-window,
+.z-messagebox-window.z-window,
+.z-messagebox-window.z-window-highlighted,
+.z-messagebox-window.z-window-modal,
+.z-messagebox-window.z-window-overlapped,
+.z-messagebox-window.z-window-shadow,
+.z-messagebox {
+    z-index:        10200  !important;
+    position:       fixed  !important;
+    pointer-events: all    !important;
+}

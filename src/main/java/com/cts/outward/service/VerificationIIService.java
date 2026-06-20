@@ -6,15 +6,15 @@ import com.cts.outward.model.ChequeModel;
 import java.util.List;
 
 /**
- * Verification2Service
+ * VerificationIIService
  *
  * Service interface for Verification-II (High Value Cheque Authorisation).
  * Follows the same interface pattern as ChequeService / BatchService.
  *
  * The Composer (controller) talks only to this interface.
- * Implementation: Verification2ServiceImpl.
+ * Implementation: VerificationIIServiceImpl.
  */
-public interface Verification2Service {
+public interface VerificationIIService {
 
     /**
      * Returns all batches that contain at least one high-value cheque.
@@ -50,4 +50,6 @@ public interface Verification2Service {
      * @param remarks  optional remarks text entered by verifier (may be blank)
      */
     void verifyHighValueCheque(long id, String action, String verBy, String remarks);
+
+	void checkAndUpdateBatchStatus(String batchId);
 }
