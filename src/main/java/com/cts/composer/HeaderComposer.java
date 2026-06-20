@@ -26,6 +26,7 @@ public class HeaderComposer extends SelectorComposer<Component> {
     @Wire private Div   hdrCentre;        // now a direct ZK child — @Wire works
     @Wire private Div   avatarBtn;
     @Wire private Div   profilePopup;
+    @Wire private Div   ppOverlay;
     @Wire private Div   clockTogglePill;
     @Wire private Label lblClockToggle;
     @Wire private Label lblPopupAvatar;
@@ -106,12 +107,21 @@ public class HeaderComposer extends SelectorComposer<Component> {
 
     private void openPopup()  {
         profilePopup.setSclass("profile-popup pp-visible");
+        ppOverlay.setVisible(true);
         popupOpen = true;
     }
 
     private void closePopup() {
         profilePopup.setSclass("profile-popup");
+        ppOverlay.setVisible(false);
         popupOpen = false;
+    }
+
+    /** Fires when the user clicks anywhere outside the popup (header,
+     *  sidebar, or dashboard center — the overlay sits above all of them). */
+    @Listen("onClick = #ppOverlay")
+    public void onOverlayClick() {
+        closePopup();
     }
 
     // ── CLOCK TOGGLE ───────────────────────────────────────────────

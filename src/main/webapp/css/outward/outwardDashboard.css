@@ -5,368 +5,848 @@
 
 /* ── Page Background ── */
 .od-page-bg {
-	background: #f0f2f5;
-	min-height: 100%;
-	width: 100%;
+    background: #f0f2f5;
+    min-height: 100%;
+    width: 100%;
 }
 
 /* ── Breadcrumb ── */
 .od-breadcrumb {
-	background: #1a2a4a;
-	color: #cdd6e8;
-	padding: 0 24px;
-	height: 45px;
-	display: flex;
-	align-items: center;
-	font-size: 13px;
-	gap: 0;
+    background: #1a2a4a;
+    color: #cdd6e8;
+    padding: 0 24px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    gap: 0;
 }
 
 .od-bc-home {
-	color: #94a3b8 !important;
-	cursor: pointer;
+    color: #94a3b8 !important;
+    cursor: pointer;
 }
 
 .od-bc-sep {
-	color: #475569 !important;
-	margin: 0 8px;
+    color: #475569 !important;
+    margin: 0 8px;
 }
 
 .od-bc-cur {
-	color: #ffffff !important;
-	font-weight: 600;
+    color: #ffffff !important;
+    font-weight: 600;
 }
 
 /* ── Page Header ── */
 .od-page-header {
-	padding: 22px 28px 14px 28px;
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
+    padding: 22px 28px 14px 28px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    font-weight: 700;
 }
 
 .od-page-title {
-	font-size: 26px;
-	font-weight: 700;
-	color: #1a2a4a;
-	line-height: 1.2;
+    font-size: 26px;
+    font-weight: 700;
+    color: #1a2a4a;
+    line-height: 1.2;
 }
 
 .od-page-meta {
-	font-size: 13px;
-	color: #6b7a99;
-	margin-top: 4px;
-	display: block;
+    font-size: 13px;
+    color: #6b7a99;
+    margin-top: 4px;
+    display: block;
 }
 
-/* Refresh button */
+/* ── Refresh button ── */
 .od-btn-refresh {
-	background: #ffffff;
-	color: #1a2a4a;
-	border: 1.5px solid #d0d7e3;
-	border-radius: 6px;
-	font-size: 13px;
-	font-weight: 600;
-	padding: 6px 14px;
-	cursor: pointer;
+    background: #ffffff;
+    color: #1a2a4a;
+    border: 1.5px solid #d0d7e3;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    cursor: pointer;
 }
 
 .od-btn-refresh:hover {
-	background: #f0f4fa;
+    background: #f0f4fa;
 }
 
 /* ── Stat Cards ── */
 .od-cards-row {
-	display: flex;
-	gap: 18px;
-	padding: 0 28px 22px 28px;
+    display: flex;
+    gap: 18px;
+    padding: 16px 28px 16px 28px;
 }
 
 .od-stat-card {
-	flex: 1;
-	border-radius: 12px;
-	padding: 22px 26px;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	min-height: 96px;
+    flex: 1;
+    border-radius: 12px;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 80px;
 }
 
-.od-card-indigo {
-	background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-}
-
-.od-card-teal {
-	background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
-}
-
-.od-card-amber {
-	background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-}
-
-.od-card-rose {
-	background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
-}
+.od-card-indigo { background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); }
+.od-card-teal   { background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); }
+.od-card-amber  { background: linear-gradient(135deg, #d97706 0%, #b45309 100%); }
+.od-card-rose   { background: linear-gradient(135deg, #e11d48 0%, #be123c 100%); }
 
 .od-stat-number {
-	font-size: 40px;
-	font-weight: 700;
-	color: #ffffff !important;
-	line-height: 1;
-	display: block;
+    font-size: 40px;
+    font-weight: 700;
+    color: #ffffff !important;
+    line-height: 1;
+    display: block;
 }
 
 .od-stat-label {
-	font-size: 14px;
-	color: rgba(255, 255, 255, 0.88);
-	margin-top: 8px;
-	font-weight: 500;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.88);
+    margin-top: 8px;
+    font-weight: 500;
 }
 
 .od-stat-icon {
-	font-size: 34px;
-	opacity: 0.85;
-	color: #ffffff;
+    font-size: 34px;
+    opacity: 0.85;
+    color: #ffffff;
 }
 
 /* ── Batch List Card ── */
 .od-list-card {
-	background: #ffffff;
-	border-radius: 10px;
-	margin: 0 28px 28px 28px;
-	box-shadow: 0 1px 6px rgba(0, 0, 0, 0.09);
-	overflow: hidden;
+    background: #ffffff;
+    border-radius: 10px;
+    margin: 0 28px 12px 28px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.09);
+    overflow: hidden;
 }
 
 .od-list-card-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 15px 20px;
-	border-bottom: 1px solid #e8edf4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 14px;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e8edf4;
 }
 
-.od-list-card-title {
-	font-size: 15px;
-	font-weight: 700;
-	color: #1a2a4a;
+.od-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    min-width: 0;
 }
 
-.od-btn-hdr {
-	background: #ffffff;
-	color: #1a2a4a;
-	border: 1.5px solid #d0d7e3;
-	border-radius: 6px;
-	font-size: 13px;
-	font-weight: 600;
-	padding: 6px 14px;
-	cursor: pointer;
+.od-list-card-title,
+.z-div.od-list-card-title {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    color: #1a2a4a !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
 }
 
-.od-btn-hdr:hover {
-	background: #f0f4fa;
+.od-card-hint,
+.z-label.od-card-hint {
+    font-size: 12px !important;
+    color: #8896b0 !important;
+    white-space: nowrap !important;
+    margin-left: 8px !important;
 }
 
-/* ── Filter Bar ── */
+/* ══════════════════════════════════════════════════════
+   FILTER BAR — V2-style pill controls
+   (Selectors prefixed with to win
+   specificity over the generic z-textbox/datebox/combobox
+   rules below, so the pill styling actually renders)
+   ══════════════════════════════════════════════════════ */
 .od-filter-bar {
-	display: flex;
-	align-items: flex-end;
-	gap: 12px;
-	padding: 14px 20px;
-	border-bottom: 1px solid #e8edf4;
-	background: #fafbfd;
-	flex-wrap: wrap;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
 }
 
-.od-filter-group {
-	display: flex;
-	flex-direction: column;
-	gap: 5px;
+/* ── Search box ── */
+.od-search-box,
+.od-search-box.z-textbox {
+    width: 200px !important;
+    height: 30px !important;
+
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 7px !important;
+
+    background: #f8fafc !important;
+    color: #475569 !important;
+
+    font-size: 13px !important;
+    font-weight: 500 !important;
+
+    padding: 0 14px !important;
+
+    box-sizing: border-box !important;
 }
 
-.od-filter-grow {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 5px;
-	min-width: 160px;
+.od-search-box:focus,
+.od-search-box.z-textbox:focus {
+    border-color: #1a3a6e !important;
+    background: #ffffff !important;
+    outline: none !important;
 }
 
-.od-filter-label {
-	font-size: 10.5px;
-	font-weight: 700;
-	color: #8a9bb8;
-	letter-spacing: 0.07em;
-	text-transform: uppercase;
+/* ── Date range (From — To) ── */
+.od-date-range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
-.od-btn-search {
-	background: #1a3a6e;
-	color: #ffffff;
-	border: none;
-	border-radius: 5px;
-	font-size: 13px;
-	font-weight: 600;
-	padding: 6px 16px;
-	cursor: pointer;
-	align-self: flex-end;
+.od-date-sep {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
 }
 
-.od-btn-search:hover {
-	background: #142d58;
+/* ── Datebox pill wrapper ── */
+.od-date-box {
+    display: inline-flex !important;
+    align-items: center !important;
+    width: 150px !important;
+    height: 32px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 20px !important;
+    background: #f8fafc !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    padding: 0 !important;
 }
 
-.od-btn-clear {
-	background: #ffffff;
-	color: #374151;
-	border: 1.5px solid #d0d7e3;
-	border-radius: 5px;
-	font-size: 13px;
-	font-weight: 500;
-	padding: 5px 14px;
-	cursor: pointer;
-	align-self: flex-end;
+/* ZK renders the datebox as a table — make it fill the pill */
+.od-date-box .z-datebox {
+    display: inline-flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
 }
 
-.od-btn-clear:hover {
-	background: #f3f4f6;
+/* ZK wraps input+button in a table — flatten it */
+.od-date-box .z-datebox table,
+.od-date-box .z-datebox tbody,
+.od-date-box .z-datebox tr {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+}
+
+/* LEFT half — text input */
+.od-date-box .z-datebox-input {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    height: 100% !important;
+    min-width: 0 !important;
+
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #475569 !important;
+
+    font-size: 13px !important;
+    font-weight: 500 !important;
+
+    padding: 0 4px 0 12px !important;
+    text-align: left !important;
+    box-sizing: border-box !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.od-date-box .z-datebox-input:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+/* RIGHT half — calendar icon button */
+.od-date-box .z-datebox-button,
+.od-date-box td.z-datebox-button {
+    flex: 0 0 30px !important;
+    width: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: none !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+
+    background: transparent !important;
+    box-shadow: none !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: background 0.15s ease !important;
+    vertical-align: middle !important;
+}
+
+.od-date-box .z-datebox-button:hover,
+.od-date-box td.z-datebox-button:hover {
+    background: #e2e8f0 !important;
+}
+
+/* Calendar icon inside the button */
+.od-date-box .z-datebox-button i,
+.od-date-box .z-datebox-button .z-icon-calendar,
+.od-date-box .z-datebox-icon,
+.od-date-box td.z-datebox-button i {
+    font-size: 13px !important;
+    line-height: 1 !important;
+    width: auto !important;
+    height: auto !important;
+    color: #64748b !important;
+}
+
+/* Focused pill — highlight the outer border */
+.od-date-box:focus-within {
+    border-color: #1a3a6e !important;
+    background: #ffffff !important;
+}
+
+/* ── Status dropdown ── */
+.od-status-combo {
+    width: 220px !important;
+}
+
+/* Left Side */
+.od-status-combo .z-combobox-input {
+    height: 30px !important;
+    border-top: 1px solid #cbd5e1 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    border-left: 1px solid #cbd5e1 !important;
+    border-right: none !important;
+    border-radius: 7px !important;
+    background: #f8fafc !important;
+    padding: 0 12px !important;
+    box-shadow: none !important;
+}
+
+/* Right Side */
+.od-status-combo .z-combobox-button {
+    width: 30px !important;
+    height: 30px !important;
+    border-left: none !important;
+    border-radius: 0 7px 7px 0 !important;
+    background: #f8fafc !important;
+    box-shadow: none !important;
+}
+
+/* Kill separator */
+.od-status-combo .z-combobox-button:before,
+.od-status-combo .z-combobox-button:after {
+    border: none !important;
+    display: none !important;
+}
+
+.od-status-combo .z-combobox-input {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    caret-color: transparent !important;
+}
+
+.od-status-combo .z-combobox-input::selection {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+.od-status-combo .z-combobox-input::-moz-selection {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+/* Global combobox dropdown popup — outside any scoped root */
+.z-combobox-pp .z-comboitem-over,
+.z-combobox-pp .z-comboitem-hover,
+.z-combobox-pp .z-comboitem-selected,
+.z-combobox-pp .z-comboitem-seld {
+    background: #f1f5f9 !important;
+    color: #1a2a4a !important;
+}
+
+/* Stop native browser text-selection (blue highlight) on dropdown items */
+.z-combobox-pp .z-comboitem,
+.z-combobox-pp .z-comboitem-text {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    user-select: none !important;
+}
+
+.z-combobox-pp .z-comboitem-text::selection,
+.z-combobox-pp .z-comboitem-text::-moz-selection {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+/* ── Clear button — light grey by default, light red on hover ── */
+.od-clear-btn,
+.od-clear-btn.z-button {
+    width: 80px !important;
+    min-width: 80px !important;
+    height: 30px !important;
+
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 7px !important;
+
+    background: #f8fafc !important;
+    color: #64748b !important;
+
+    font-size: 13px !important;
+    font-weight: 500 !important;
+
+    padding: 0 12px !important;
+
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: normal !important;
+    cursor: pointer !important;
+}
+
+.od-clear-btn:hover,
+.od-clear-btn.z-button:hover {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border-color: #fca5a5 !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   PAGINATION BAR (V2-style, manual Prev/Next)
+   ══════════════════════════════════════════════════════ */
+.od-pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 40px 12px 24px;
+    border-top: 1px solid #e8edf4;
+    background: #fafbfd;
+}
+
+.od-pagination-left {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.od-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: 20px;
+}
+
+/* ── Rows-per-page selector ── */
+.od-page-size-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.od-page-size-label,
+.z-label.od-page-size-label {
+    font-size: 13px !important;
+    color: #64748b !important;
+}
+
+.od-page-size-input,
+.od-page-size-input.z-intbox {
+    width: 56px !important;
+    height: 28px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 7px !important;
+    background: #f8fafc !important;
+    padding: 0 10px !important;
+    box-shadow: none !important;
+    font-size: 13px !important;
+    color: #475569 !important;
+    text-align: center !important;
+}
+
+.od-page-size-input:focus,
+.od-page-size-input.z-intbox:focus {
+    background: #ffffff !important;
+    border-color: #94a3b8 !important;
+}
+
+.od-page-btn,
+.od-page-btn.z-button {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 7px !important;
+    padding: 5px 13px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    transition: background 0.15s ease !important;
+    min-width: 50px !important;
+}
+
+.od-page-btn:hover,
+.od-page-btn.z-button:hover {
+    background: #e2e8f0 !important;
+}
+
+/*
+   ZK does NOT add a HTML "disabled" attribute when btn.setDisabled(true) is called.
+   Instead it adds the CSS class "z-button-disabled" on the element.
+   Selectors without prefix so they fire reliably on ZK's DOM.
+*/
+.od-page-btn[disabled],
+.od-page-btn.z-button[disabled],
+.od-page-btn.z-button-disabled,
+.od-page-btn.z-button.z-button-disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    background: #f8fafc !important;
+    color: #94a3b8 !important;
+    border-color: #e2e8f0 !important;
+}
+
+.od-page-info,
+.z-label .od-page-info {
+    font-size: 13px !important;
+    color: #64748b !important;
+    min-width: 90px !important;
+    text-align: center !important;
+}
+
+/* ── Inputs (generic — only applies OUTSIDE pill wrappers) ── */
+.z-textbox:not(.od-search-box),
+.z-combobox-input:not(.od-status-combo .z-combobox-input) {
+    border: 1.5px solid #d0d7e3 !important;
+    border-radius: 5px !important;
+    font-size: 13px !important;
+    padding: 5px 10px !important;
+    color: #374151 !important;
+    background: #ffffff !important;
+    width: 100% !important;
+}
+
+/* Generic datebox input — only outside .od-date-box */
+.z-datebox-input:not(.od-date-box .z-datebox-input) {
+    border: 1.5px solid #d0d7e3 !important;
+    border-radius: 5px !important;
+    font-size: 13px !important;
+    padding: 5px 10px !important;
+    color: #374151 !important;
+    background: #ffffff !important;
+    width: 100% !important;
+}
+
+.z-textbox:not(.od-search-box):focus,
+.z-combobox-input:not(.od-status-combo .z-combobox-input):focus {
+    border-color: #4f46e5 !important;
+    outline: none !important;
+}
+
+.z-datebox-input:not(.od-date-box .z-datebox-input):focus {
+    border-color: #4f46e5 !important;
+    outline: none !important;
 }
 
 /* ── ZK Listbox ── */
 .z-listbox {
-	border: none !important;
-	box-shadow: none !important;
-	width: 100% !important;
-	table-layout: fixed !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+    height: auto !important;
+    overflow: visible !important;
 }
 
-.z-listbox table {
-	width: 100% !important;
-	table-layout: fixed !important;
+.z-listbox-body {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
 }
 
-.z-listbox-header {
-	background: #f4f6fa !important;
-	border-bottom: 1.5px solid #e0e6f0 !important;
+/* ── Listbox Header ── */
+.z-listbox-header,
+.z-listhead {
+    background: #1a2a4a !important;
+    border-bottom: none !important;
 }
 
-.z-listbox-header .z-listheader, .z-listbox-header .z-listheader-content
-	{
-	background: #f4f6fa !important;
-	border-right: 1px solid #e8edf4 !important;
-	font-size: 11px !important;
-	font-weight: 700 !important;
-	color: #6b7a99 !important;
-	letter-spacing: 0.06em !important;
-	text-transform: uppercase !important;
-	padding: 12px 12px !important;
-	white-space: nowrap !important;
-	overflow: hidden !important;
-	text-overflow: ellipsis !important;
+.z-listhead .z-listheader,
+.z-listhead .z-listheader-cnt,
+.z-listhead .z-listheader-body {
+    background: #1a2a4a !important;
+    background-image: none !important;
+    border: none !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.22) !important;
+    font-size: 9px !important;        /* ▼ reduced from 10px */
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    letter-spacing: 0.4px !important;
+    text-transform: uppercase !important;
+    padding: 6px 8px !important;      /* ▼ reduced from 10px top/bottom → shorter row height */
+    overflow: hidden !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+    vertical-align: middle !important;
 }
 
-.z-listbox-header .z-listheader:last-child {
-	border-right: none !important;
+.z-listhead .z-listheader:last-child {
+    border-right: none !important;
 }
 
 .z-listheader-shadow {
-	display: none !important;
+    display: none !important;
 }
 
-.z-listitem .z-listcell, .z-listitem .z-listcell-content {
-	font-size: 13px !important;
-	color: #2d3a52 !important;
-	padding: 13px 12px !important;
-	border-bottom: 1px solid #edf0f7 !important;
-	border-right: none !important;
-	white-space: nowrap !important;
-	overflow: hidden !important;
-	text-overflow: ellipsis !important;
+/* ── Listbox Rows ── */
+.z-listitem {
+    border: none !important;
+    border-bottom: none !important;
+    border-top: none !important;
+    outline: none !important;
+}
+
+/* ZK renders empty <tr> spacer rows between listitems — hide them */
+.z-listitem + tr:not(.z-listitem) {
+    display: none !important;
+    height: 0 !important;
+    line-height: 0 !important;
+    font-size: 0 !important;
+    border: none !important;
+}
+
+.z-listitem + tr:not(.z-listitem) td {
+    display: none !important;
+    height: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+}
+
+.z-listitem .z-listcell,
+.z-listitem .z-listcell-content {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #2d3a52 !important;
+    padding: 7px 10px !important;
+    border: none !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
 }
 
 .z-listitem:hover .z-listcell {
-	background: #f9fbff !important;
+    background: #f9fbff !important;
 }
 
+/* ── Status column — allow chip to show fully ── */
+.z-listitem .z-listcell:nth-child(7),
+.z-listitem .z-listcell:nth-child(7) .z-listcell-content {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;   /* disable ellipsis — chip text must never be cut */
+    line-height: 1.4 !important;
+    vertical-align: middle !important;
+    word-break: break-word !important;
+}
+
+/* ── Paging bar ── */
 .z-paging {
-	border-top: 1px solid #e8edf4 !important;
-	padding: 8px 16px !important;
-	background: #fafbfd !important;
+    border-top: 1px solid #e8edf4 !important;
+    padding: 8px 16px !important;
+    background: #fafbfd !important;
 }
 
-/* ── Inputs ── */
-.z-datebox-input, .z-textbox, .z-combobox-input {
-	border: 1.5px solid #d0d7e3 !important;
-	border-radius: 5px !important;
-	font-size: 13px !important;
-	padding: 5px 10px !important;
-	color: #374151 !important;
-	background: #ffffff !important;
-	width: 100% !important;
+.z-paging-text {
+    font-size: 12px !important;
+    color: #6b7a99 !important;
 }
 
-.z-textbox:focus, .z-combobox-input:focus, .z-datebox-input:focus {
-	border-color: #4f46e5 !important;
-	outline: none !important;
+.z-paging .z-paging-button {
+    border: 1px solid #d0d7e3 !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+    color: #374151 !important;
+    background: #ffffff !important;
+    margin: 0 2px !important;
 }
 
-/* ── Status Badges ── */
-.od-badge-submitted {
-	background: #dcfce7;
-	color: #15803d;
-	border: 1px solid #86efac;
-	padding: 3px 12px;
-	border-radius: 20px;
-	font-size: 11px;
-	font-weight: 700;
-	display: inline-block;
+.z-paging .z-paging-button:hover {
+    background: #f0f4fa !important;
 }
 
-.od-badge-pending {
-	background: #fef3c7;
-	color: #92400e;
-	border: 1px solid #fcd34d;
-	padding: 3px 12px;
-	border-radius: 20px;
-	font-size: 11px;
-	font-weight: 700;
-	display: inline-block;
+.z-paging .z-paging-button.z-paging-button-selected {
+    background: #1a3a6e !important;
+    color: #ffffff !important;
+    border-color: #1a3a6e !important;
 }
 
-.od-badge-draft {
-	background: #f1f5f9;
-	color: #475569;
-	border: 1px solid #cbd5e1;
-	padding: 3px 12px;
-	border-radius: 20px;
-	font-size: 11px;
-	font-weight: 700;
-	display: inline-block;
+/* ── Status Chips ── */
+.chip {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 10px;          /* slightly smaller so long labels fit */
+    font-weight: 700;
+    white-space: normal;      /* allow wrapping inside chip */
+    word-break: break-word;   /* break long underscore-separated words */
+    line-height: 1.4;
+    text-align: center;
+    max-width: 100%;          /* never overflow its cell */
+    box-sizing: border-box;
 }
 
-.od-badge-rejected {
-	background: #ffe4e6;
-	color: #be123c;
-	border: 1px solid #fda4af;
-	padding: 3px 12px;
-	border-radius: 20px;
-	font-size: 11px;
-	font-weight: 700;
-	display: inline-block;
+.ch-submitted    { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+.ch-pending      { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+.ch-rejected     { background: #ffe4e6; color: #be123c; border: 1px solid #fda4af; }
+.ch-approved     { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+.ch-draft        { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+.ch-in-progress  { background: #fff7ed; color: #c2410c; border: 1px solid #fb923c; }
+.ch-verification { background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; }
+.ch-verified     { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+/* .ch-verified     { background: #dcfce7; color: #15803d; border: 1px solid #86efac; white-space: normal; text-align: center; line-height: 1.4; } */
+.ch-dispatched   { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; }
+.ch-cxf-gen      { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; }
+.ch-sent-npci    { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+
+/* ── Batch ID link ── */
+.od-batch-link {
+    color: #1a2a4a !important;
+    font-weight: 700;
+    font-size: 13.5px;
+    cursor: pointer;
+    text-decoration: none !important;
 }
 
-/* ── View Button in rows ── */
-.od-btn-view {
-	background: #1a3a6e;
-	color: #ffffff !important;
-	border: none;
-	border-radius: 5px;
-	font-size: 12px;
-	font-weight: 600;
-	padding: 5px 14px;
-	cursor: pointer;
+.od-batch-link:hover {
+    color: #4f46e5 !important;
 }
 
-.od-btn-view:hover {
-	background: #142d58;
+/* ── Amount cell ── */
+.od-amt-cell .z-listcell-content {
+    font-family: 'Roboto Mono', monospace, 'Courier New';
+    font-weight: 600;
+    color: #1a2a4a !important;
+}
+
+/* ── View button ── */
+.od-btn-view,
+.od-btn-view.z-button {
+    background: #1a2a4a !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 5px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    padding: 6px 16px !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
+}
+
+.od-btn-view:hover,
+.od-btn-view.z-button:hover {
+    background: #243860 !important;
+}
+
+/* ── Clickable row ── */
+.od-batch-row {
+    cursor: pointer;
+}
+
+.od-batch-row:hover .z-listcell {
+    background: #f0f4ff !important;
+}
+/* ══════════════════════════════════════════════════════
+   MODAL MASK & MESSAGEBOX — z-index layering fix
+   ──────────────────────────────────────────────────────
+   Ensures logout confirm, alert, and any Messagebox popup
+   always appears ON TOP and is fully clickable. Background
+   gets a blur so the overlay reads clearly as modal.
+   ══════════════════════════════════════════════════════ */
+
+/* Primary mask (behind any custom popup) */
+.z-modal-mask,
+.z-highlighted-mask {
+    backdrop-filter: blur(3px) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
+    background: rgba(0, 0, 0, 0.50) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    pointer-events: all !important;
+    cursor: default !important;
+    z-index: 10100 !important;
+}
+
+/* Messagebox mask — stacks above the primary mask */
+.z-messagebox-mask,
+.z-modal-mask ~ .z-modal-mask,
+.z-highlighted-mask ~ .z-highlighted-mask {
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    background: rgba(0, 0, 0, 0.55) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    pointer-events: all !important;
+    cursor: default !important;
+    z-index: 10300 !important;
+}
+
+/* ZK Messagebox window (logout confirm, alerts, etc.) — topmost */
+.z-messagebox,
+.z-messagebox.z-window-modal,
+.z-messagebox.z-window-overlapped,
+.z-messagebox.z-window-highlighted {
+    position: fixed !important;
+    z-index: 10400 !important;
+    pointer-events: all !important;
 }

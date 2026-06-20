@@ -10,12 +10,14 @@ import java.util.List;
 
 import org.hibernate.Session;
 
+import com.cts.outward.enums.BatchStatus;
+import com.cts.outward.enums.ChequeStatus;
 import com.cts.outward.model.BatchModel;
 import com.cts.outward.model.ChequeModel;
 import com.cts.outward.util.HibernateUtil;
 
 /**
- * Verification2DAOImpl
+ * VerificationIIDAOImpl
  *
  * JDBC implementation — uses only methods that exist in the
  * ORIGINAL BatchModel and ChequeModel (no model changes allowed).
@@ -29,7 +31,7 @@ import com.cts.outward.util.HibernateUtil;
  * ChequeModel available setters used here:
  *   setId(String), setBatchId, setChequeNo, setAccountNo,
  *   setSortCode, setTransactionCode, setAmount, setChequeDate,
- *   setIqaStatus, setVerStatus, setStatus,
+ *   setIqaStatus, setVerStatus, setStatus, setReferred(boolean),
  *   setDuplicate(boolean), setFrontImageBytes, setRearImageBytes,
  *   setCreatedAt, setUpdatedAt
  *
@@ -37,7 +39,7 @@ import com.cts.outward.util.HibernateUtil;
  *   iqa_status field is used to carry "ver_action" value from DB
  *   because iqa_status is not displayed as a column in this screen.
  *   Format stored: "VACTION:<ver_action_value>"
- *   e.g.  "VACTION:REFERRED"  or  "VACTION:ACCEPTED"
+ *   e.g.  "VACTION:REFERRED"  or  "VACTION:VERIFIED"
  *   Composer reads this via getIqaStatus() and strips the prefix.
  *
  * BATCH STATUS ENCODING (presentingBankId):
@@ -51,9 +53,9 @@ import com.cts.outward.util.HibernateUtil;
  *   Cheques created by the scan/batch workflow may have ver_status values
  *   like 'V2_PENDING', 'HV_PENDING', or other non-null strings that are
  *   still unverified. The new filter counts anything that is NOT
- *   'accepted' or 'rejected' (case-insensitive) as still pending.
+ *   'verified' or 'rejected' (case-insensitive) as still pending.
  */
-public class Verification2DAOImpl implements Verification2DAO {
+public class VerificationIIDAOImpl implements VerificationIIDAO {
 
     // ── SQL ──────────────────────────────────────────────────────────────────
 
@@ -69,16 +71,20 @@ public class Verification2DAOImpl implements Verification2DAO {
         "    b.created_at, " +
         "    b.updated_at, " +
         "    COUNT(c.id)                                                              AS hv_count, " +
-        // FIX: treat anything that is NOT accepted/rejected as pending
+        // FIX: treat anything that is NOT verified/rejected as pending
         // This catches NULL, 'PENDING', 'V2_PENDING', 'HV_PENDING', etc.
-        "    COUNT(c.id) FILTER (WHERE LOWER(c.ver_status) NOT IN ('accepted','rejected') " +
+        "    COUNT(c.id) FILTER (WHERE LOWER(c.ver_status) NOT IN ('verified','rejected') " +
         "                           OR c.ver_status IS NULL)                          AS pending_count, " +
-        // processed = accepted OR rejected only
-        "    COUNT(c.id) FILTER (WHERE LOWER(c.ver_status) IN ('accepted','rejected')) AS processed_count " +
+        // processed = verified OR rejected only
+        "    COUNT(c.id) FILTER (WHERE LOWER(c.ver_status) IN ('verified','rejected')) AS processed_count, " +
+        // FIX: use the permanent is_referred flag (set once by V1) instead of
+        // ver_action, because ver_action gets overwritten to VERIFIED/REJECTED
+        // once V2 acts on the cheque — is_referred never changes.
+        "    COUNT(c.id) FILTER (WHERE c.is_referred = true)                            AS ref_count " +
         "FROM  public.cts_batches b " +
         "JOIN  public.cts_cheques c " +
         "      ON  c.batch_id = b.batch_id " +
-        "      AND (c.ver_level = 'V2' OR c.ver_action = 'REFERRED') " +
+        "      AND (c.ver_level = 'V2' OR c.is_referred = true) " +
         "GROUP BY " +
         "    b.batch_id, b.branch_code, b.status, " +
         "    b.total_cheques, b.expected_cheques, " +
@@ -94,25 +100,25 @@ public class Verification2DAOImpl implements Verification2DAO {
      */
     private static final String SQL_HV_CHEQUES_FOR_BATCH =
         "SELECT " +
-        "    id, batch_id, cheque_no, account_no, " +
+        "    id, batch_id, cheque_no, account_no, payee_name, " +
         "    sort_code, transaction_code, " +
-        "    amount, cheque_date, " +
-        "    ver_action, " +
+        "    amount, amount_in_words, cheque_date, " +
+        "    ver_action, is_referred, " +
         "    status, ver_status, " +
         "    duplicate_flag, " +
         "    created_at, updated_at, " +
         "    front_image, rear_image " +
         "FROM  public.cts_cheques " +
         "WHERE batch_id = ? " +
-        "  AND (ver_level = 'V2' OR ver_action = 'REFERRED') " +
+        "  AND (ver_level = 'V2' OR is_referred = true) " +
         "ORDER BY cheque_no ASC";
 
     private static final String SQL_CHEQUE_BY_ID =
         "SELECT " +
-        "    id, batch_id, cheque_no, account_no, " +
+        "    id, batch_id, cheque_no, account_no, payee_name, " +
         "    sort_code, transaction_code, " +
-        "    amount, cheque_date, " +
-        "    ver_action, " +
+        "    amount, amount_in_words, cheque_date, " +
+        "    ver_action, is_referred, " +
         "    status, ver_status, " +
         "    duplicate_flag, " +
         "    created_at, updated_at, " +
@@ -129,6 +135,35 @@ public class Verification2DAOImpl implements Verification2DAO {
         "       status      = ?, " +
         "       updated_at  = NOW() " +
         "WHERE  id = ?";
+
+    /**
+     * Count ALL cheques in the batch (V1 + V2 combined).
+     * Used to decide batch status after each verification action.
+     */
+    private static final String SQL_COUNT_ALL_CHEQUES_IN_BATCH =
+        "SELECT COUNT(*) FROM public.cts_cheques WHERE batch_id = ?";
+
+    /**
+     * Count cheques that are fully actioned (VERIFIED OR REJECTED) in the batch.
+     * Uses cts_cheques.status — the agreed source of truth.
+     * Tied to ChequeStatus enum: VERIFIED.db()="VERIFIED", REJECTED.db()="REJECTED".
+     * LOWER() makes this safe against any legacy mixed-case data in the DB.
+     */
+    private static final String SQL_COUNT_ACTIONED_CHEQUES_IN_BATCH =
+        "SELECT COUNT(*) FROM public.cts_cheques " +
+        "WHERE batch_id = ? " +
+        "  AND LOWER(status) IN (LOWER('" + ChequeStatus.VERIFIED.db() + "'), " +
+                                "LOWER('" + ChequeStatus.REJECTED.db() + "'))";
+
+    /**
+     * Update cts_batches.status for the given batch.
+     * "VerificationInProgress" and "Verified" are exact dbValues from BatchStatus enum.
+     */
+    private static final String SQL_UPDATE_BATCH_STATUS =
+        "UPDATE public.cts_batches " +
+        "SET    status     = ?, " +
+        "       updated_at = NOW() " +
+        "WHERE  batch_id   = ?";
 
     // ── DAO methods ──────────────────────────────────────────────────────────
 
@@ -176,18 +211,72 @@ public class Verification2DAOImpl implements Verification2DAO {
 
     @Override
     public void updateVerification(long id, String action, String verBy, String remarks) {
-        String statusValue = "ACCEPTED".equalsIgnoreCase(action) ? "Accepted" : "Rejected";
+        // Resolve the action string to a canonical ChequeStatus enum constant.
+        // ChequeStatus.VERIFIED.db() = "VERIFIED"
+        // ChequeStatus.REJECTED.db() = "REJECTED"
+        // Both ver_status and status columns receive the same value.
+        ChequeStatus resolved = ChequeStatus.fromDb(action);
+        String statusValue = (resolved == ChequeStatus.VERIFIED)
+                ? ChequeStatus.VERIFIED.db()
+                : ChequeStatus.REJECTED.db();
 
         executeWithConnection(conn -> {
             try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_VERIFICATION)) {
-                ps.setString(1, action.toUpperCase());
+                ps.setString(1, statusValue);        // ver_action — canonical db value
                 ps.setString(2, verBy);
                 ps.setString(3, (remarks == null || remarks.isBlank()) ? null : remarks.trim());
-                ps.setString(4, statusValue);
-                ps.setString(5, statusValue);
+                ps.setString(4, statusValue);        // ver_status
+                ps.setString(5, statusValue);        // status
                 ps.setLong(6, id);
                 ps.executeUpdate();
             }
+            return null;
+        });
+    }
+
+    /**
+     * Checks cts_cheques.status for ALL cheques in the batch (V1 + V2)
+     * and updates cts_batches.status accordingly:
+     *
+     *   All actioned  → "Verified"               (BatchStatus.VERIFIED.db())
+     *   Partially done → "VerificationInProgress" (BatchStatus.VERIFICATION_IN_PROGRESS.db())
+     */
+    @Override
+    public void checkAndUpdateBatchStatus(String batchId) {
+        executeWithConnection(conn -> {
+            long totalCount    = 0;
+            long actionedCount = 0;
+
+            // Count all cheques in the batch
+            try (PreparedStatement ps = conn.prepareStatement(SQL_COUNT_ALL_CHEQUES_IN_BATCH)) {
+                ps.setString(1, batchId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) totalCount = rs.getLong(1);
+                }
+            }
+
+            // Count actioned (Verified or Rejected) cheques in the batch
+            try (PreparedStatement ps = conn.prepareStatement(SQL_COUNT_ACTIONED_CHEQUES_IN_BATCH)) {
+                ps.setString(1, batchId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) actionedCount = rs.getLong(1);
+                }
+            }
+
+            // Determine new batch status using enum db values — never hardcoded strings.
+            // BatchStatus.VERIFIED.db()                  = "Verified"
+            // BatchStatus.VERIFICATION_IN_PROGRESS.db()  = "VerificationInProgress"
+            String newBatchStatus = (totalCount > 0 && actionedCount >= totalCount)
+                    ? BatchStatus.VERIFIED.db()
+                    : BatchStatus.VERIFICATION_IN_PROGRESS.db();
+
+            // Update cts_batches.status
+            try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_BATCH_STATUS)) {
+                ps.setString(1, newBatchStatus);
+                ps.setString(2, batchId);
+                ps.executeUpdate();
+            }
+
             return null;
         });
     }
@@ -222,7 +311,8 @@ public class Verification2DAOImpl implements Verification2DAO {
         long hvCount        = rs.getLong("hv_count");
         long pendingCount   = rs.getLong("pending_count");
         long processedCount = rs.getLong("processed_count");
-        m.setPresentingBankId(hvCount + "|" + pendingCount + "|" + processedCount);
+        long refCount       = rs.getLong("ref_count");
+        m.setPresentingBankId(hvCount + "|" + pendingCount + "|" + processedCount + "|" + refCount);
 
         return m;
     }
@@ -235,7 +325,7 @@ public class Verification2DAOImpl implements Verification2DAO {
      *
      * Example values stored in iqa_status:
      *   "VACTION:REFERRED"   — cheque came from V1 via REFER
-     *   "VACTION:ACCEPTED"   — already accepted at V2
+     *   "VACTION:VERIFIED"   — already verified at V2
      *   "VACTION:"           — no ver_action set yet (direct HV)
      */
     private ChequeModel mapCheque(ResultSet rs) throws SQLException {
@@ -245,14 +335,22 @@ public class Verification2DAOImpl implements Verification2DAO {
         m.setBatchId(rs.getString("batch_id"));
         m.setChequeNo(rs.getString("cheque_no"));
         m.setAccountNo(rs.getString("account_no"));
+        m.setPayeeName(rs.getString("payee_name"));
         m.setSortCode(rs.getString("sort_code"));
         m.setTransactionCode(rs.getString("transaction_code"));
         m.setAmount(rs.getBigDecimal("amount"));
+        m.setAmountInWords(rs.getString("amount_in_words"));
         m.setChequeDate(rs.getString("cheque_date"));
 
         // Encode ver_action into iqa_status using "VACTION:" prefix
+        // (kept as-is — other modules may still rely on this encoding)
         String verAction = rs.getString("ver_action");
         m.setIqaStatus("VACTION:" + (verAction != null ? verAction : ""));
+
+        // Permanent referred flag — set once by V1, does NOT change when
+        // V2 verifies/rejects the cheque. This is now the source of truth
+        // for the REF flag/count on this screen.
+        m.setReferred(rs.getBoolean("is_referred"));
 
         m.setStatus(rs.getString("status"));
         m.setVerStatus(rs.getString("ver_status"));
@@ -291,7 +389,7 @@ public class Verification2DAOImpl implements Verification2DAO {
                     return work.execute(conn);
                 } catch (SQLException e) {
                     throw new RuntimeException(
-                        "Verification2DAOImpl error: " + e.getMessage(), e);
+                        "VerificationIIDAOImpl error: " + e.getMessage(), e);
                 }
             });
         }

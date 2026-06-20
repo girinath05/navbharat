@@ -6,7 +6,7 @@ import com.cts.outward.model.ChequeModel;
 import java.util.List;
 
 /**
- * Verification2DAO
+ * VerificationIIDAO
  *
  * Interface for Verification-II data access.
  * Follows the same pattern as BatchDAO / ChequeDAO in this project.
@@ -15,7 +15,7 @@ import java.util.List;
  *   public.cts_batches   — batch header
  *   public.cts_cheques   — cheque rows  (high_value = true filter)
  */
-public interface Verification2DAO {
+public interface VerificationIIDAO {
 
     /**
      * Fetch all batches that contain at least one high-value cheque
@@ -62,4 +62,13 @@ public interface Verification2DAO {
      * @param remarks  optional remarks from UI textbox
      */
     void updateVerification(long id, String action, String verBy, String remarks);
+
+	/**
+	 * Checks cts_cheques.status for ALL cheques in the batch (V1 + V2)
+	 * and updates cts_batches.status accordingly:
+	 *
+	 *   All actioned  → "Verified"               (BatchStatus.VERIFIED.db())
+	 *   Partially done → "VerificationInProgress" (BatchStatus.VERIFICATION_IN_PROGRESS.db())
+	 */
+	void checkAndUpdateBatchStatus(String batchId);
 }

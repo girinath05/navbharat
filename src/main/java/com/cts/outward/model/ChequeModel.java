@@ -31,6 +31,7 @@ public class ChequeModel {
 	private String batchId; // Parent batch
 	private String chequeNo; // Instrument number (6–7 digits)
 	private String accountNo; // Payee account number
+	private String payeeName; // Payee name (cts_cheques.payee_name)
 
 	// ── MICR Fields ──────────────────────────────────────────
 	private String sortCode; // 9-digit MICR sort code (cityBankBranch)
@@ -41,6 +42,7 @@ public class ChequeModel {
 
 	// ── Instrument Data ──────────────────────────────────────
 	private BigDecimal amount;
+	private String amountInWords;
 	private String drawerBank;
 	private String drawerBranch;
 	private String chequeDate;
@@ -56,6 +58,9 @@ public class ChequeModel {
 	private boolean highValue; // amount >= 10,00,000 (1 million)
 	private boolean duplicate;
 	private boolean hni;
+	private boolean referred; // set by V1 when cheque is sent to V2 for referral.
+	                          // Stays true even after V2 verifies/rejects it —
+	                          // this is the permanent flag, NOT derived from ver_action.
 
 	// ── Status ───────────────────────────────────────────────
 	// Ready | MICR_Repair | Verified | Rejected | CXF | Exported
@@ -138,6 +143,15 @@ public class ChequeModel {
 		this.updatedAt = LocalDateTime.now();
 	}
 
+	public String getPayeeName() {
+		return payeeName;
+	}
+
+	public void setPayeeName(String v) {
+		this.payeeName = v;
+		this.updatedAt = LocalDateTime.now();
+	}
+
 	public String getSortCode() {
 		return sortCode;
 	}
@@ -189,6 +203,15 @@ public class ChequeModel {
 		this.amount = v;
 		this.highValue = isHighValue();
 		this.updatedAt = LocalDateTime.now();
+	}
+
+
+	public String getAmountInWords() {
+		return amountInWords;
+	}
+
+	public void setAmountInWords(String v) {
+		this.amountInWords = v;
 	}
 
 	public String getDrawerBank() {
@@ -270,6 +293,14 @@ public class ChequeModel {
 
 	public void setHni(boolean v) {
 		this.hni = v;
+	}
+
+	public boolean isReferred() {
+		return referred;
+	}
+
+	public void setReferred(boolean v) {
+		this.referred = v;
 	}
 
 	public String getStatus() {
