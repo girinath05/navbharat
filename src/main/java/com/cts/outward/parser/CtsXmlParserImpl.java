@@ -3,17 +3,8 @@
  *  Project     : Navbharat CTS Outward
  *  File        : CtsXmlParserImpl.java
  *  Package     : com.cts.outward.parser
- *  Author      : Umesh M.
- *  Created     : June 2026
- *  Description : DOM-based implementation of CtsXmlParser.
- *                Parses RBI-format CTS XML to extract MICR band
- *                fields, cheque amount, and IQA result into a
- *                ChequeModel. Null-safe for missing optional
- *                elements; logs parse warnings without aborting
- *                the batch.
  * ============================================================
  */
-
 package com.cts.outward.parser;
 
 import java.io.InputStream;
@@ -32,33 +23,15 @@ import org.w3c.dom.NodeList;
 
 import com.cts.outward.model.ChequeModel;
 
-/**
- * CtsXmlParserImpl
- *
- * Parses CTS presentation XML into ChequeModel objects. Supports both <Cheque>
- * and <Instrument> element schemas.
- *
- * Thread-safety: SAFE — a new DocumentBuilder is created per call so this class
- * can safely be used as a singleton.
- *
- * XXE protection: DOCTYPE declarations are disallowed; external entity and
- * parameter-entity processing are both disabled.
- */
 public class CtsXmlParserImpl implements CtsXmlParser {
 
 	private static final Logger LOG = Logger.getLogger(CtsXmlParserImpl.class.getName());
 
-	// ── Entry point ───────────────────────────────────────────
-
 	@Override
 	public List<ChequeModel> parse(InputStream is, String batchId) {
-
 		List<ChequeModel> cheques = new ArrayList<>();
-
 		try {
-			// New factory + builder per call → thread-safe, no shared state.
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			// XXE hardening
 			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 			factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
 			factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
@@ -84,39 +57,53 @@ public class CtsXmlParserImpl implements CtsXmlParser {
 					LOG.warning("No <Cheque> or <Instrument> elements found in XML.");
 				}
 			}
-
 			LOG.info("Parsed " + cheques.size() + " cheques from XML.");
-
 		} catch (Exception ex) {
 			LOG.severe("XML parse error for batchId=" + batchId + ": " + ex.getMessage());
 		}
-
 		return cheques;
 	}
 
 	// ── <Cheque> schema ───────────────────────────────────────
 
 	private List<ChequeModel> parseChequeNodes(NodeList nodes, String batchId) {
-
 		List<ChequeModel> list = new ArrayList<>();
-
 		for (int i = 0; i < nodes.getLength(); i++) {
 			try {
 				Element el = (Element) nodes.item(i);
-
 				ChequeModel c = new ChequeModel();
 				c.setId(UUID.randomUUID().toString());
 				c.setBatchId(batchId);
-				c.setChequeNo(text(el, "ChequeNo"));
+				c.setChequeNo(text(el, "ChequeNo", "ChequeNumber"));
 				c.setSortCode(text(el, "SortCode"));
-				c.setAccountNo(text(el, "AccountNo"));
-				c.setDrawerBank(text(el, "DrawerBank"));
-				c.setChequeDate(text(el, "ChequeDate"));
+				c.setAccountNo(text(el, "AccountNo", "AccountNumber"));
+				c.setDrawerBank(text(el, "DrawerBank", "DrawerName"));
+				c.setChequeDate(text(el, "ChequeDate", "Date"));
 				c.setIqaStatus(textOrDefault(el, "IQA", "Pass"));
 				c.setVerStatus("Pending");
-				c.setStatus("Pass".equalsIgnoreCase(c.getIqaStatus()) ? "Ready" : "MICR_Repair");
+				c.setStatus("Pending");
 
-				// Decompose 9-digit sort code → city / bank / branch
+				// FIX: TC from MICRLine
+				String micrLine = text(el, "MICRLine");
+				if (micrLine != null) {
+					String[] parts = micrLine.trim().split("\\s+");
+					if (parts.length >= 4)
+						c.setTransactionCode(parts[parts.length - 1]);
+					else if (parts.length == 3)
+						c.setTransactionCode(parts[2]);
+				}
+				if (c.getTransactionCode() == null || c.getTransactionCode().isBlank()) {
+					String tc = text(el, "TC", "TransactionCode", "TxCode");
+					if (tc != null)
+						c.setTransactionCode(tc);
+				}
+
+				// FIX: AmountInWords
+				String amtWords = text(el, "AmountInWords", "AmtInWords", "AmountWords");
+				if (amtWords != null)
+					c.setAmountInWords(amtWords);
+
+				// Decompose sort code
 				String sc = c.getSortCode();
 				if (sc != null && sc.length() == 9) {
 					c.setCityCode(sc.substring(0, 3));
@@ -125,11 +112,19 @@ public class CtsXmlParserImpl implements CtsXmlParser {
 				}
 
 				String amtStr = text(el, "Amount");
-				if (amtStr != null && !amtStr.isBlank()) {
+				if (amtStr != null && !amtStr.isBlank())
 					c.setAmount(new BigDecimal(amtStr.trim()));
+
+				// Mismatch check: parsed words vs computed words
+				if (c.getAmount() != null && c.getAmountInWords() != null && !c.getAmountInWords().isBlank()) {
+					String expected = com.cts.outward.util.AmountToWords.convert(c.getAmount());
+					String expectedNorm = expected == null ? null : expected.replaceAll("(?i)\\bRupees\\s*", "").replaceAll("(?i)\\band\\b\\s*", "").replaceAll("\\s{2,}", " ").trim();
+					String wordsNorm = c.getAmountInWords().replaceAll("(?i)\\bRupees\\s*", "").replaceAll("(?i)\\band\\b\\s*", "").replaceAll("\\s{2,}", " ").trim();
+					if (!wordsNorm.equalsIgnoreCase(expectedNorm)) {
+						c.setAmountWordsMismatch(true);
+					}
 				}
 
-				// Image file-name hints from XML (resolved to URLs later)
 				String frontFile = text(el, "FrontImage");
 				String rearFile = text(el, "RearImage");
 				if (frontFile != null)
@@ -141,25 +136,20 @@ public class CtsXmlParserImpl implements CtsXmlParser {
 				c.setHni("Y".equalsIgnoreCase(textOrDefault(el, "HNI", "N")));
 
 				list.add(c);
-
 			} catch (Exception ex) {
 				LOG.warning("Skipping malformed <Cheque> element #" + i + ": " + ex.getMessage());
 			}
 		}
-
 		return list;
 	}
 
 	// ── <Instrument> schema ───────────────────────────────────
 
 	private List<ChequeModel> parseInstrumentNodes(NodeList nodes, String batchId) {
-
 		List<ChequeModel> list = new ArrayList<>();
-
 		for (int i = 0; i < nodes.getLength(); i++) {
 			try {
 				Element el = (Element) nodes.item(i);
-
 				ChequeModel c = new ChequeModel();
 				c.setId(UUID.randomUUID().toString());
 				c.setBatchId(batchId);
@@ -169,31 +159,62 @@ public class CtsXmlParserImpl implements CtsXmlParser {
 				c.setDrawerBank(text(el, "DrawerBank"));
 				c.setIqaStatus(textOrDefault(el, "IQA", "Pass"));
 				c.setVerStatus("Pending");
-				c.setStatus("Pass".equalsIgnoreCase(c.getIqaStatus()) ? "Ready" : "MICR_Repair");
+				c.setStatus("Pending");
+
+				// FIX: TC from MICRLine
+				String micrLine = text(el, "MICRLine");
+				if (micrLine != null) {
+					String[] parts = micrLine.trim().split("\\s+");
+					if (parts.length >= 4)
+						c.setTransactionCode(parts[parts.length - 1]);
+					else if (parts.length == 3)
+						c.setTransactionCode(parts[2]);
+				}
+				if (c.getTransactionCode() == null || c.getTransactionCode().isBlank()) {
+					String tc = text(el, "TC", "TransactionCode", "TxCode");
+					if (tc != null)
+						c.setTransactionCode(tc);
+				}
+
+				// FIX: AmountInWords
+				String amtWords = text(el, "AmountInWords", "AmtInWords", "AmountWords");
+				if (amtWords != null)
+					c.setAmountInWords(amtWords);
 
 				String amtStr = firstNonNull(text(el, "Amount"), text(el, "Amt"));
-				if (amtStr != null && !amtStr.isBlank()) {
+				if (amtStr != null && !amtStr.isBlank())
 					c.setAmount(new BigDecimal(amtStr.trim()));
+
+				// Mismatch check: parsed words vs computed words
+				if (c.getAmount() != null && c.getAmountInWords() != null && !c.getAmountInWords().isBlank()) {
+					String expected = com.cts.outward.util.AmountToWords.convert(c.getAmount());
+					String expectedNorm = expected == null ? null : expected.replaceAll("(?i)\\bRupees\\s*", "").replaceAll("(?i)\\band\\b\\s*", "").replaceAll("\\s{2,}", " ").trim();
+					String wordsNorm = c.getAmountInWords().replaceAll("(?i)\\bRupees\\s*", "").replaceAll("(?i)\\band\\b\\s*", "").replaceAll("\\s{2,}", " ").trim();
+					if (!wordsNorm.equalsIgnoreCase(expectedNorm)) {
+						c.setAmountWordsMismatch(true);
+					}
 				}
 
 				list.add(c);
-
 			} catch (Exception ex) {
 				LOG.warning("Skipping malformed <Instrument> #" + i + ": " + ex.getMessage());
 			}
 		}
-
 		return list;
 	}
 
 	// ── XML helpers ───────────────────────────────────────────
 
-	private String text(Element parent, String tag) {
-		NodeList nl = parent.getElementsByTagName(tag);
-		if (nl.getLength() == 0)
-			return null;
-		String v = nl.item(0).getTextContent();
-		return (v == null || v.isBlank()) ? null : v.trim();
+	private String text(Element parent, String... tags) {
+		for (String tag : tags) {
+			NodeList nl = parent.getElementsByTagName(tag);
+			if (nl.getLength() > 0) {
+				String v = nl.item(0).getTextContent();
+				if (v != null && !v.isBlank())
+					return v.trim();
+			}
+		}
+		return null;
 	}
 
 	private String textOrDefault(Element parent, String tag, String def) {
@@ -202,10 +223,9 @@ public class CtsXmlParserImpl implements CtsXmlParser {
 	}
 
 	private String firstNonNull(String... values) {
-		for (String v : values) {
+		for (String v : values)
 			if (v != null && !v.isBlank())
 				return v;
-		}
 		return null;
 	}
 }

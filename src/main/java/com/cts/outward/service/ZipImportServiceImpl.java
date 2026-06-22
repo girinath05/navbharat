@@ -9,15 +9,30 @@
  *                Converts BatchModel → BatchEntity and each
  *                ChequeModel → ChequeEntity, then delegates to
  *                BatchDAO.saveBatch() and ChequeDAO.saveCheques()
- *                in order. Rolls back via service exception if
- *                either DAO call fails.
+ *                in order.
+ *
+ *  CHANGED (Jun 2026):
+ *    - Removed RuntimeException throw on all-duplicates.
+ *      Instead: fills ImportResult.skippedDuplicates, parsedTotal,
+ *      parsedTotalAmount and returns early — no DB writes.
+ *    - Composer detects result.isAllDuplicates() and shows
+ *      a dedicated "All Cheques Already Present" dialog.
+ *    - Partial-duplicate path unchanged (saves surviving cheques,
+ *      sets skippedDuplicates so mismatch dialog can show counts).
  * ============================================================
  */
 
 package com.cts.outward.service;
 
+import com.cts.outward.enums.BatchStatus;
+import com.cts.outward.enums.ChequeStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import com.cts.outward.dao.BatchDAO;
 import com.cts.outward.dao.BatchDAOImpl;
@@ -28,65 +43,110 @@ import com.cts.outward.entity.ChequeEntity;
 import com.cts.outward.parser.CtsParser;
 import com.cts.outward.parser.CtsZipParserImpl;
 
-/**
- * ZipImportServiceImpl
- *
- * BUG FIXED HERE (BUG 1 — part 2): The original loop called
- * chequeDAO.saveCheque() one at a time. saveCheque() used session.merge() which
- * silently does nothing for null-id entities — so images were parsed correctly
- * but never reached DB.
- *
- * Fix: use chequeDAO.saveCheques() which uses session.persist() inside a single
- * batched transaction — correct for new entities, and 50x faster.
- */
 public class ZipImportServiceImpl implements ZipImportService {
 
-	// CtsZipParserImpl detects ZIP structure automatically:
-	// Structure A: BATCH002/CHQ001/cheque.xml + front.png + rear.png
-	// (folder-per-cheque)
-	// Structure B: flat ZIP with one master XML + image files
-	private final CtsParser ctsParser = new CtsZipParserImpl();
-	private final ChequeDAO chequeDAO = new ChequeDAOImpl();
-	private final BatchDAO batchDAO = new BatchDAOImpl();
+    private static final Logger LOG = Logger.getLogger(ZipImportServiceImpl.class.getName());
 
-	@Override
-	public ImportResult importZip(byte[] zipBytes, String zipName, String branchCode, String createdBy,
-			String existingBatchId) {
+    private final CtsParser ctsParser = new CtsZipParserImpl();
+    private final ChequeDAO chequeDAO = new ChequeDAOImpl();
+    private final BatchDAO  batchDAO  = new BatchDAOImpl();
 
-		long startMs = System.currentTimeMillis();
+    // ══════════════════════════════════════════════════════════════════
+    // PRIMARY IMPORT — with existing batch id (Step-2 scan modal path)
+    // ══════════════════════════════════════════════════════════════════
 
-		CtsParser.ParseResult parsed = ctsParser.parse(zipBytes, zipName);
-		BatchEntity batch = parsed.getBatch();
-		List<ChequeEntity> cheques = parsed.getCheques();
+    @Override
+    public ImportResult importZip(byte[] zipBytes, String zipName,
+                                  String branchCode, String createdBy,
+                                  String existingBatchId) {
 
-		if (existingBatchId != null && !existingBatchId.isBlank()) {
-			batch.setBatchId(existingBatchId);
+        long startMs = System.currentTimeMillis();
 
-			// ✅ FIX: push actual ZIP counts to DB
-			batchDAO.updateBatchActualCounts(existingBatchId, cheques.size(), batch.getTotalAmount(), "Submitted");
+        // ── 1. Parse ZIP ──────────────────────────────────────────────
+        CtsParser.ParseResult parsed   = ctsParser.parse(zipBytes, zipName);
+        BatchEntity           batch    = parsed.getBatch();
+        List<ChequeEntity>    cheques  = parsed.getCheques();
 
-		} else {
-			if (branchCode != null && !branchCode.isBlank())
-				batch.setBranchCode(branchCode);
-			if (createdBy != null && !createdBy.isBlank())
-				batch.setCreatedBy(createdBy);
-			batch.setCreatedAt(LocalDateTime.now());
-			batch.setUpdatedAt(LocalDateTime.now());
-			batchDAO.saveBatch(batch);
-		}
-		// stamp batchId onto all cheques
-		for (ChequeEntity cheque : cheques) {
-			cheque.setBatchId(batch.getBatchId());
-		}
+        int        parsedTotal       = cheques.size();
+        BigDecimal parsedTotalAmount = cheques.stream()
+                .map(c -> c.getAmount() != null ? c.getAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-		chequeDAO.saveCheques(cheques);
+        // ── 2. Duplicate guard ────────────────────────────────────────
+        List<String> incomingNos   = cheques.stream()
+                .map(ChequeEntity::getChequeNo)
+                .collect(Collectors.toList());
+        Set<String>  alreadyExists = chequeDAO.findExistingChequeNos(incomingNos);
 
-		long elapsedMs = System.currentTimeMillis() - startMs;
-		return new ImportResult(batch, cheques, elapsedMs);
-	}
+        int skipped = alreadyExists.size();
 
-	@Override
-	public ImportResult importZip(byte[] zipBytes, String zipName, String branchCode, String createdBy) {
-		return importZip(zipBytes, zipName, branchCode, createdBy, null);
-	}
+        if (!alreadyExists.isEmpty()) {
+            cheques = cheques.stream()
+                    .filter(c -> !alreadyExists.contains(c.getChequeNo()))
+                    .collect(Collectors.toList());
+            LOG.warning("Duplicate cheques skipped on import: " + alreadyExists);
+        }
+
+        // ── 3. ALL duplicates — return without any DB write ───────────
+        if (cheques.isEmpty()) {
+            LOG.warning("All " + parsedTotal + " cheque(s) from " + zipName
+                    + " already exist in system. Nothing saved.");
+
+            // We need a batch shell to carry metadata back to the composer.
+            // Use existingBatchId if provided, else the parsed one.
+            if (existingBatchId != null && !existingBatchId.isBlank())
+                batch.setBatchId(existingBatchId);
+
+            ImportResult allDupResult = new ImportResult(batch, Collections.emptyList(),
+                    System.currentTimeMillis() - startMs);
+            allDupResult.setSkippedDuplicates(skipped);
+            allDupResult.setParsedTotal(parsedTotal);
+            allDupResult.setParsedTotalAmount(parsedTotalAmount);
+            return allDupResult;
+        }
+
+        // ── 4. Partial or no duplicates — persist ─────────────────────
+        // Recalculate actual amount from surviving cheques (null-safe).
+        BigDecimal actualAmount = cheques.stream()
+                .map(c -> c.getAmount() != null ? c.getAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        batch.setTotalAmount(actualAmount);
+
+        if (existingBatchId != null && !existingBatchId.isBlank()) {
+            batch.setBatchId(existingBatchId);
+            batchDAO.updateBatchActualCounts(existingBatchId, cheques.size(),
+                    actualAmount, BatchStatus.DRAFT.db());
+        } else {
+            if (branchCode != null && !branchCode.isBlank())
+                batch.setBranchCode(branchCode);
+            if (createdBy != null && !createdBy.isBlank())
+                batch.setCreatedBy(createdBy);
+            batch.setCreatedAt(LocalDateTime.now());
+            batch.setUpdatedAt(LocalDateTime.now());
+            batchDAO.saveBatch(batch);
+        }
+
+        for (ChequeEntity cheque : cheques)
+            cheque.setBatchId(batch.getBatchId());
+
+        chequeDAO.saveCheques(cheques);
+
+        long elapsedMs = System.currentTimeMillis() - startMs;
+
+        ImportResult result = new ImportResult(batch, cheques, elapsedMs);
+        result.setSkippedDuplicates(skipped);
+        result.setParsedTotal(parsedTotal);
+        result.setParsedTotalAmount(parsedTotalAmount);
+        return result;
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // CONVENIENCE OVERLOAD — no existing batch (direct upload path)
+    // ══════════════════════════════════════════════════════════════════
+
+    @Override
+    public ImportResult importZip(byte[] zipBytes, String zipName,
+                                  String branchCode, String createdBy) {
+        return importZip(zipBytes, zipName, branchCode, createdBy, null);
+    }
 }

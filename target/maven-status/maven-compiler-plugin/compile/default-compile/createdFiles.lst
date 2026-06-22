@@ -1,6 +1,0 @@
-com\cts\composer\HeaderComposer.class
-com\cts\composer\DashboardComposer.class
-com\cts\composer\SidebarComposer.class
-com\cts\security\Permission.class
-com\cts\composer\LoginComposer.class
-com\cts\security\SecurityUtil.class

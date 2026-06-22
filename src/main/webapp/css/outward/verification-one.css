@@ -1,0 +1,852 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Roboto+Mono:wght@400;500;700&display=swap');
+
+:root {
+    --navy:        #1B2E4B;
+    --navy2:       #142338;
+    --cyan:        #0B74D1;
+    --amber:       #f59e0b;
+    --red:         #dc2626;
+    --border:      #E2E8F0;
+    --border-light:#F0F4FA;
+    --gray-50:     #F8FAFC;
+    --gray-100:    #F3F4F6;
+    --gray-300:    #D1D5DB;
+    --gray-400:    #9CA3AF;
+    --text-main:   #0F1117;
+    --text-sub:    #6B7280;
+    --gold:        #C9A227;
+    --sidebar-w:   248px;
+    --topbar-h:    56px;
+
+    /* ── Popup section heights (pixel-perfect from teammate screenshot) ── */
+    --vw-header-h:   48px;
+    --vw-img-h:      270px;   /* cheque image area */
+    --vw-sec-h:      34px;    /* section strip (MICR DATA / CHEQUE & CBS DATA) */
+    --vw-grid-h:     52px;    /* one data grid row */
+    --vw-footer-h:   52px;
+    /* total: 48+270+34+52+34+104+52 = 594px — fits 600px popup */
+}
+
+* { box-sizing: border-box; }
+
+/* ══ FONTS ══ */
+#v1Root, #v1Root * { font-family: 'Inter', sans-serif !important; }
+.mono,
+.v1-verify-window .mono,
+.v1-verify-window .vw-field-val.mono,
+.v1-verify-window .vw-field-val.amt {
+    font-family: 'Roboto Mono', 'Courier New', monospace !important;
+}
+
+/* ══ ROOT LAYOUT ══ */
+#v1Root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #F1F5F9;
+    padding: 0;
+    margin: 0;
+}
+
+/* ══ PAGE TITLE ══ */
+.pg-title    { font-size: 20px !important; font-weight: 700 !important; color: var(--text-main) !important; letter-spacing: -.3px !important; line-height: 1.2 !important; }
+.pg-subtitle { font-size: 13px !important; color: var(--text-sub) !important; margin-top: 2px !important; font-weight: 400 !important; }
+
+/* ══ SEARCH BAR ══ */
+.v1-search-bar-inner {
+    display: flex !important; align-items: center !important; flex: 1 !important;
+    min-width: 160px !important; max-width: 220px !important;
+    background: #fff !important; border: 1.5px solid var(--border) !important;
+    border-radius: 8px !important; padding: 0 14px !important; height: 36px !important;
+    gap: 10px !important; transition: border-color .18s, box-shadow .18s !important;
+}
+.v1-search-bar-inner:focus-within { border-color: var(--cyan) !important; box-shadow: 0 0 0 3px rgba(11,116,209,.10) !important; }
+.v1-search-icon { font-size: 14px !important; line-height: 1 !important; flex-shrink: 0 !important; color: var(--gray-400) !important; display: inline-flex !important; align-items: center !important; }
+.v1-search-input.z-textbox, .v1-search-input {
+    flex: 1 !important; border: none !important; outline: none !important; background: transparent !important;
+    font-size: 13px !important; font-family: 'Inter', sans-serif !important; color: var(--text-main) !important;
+    height: 34px !important; padding: 0 !important; box-shadow: none !important; width: 100% !important; min-width: 0 !important;
+}
+.v1-search-input.z-textbox:focus { border: none !important; outline: none !important; box-shadow: none !important; }
+.v1-search-input.z-textbox::placeholder, .v1-search-input::placeholder { color: var(--gray-400) !important; font-size: 12.5px !important; }
+
+/* ══ CARD ══ */
+.v1-card {
+    background: #fff !important; border: 1px solid var(--border) !important;
+    border-radius: 10px !important; overflow: hidden !important;
+    box-shadow: 0 1px 8px rgba(15,35,71,.06) !important; width: 100% !important; box-sizing: border-box !important;
+}
+
+/* ══ CARD TOP BAR ══ */
+.v1-card-topbar {
+    display: flex !important; align-items: center !important; gap: 10px !important;
+    padding: 10px 16px !important; border-bottom: 1px solid var(--border-light) !important;
+    background: var(--gray-50) !important; flex-wrap: nowrap !important;
+    box-sizing: border-box !important; width: 100% !important; overflow-x: auto !important;
+}
+.v1-card-topbar > table, .v1-card-topbar.z-hbox > table, .v1-card-topbar > .z-hbox-inner { display: none !important; }
+.v1-card-topbar-split { position: relative !important; justify-content: space-between !important; }
+.v1-topbar-left { display: flex !important; align-items: center !important; gap: 10px !important; flex-shrink: 0 !important; }
+.v1-topbar-right { display: flex !important; align-items: center !important; gap: 10px !important; flex-shrink: 0 !important; flex-wrap: nowrap !important; }
+.v1-card-title { font-size: 13px !important; font-weight: 800 !important; letter-spacing: .07em !important; color: var(--text-main) !important; flex-shrink: 0 !important; text-transform: uppercase !important; white-space: nowrap !important; }
+
+/* ══ DATE FILTER ══ */
+.v1-date-arrow { font-size: 13px !important; color: var(--text-sub) !important; flex-shrink: 0 !important; }
+.v1-date-box.z-datebox { height: 36px !important; border: 1.5px solid var(--border) !important; border-radius: 7px !important; font-size: 12px !important; background: #fff !important; flex-shrink: 0 !important; }
+.v1-date-box .z-datebox-input { height: 34px !important; font-size: 12px !important; padding: 0 8px !important; }
+.v1-date-clear-btn.z-button, .v1-date-clear-btn {
+    background: #fff !important; color: var(--text-sub) !important; border: 1.5px solid var(--border) !important;
+    border-radius: 7px !important; padding: 0 14px !important; height: 36px !important; font-size: 12px !important;
+    font-weight: 600 !important; cursor: pointer !important; white-space: nowrap !important; flex-shrink: 0 !important;
+}
+.v1-date-clear-btn.z-button:hover { background: var(--gray-100) !important; }
+
+/* ══ STATUS COMBOBOX ══ */
+.v1-status-cmb.z-combobox { height: 36px !important; flex-shrink: 0 !important; }
+.v1-status-cmb .z-combobox-input, .v1-status-cmb input {
+    height: 34px !important; font-size: 12px !important; border: 1.5px solid var(--border) !important;
+    border-radius: 7px !important; padding: 0 8px !important; color: var(--text-main) !important;
+    font-family: 'Inter', sans-serif !important; font-weight: 500 !important;
+}
+.v1-status-cmb .z-combobox-btn { height: 34px !important; border-radius: 0 7px 7px 0 !important; }
+
+/* ══ BATCH ID INLINE LABEL ══ */
+.v1-batch-id-inline.z-label, .v1-batch-id-inline {
+    font-size: 12px !important; font-weight: 700 !important; color: var(--navy) !important;
+    background: #EFF6FF !important; border: 1px solid #BFDBFE !important; border-radius: 5px !important;
+    padding: 2px 10px !important; white-space: nowrap !important; flex-shrink: 0 !important;
+}
+
+/* ══ LISTBOX ══ */
+.v1-listbox.z-listbox, .v1-listbox {
+    border: none !important; box-shadow: none !important; width: 100% !important;
+    height: auto !important; overflow: visible !important; display: block !important;
+}
+.v1-listbox .z-listbox-body { border: none !important; overflow: visible !important; height: auto !important; width: 100% !important; }
+.v1-listbox .z-listbox-empty { padding: 40px 20px !important; text-align: center !important; color: var(--gray-400) !important; font-size: 13px !important; font-style: italic !important; }
+.v1-listbox .z-listbox-body table, .v1-listbox .z-listbox-header table,
+.v1-listbox .z-listbox-body > div > table, .v1-listbox .z-listbox-header > div > table {
+    width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important;
+}
+
+/* ── Batch listbox column widths ── */
+.v1-batch-lb .z-listbox-header th:nth-child(1), .v1-batch-lb .z-listbox-body td:nth-child(1) { width: 16% !important; }
+.v1-batch-lb .z-listbox-header th:nth-child(2), .v1-batch-lb .z-listbox-body td:nth-child(2) { width: 12% !important; }
+.v1-batch-lb .z-listbox-header th:nth-child(3), .v1-batch-lb .z-listbox-body td:nth-child(3) { width: 10% !important; }
+.v1-batch-lb .z-listbox-header th:nth-child(4), .v1-batch-lb .z-listbox-body td:nth-child(4) { width: 10% !important; }
+.v1-batch-lb .z-listbox-header th:nth-child(5), .v1-batch-lb .z-listbox-body td:nth-child(5) { width: 11% !important; }
+.v1-batch-lb .z-listbox-header th:nth-child(6), .v1-batch-lb .z-listbox-body td:nth-child(6) { width: 26% !important; }
+.v1-batch-lb .z-listbox-header th:nth-child(7), .v1-batch-lb .z-listbox-body td:nth-child(7) { width: 15% !important; }
+
+/* ── Cheque listbox column widths ── */
+.v1-cheque-lb .z-listbox-header th:nth-child(1), .v1-cheque-lb .z-listbox-body td:nth-child(1) { width: 5%  !important; }
+.v1-cheque-lb .z-listbox-header th:nth-child(2), .v1-cheque-lb .z-listbox-body td:nth-child(2) { width: 10% !important; }
+.v1-cheque-lb .z-listbox-header th:nth-child(3), .v1-cheque-lb .z-listbox-body td:nth-child(3) { width: 20% !important; }
+.v1-cheque-lb .z-listbox-header th:nth-child(4), .v1-cheque-lb .z-listbox-body td:nth-child(4) { width: 12% !important; }
+.v1-cheque-lb .z-listbox-header th:nth-child(5), .v1-cheque-lb .z-listbox-body td:nth-child(5) { width: 11% !important; }
+.v1-cheque-lb .z-listbox-header th:nth-child(6), .v1-cheque-lb .z-listbox-body td:nth-child(6) { width: 26% !important; }
+.v1-cheque-lb .z-listbox-header th:nth-child(7), .v1-cheque-lb .z-listbox-body td:nth-child(7) { width: 18% !important; }
+
+/* ── List header ── */
+.v1-lh-row.z-listhead { background: var(--navy) !important; border-bottom: none !important; }
+.v1-lh.z-listheader {
+    background: var(--navy) !important; color: #fff !important;
+    border-right: 1px solid rgba(255,255,255,.10) !important; padding: 0 !important; overflow: hidden !important;
+}
+.v1-lh.z-listheader:last-child { border-right: none !important; }
+.v1-lh.z-listheader .z-listheader-cnt {
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    width: 100% !important; padding: 12px 8px !important; font-size: 12px !important; font-weight: 800 !important;
+    color: #fff !important; letter-spacing: .06em !important; text-transform: uppercase !important;
+    white-space: normal !important; overflow: visible !important; text-overflow: clip !important;
+    word-break: break-word !important; line-height: 1.25 !important; text-align: center !important;
+    background: var(--navy) !important; font-family: 'Inter', sans-serif !important;
+}
+.v1-lh.z-listheader .z-listheader-handle { display: none !important; width: 0 !important; }
+
+/* ── List cells ── */
+.v1-listbox .z-listcell {
+    padding: 13px 10px !important; font-size: 14px !important; font-weight: 600 !important;
+    color: var(--text-main) !important; font-family: 'Inter', sans-serif !important;
+    border-bottom: 1px solid var(--border-light) !important; vertical-align: middle !important;
+    white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;
+    background: #fff !important; text-align: center !important;
+}
+.v1-listbox .z-listcell .z-listcell-cnt {
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    width: 100% !important; font-size: 14px !important; font-weight: 600 !important;
+    font-family: 'Inter', sans-serif !important; color: var(--text-main) !important; line-height: 1.2 !important;
+}
+.v1-listbox .z-listcell .z-listcell-cnt span,
+.v1-listbox .z-listcell .z-listcell-cnt label.z-label { font-size: 14px !important; font-weight: 600 !important; font-family: 'Inter', sans-serif !important; color: var(--text-main) !important; }
+.v1-listbox .z-listitem { cursor: pointer !important; transition: background .15s !important; border-bottom: 1px solid var(--border-light) !important; }
+.v1-listbox .z-listitem:last-child .z-listcell { border-bottom: none !important; }
+.v1-listbox .z-listitem:hover .z-listcell    { background: #F0F7FF !important; }
+.v1-listbox .z-listitem-selected .z-listcell { background: #DBEAFE !important; }
+.v1-listbox .z-listcell .z-listcell-cnt .chip { font-size: 11px !important; font-weight: 700 !important; line-height: 1 !important; font-family: 'Inter', sans-serif !important; }
+
+.v1-cheque-lb .z-listitem > .z-listcell:nth-child(3) { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; word-break: break-word !important; text-align: center !important; }
+.v1-cheque-lb .z-listitem > .z-listcell:nth-child(3) .z-listcell-cnt { justify-content: center !important; white-space: normal !important; word-break: break-word !important; line-height: 1.4 !important; font-size: 14px !important; }
+.v1-cheque-lb .z-listitem > .z-listcell:nth-child(4),
+.v1-cheque-lb .z-listitem > .z-listcell:nth-child(4) .z-listcell-cnt,
+.v1-cheque-lb .z-listitem > .z-listcell:nth-child(4) .z-listcell-cnt span { font-family: 'JetBrains Mono', monospace !important; font-size: 13px !important; color: var(--text-main) !important; }
+
+.v1-batch-lb .z-listitem > .z-listcell:nth-child(1) { text-align: center !important; }
+.v1-batch-lb .z-listitem > .z-listcell:nth-child(1) .z-listcell-cnt { justify-content: center !important; font-weight: 800 !important; font-size: 14px !important; color: var(--text-main) !important; }
+.v1-batch-lb .z-listitem > .z-listcell:nth-child(1) .z-listcell-cnt span,
+.v1-batch-lb .z-listitem > .z-listcell:nth-child(1) .z-listcell-cnt label.z-label { font-weight: 800 !important; font-size: 14px !important; }
+.v1-batch-lb .z-listitem > .z-listcell:nth-child(4) .z-listcell-cnt span,
+.v1-batch-lb .z-listitem > .z-listcell:nth-child(4) .z-listcell-cnt label.z-label { color: #E85B04 !important; font-weight: 700 !important; }
+
+.v1-batch-lb .z-listitem > .z-listcell:nth-child(6),
+.v1-cheque-lb .z-listitem > .z-listcell:nth-child(6) {
+    white-space: normal !important; overflow: visible !important; text-overflow: clip !important;
+    text-align: center !important; padding-top: 10px !important; padding-bottom: 10px !important;
+}
+.v1-batch-lb .z-listitem > .z-listcell:nth-child(6) .z-listcell-cnt,
+.v1-cheque-lb .z-listitem > .z-listcell:nth-child(6) .z-listcell-cnt { justify-content: center !important; white-space: normal !important; line-height: 1.3 !important; }
+.v1-batch-lb .z-listitem > .z-listcell:nth-child(7) .z-listcell-cnt,
+.v1-cheque-lb .z-listitem > .z-listcell:nth-child(7) .z-listcell-cnt { justify-content: center !important; }
+
+/* ══ CUSTOM PAGINATION BAR ══ */
+.v1-custom-paging {
+    display: flex !important; align-items: center !important; justify-content: space-between !important;
+    padding: 12px 18px !important; background: #fff !important; border-top: 1px solid var(--border-light) !important;
+    min-height: 52px !important; box-sizing: border-box !important; width: 100% !important;
+}
+.v1-paging-info.z-label, .v1-paging-info { font-size: 13px !important; color: var(--text-sub) !important; font-weight: 400 !important; font-family: 'Inter', sans-serif !important; white-space: nowrap !important; flex-shrink: 0 !important; }
+.v1-paging-nav { display: flex !important; align-items: center !important; gap: 4px !important; }
+.v1-paging-btn.z-button, .v1-paging-btn {
+    display: inline-flex !important; align-items: center !important; justify-content: center !important;
+    height: 34px !important; padding: 0 16px !important; background: #fff !important; color: var(--navy) !important;
+    border: 1.5px solid var(--border) !important; border-radius: 7px !important; font-size: 13px !important;
+    font-weight: 600 !important; font-family: 'Inter', sans-serif !important; cursor: pointer !important; white-space: nowrap !important;
+}
+.v1-paging-btn.z-button:hover { background: var(--navy) !important; border-color: var(--navy) !important; color: #fff !important; }
+.v1-paging-btn.z-button[disabled], .v1-paging-btn.z-button.z-button-disabled { opacity: .38 !important; cursor: not-allowed !important; pointer-events: none !important; background: var(--gray-100) !important; border-color: var(--border) !important; color: var(--gray-400) !important; }
+.v1-paging-page-label.z-label, .v1-paging-page-label { font-size: 13px !important; color: var(--text-sub) !important; font-weight: 400 !important; font-family: 'Inter', sans-serif !important; white-space: nowrap !important; padding: 0 10px !important; min-width: 90px !important; text-align: center !important; }
+
+/* ══ STATUS CHIPS ══ */
+.chip { display: inline-block; border-radius: 20px; padding: 3px 12px; font-size: 11px; font-weight: 700; letter-spacing: .04em; font-family: 'Inter', sans-serif; white-space: nowrap; }
+.batch-pill { display: inline-block; border-radius: 6px; padding: 4px 12px; font-size: 11px; font-weight: 700; letter-spacing: .03em; font-family: 'Inter', sans-serif; white-space: nowrap; }
+.batch-pill-gray  { background: #F3F4F6; color: #6B7280; }
+.batch-pill-amber { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+.batch-pill-blue  { background: #DBEAFE; color: #1E40AF; border: 1px solid #93C5FD; }
+.batch-pill-teal  { background: #CCFBF1; color: #0F766E; border: 1px solid #5EEAD4; }
+.batch-pill-green { background: #DCFCE7; color: #166534; border: 1px solid #86EFAC; }
+
+/* ── CBS / Account — text only ── */
+.ch-cbs-unknown { background: transparent !important; color: var(--gray-400) !important; border: none !important; padding: 0 !important; font-weight: 600 !important; font-size: 13px !important; }
+.ch-active      { background: transparent !important; color: #166534 !important; border: none !important; padding: 0 !important; font-weight: 700 !important; font-size: 13px !important; }
+.ch-inactive    { background: transparent !important; color: #991B1B !important; border: none !important; padding: 0 !important; font-weight: 700 !important; font-size: 13px !important; }
+.ch-new-acc     { background: transparent !important; color: #92400E !important; border: none !important; padding: 0 !important; font-weight: 700 !important; font-size: 13px !important; }
+.ch-not-new     { background: transparent !important; color: #166534 !important; border: none !important; padding: 0 !important; font-weight: 700 !important; font-size: 13px !important; }
+
+/* ── Cheque row status badges ── */
+.v1-row-status-badge { font-size: 11px !important; font-weight: 700 !important; padding: 3px 10px !important; border-radius: 6px !important; letter-spacing: .03em !important; }
+.badge-gray  { background: #F3F4F6 !important; color: #6B7280 !important; }
+.badge-green { background: #DCFCE7 !important; color: #166534 !important; border: 1px solid #86EFAC !important; }
+.badge-red   { background: #FEE2E2 !important; color: #991B1B !important; border: 1px solid #FCA5A5 !important; }
+.badge-amber { background: #FEF3C7 !important; color: #92400E !important; border: 1px solid #FCD34D !important; }
+
+.cbs-match-ok   { color: #166534 !important; font-weight: 700 !important; }
+.cbs-match-fail { color: #991B1B !important; font-weight: 700 !important; }
+
+/* ══ ACTION BUTTONS ══ */
+.v1-action-process-btn.z-button, .v1-action-process-btn,
+.v1-action-resume-btn.z-button,  .v1-action-resume-btn,
+.v1-action-open-btn.z-button,    .v1-action-open-btn { background: var(--navy) !important; color: #fff !important; border: none !important; border-radius: 7px !important; padding: 6px 20px !important; font-size: 13px !important; font-weight: 700 !important; font-family: 'Inter', sans-serif !important; cursor: pointer !important; white-space: nowrap !important; }
+.v1-action-process-btn.z-button:hover, .v1-action-resume-btn.z-button:hover, .v1-action-open-btn.z-button:hover { background: var(--navy2) !important; }
+.v1-action-view-btn.z-button, .v1-action-view-btn { background: var(--gray-100) !important; color: var(--text-sub) !important; border: 1.5px solid var(--border) !important; border-radius: 7px !important; padding: 6px 20px !important; font-size: 13px !important; font-weight: 600 !important; font-family: 'Inter', sans-serif !important; cursor: pointer !important; white-space: nowrap !important; }
+
+/* ══ CHEQUE LIST NAV BAR ══ */
+.v1-queue-nav { display: flex !important; align-items: center !important; flex-wrap: nowrap !important; gap: 10px !important; width: 100% !important; }
+.v1-back-btn.z-button, .v1-back-btn { background: #fff !important; color: var(--navy) !important; border: 1.5px solid var(--navy) !important; border-radius: 7px !important; padding: 0 16px !important; height: 34px !important; font-size: 13px !important; font-weight: 600 !important; font-family: 'Inter', sans-serif !important; cursor: pointer !important; white-space: nowrap !important; flex-shrink: 0 !important; }
+.v1-back-btn.z-button:hover { background: #EFF6FF !important; }
+.v1-counter-group { display: flex !important; align-items: center !important; gap: 8px !important; }
+.v1-cnt-chip { display: inline-flex; align-items: center; padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; font-family: 'Inter', sans-serif; }
+.v1-cnt-pending  { background: #FEF3C7; color: #92400E; }
+.v1-cnt-passed   { background: #DCFCE7; color: #166534; }
+.v1-cnt-rejected { background: #FEE2E2; color: #991B1B; }
+
+/* ══════════════════════════════════════════════════════════════
+   BACKDROP
+══════════════════════════════════════════════════════════════ */
+#dlgBackdrop {
+    display: none;
+    position: fixed !important;
+    top:    var(--topbar-h)  !important;
+    left:   var(--sidebar-w) !important;
+    width:  calc(100vw - var(--sidebar-w)) !important;
+    height: calc(100vh - var(--topbar-h))  !important;
+    background: rgba(0,0,0,0.52) !important;
+    z-index: 999 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   VERIFY POPUP — pixel-matched to teammate screenshot
+   Fixed budget (px):
+     header   48
+     image   270
+     sec-1    34  (MICR DATA strip)
+     grid-1   52  (MICR 5 fields)
+     sec-2    34  (CHEQUE & CBS DATA strip)
+     grid-2  108  (CBS 2 rows × 54px)
+     footer   52
+     ─────────
+     total   598  ← popup height 600px, zero scroll
+══════════════════════════════════════════════════════════════ */
+.v1-verify-window,
+.v1-verify-window * { font-family: 'Inter', sans-serif !important; }
+
+/* ═══ display:flex is REQUIRED — without it flex-direction:column is ignored
+       and overflow:hidden clips the footer off the bottom.
+       BUT: ZK hides the window with inline style="display:none" — we must NOT
+       override that or the popup shows on page load before any cheque is opened.
+       Solution: only apply flex when the element does NOT have display:none inline. ═══ */
+.v1-verify-window:not([style*="display:none"]):not([style*="display: none"]) {
+    display: flex !important;
+}
+.v1-verify-window {
+    flex-direction: column !important;
+    position: fixed !important;
+
+    /* Center within content area */
+    left: calc(var(--sidebar-w) + max(20px, (100vw - var(--sidebar-w) - 820px) / 2)) !important;
+    top:  calc(var(--topbar-h)  + max(16px, (100vh - var(--topbar-h)  - 620px) / 2)) !important;
+
+    width:      min(820px, calc(100vw - var(--sidebar-w) - 40px)) !important;
+    height:     600px !important;   /* fixed — matches teammate height */
+    min-width:  640px !important;
+    min-height: 600px !important;
+    max-width:  none !important;
+    max-height: none !important;
+
+    overflow: hidden !important;    /* sections must fit exactly — no scroll */
+    background: #fff !important;
+    border-radius: 10px !important;
+    box-shadow: 0 8px 40px rgba(0,0,0,.45) !important;
+    z-index: 1000 !important;
+    transform: none !important;
+}
+
+/* ── Header (48px) ── */
+.vw-header {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    background: var(--navy) !important;
+    padding: 0 52px 0 18px !important;
+    flex-shrink: 0 !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    gap: 12px !important;
+}
+.vw-header > table, .vw-header.z-hbox > table, .vw-header > .z-hbox-inner { display: none !important; }
+
+.vw-header-title.z-label, .vw-header-title {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #fff !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+}
+
+.vw-batch-pill.z-label, .vw-batch-pill {
+    background: #3B82F6 !important;
+    color: #fff !important;
+    border-radius: 6px !important;
+    padding: 3px 12px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    letter-spacing: .04em !important;
+    text-transform: uppercase !important;
+}
+
+.vw-close-btn.z-button, .vw-close-btn {
+    position: absolute !important;
+    top: 50% !important;
+    right: 12px !important;
+    transform: translateY(-50%) !important;
+    background: rgba(255,255,255,.15) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,.30) !important;
+    border-radius: 6px !important;
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    padding: 0 !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 10 !important;
+    line-height: 1 !important;
+}
+.vw-close-btn.z-button:hover { background: rgba(220,38,38,.80) !important; border-color: transparent !important; }
+
+/* ── Image area (270px, fixed) ── */
+.vw-img-row {
+    flex: 0 0 270px !important;
+    height: 270px !important;
+    min-height: 270px !important;
+    max-height: 270px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: #F8FAFC !important;
+    border-bottom: 1px solid var(--border) !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+    padding: 8px !important;
+}
+
+/* Toggle wrapper: display:contents so the wrapper produces no box
+   but the Show Back button inside it still renders & positions correctly */
+.vw-img-toggle-wrap {
+    display: contents !important;
+}
+
+/* Image box fills area */
+.vw-img-box {
+    flex: 1 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    background: #fff !important;
+    border-radius: 4px !important;
+    border: 1px solid var(--border) !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+.vw-img-box .z-image { width: 100% !important; height: 100% !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+.vw-img-box img, .vw-img-box .z-image img {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    display: block !important;
+}
+
+/* "Show Back" button — bottom-right of image, navy */
+.vw-toggle-side-btn.z-button, .vw-toggle-side-btn {
+    position: absolute !important;
+    bottom: 16px !important;
+    right: 16px !important;
+    background: var(--navy) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 0 16px !important;
+    height: 32px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: .03em !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    z-index: 5 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25) !important;
+}
+.vw-toggle-side-btn.z-button:hover { background: var(--navy2) !important; }
+.vw-toggle-side-back.z-button, .vw-toggle-side-back,
+.vw-toggle-side-front.z-button, .vw-toggle-side-front {
+    background: var(--navy) !important;
+    border-color: transparent !important;
+    color: #fff !important;
+}
+
+/* ── Data section — takes remaining height, NO overflow/scroll ── */
+.vw-data-section {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;   /* no scroll — must fit exactly */
+    display: flex !important;
+    flex-direction: column !important;
+    background: #fff !important;
+}
+
+/* ── Section strips (34px each) ── */
+.vw-sec-strip {
+    display: flex !important;
+    align-items: center !important;
+    background: #EEF2F7 !important;
+    border-top: 1px solid var(--border) !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding: 0 16px !important;
+    flex-shrink: 0 !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    box-sizing: border-box !important;
+}
+.vw-sec-strip > table, .vw-sec-strip.z-hbox > table, .vw-sec-strip > .z-hbox-inner { display: none !important; }
+.vw-sec-strip-label.z-label, .vw-sec-strip-label {
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: .06em !important;
+    text-transform: uppercase !important;
+    color: var(--text-main) !important;
+}
+
+/* ── Data grids — fixed height, no padding bloat ── */
+.vw-data-grid-4 {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 0 !important;
+    padding: 0 16px !important;
+    flex-shrink: 0 !important;
+    align-content: center !important;
+    box-sizing: border-box !important;
+}
+
+/* MICR grid — 5 columns, 1 row → 52px */
+.vw-data-grid-micr {
+    grid-template-columns: repeat(5, 1fr) !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+}
+
+/* CBS grid — 3 cols × 2 rows → 108px */
+.vw-data-grid-cbs {
+    grid-template-columns: repeat(3, 1fr) !important;
+    height: 108px !important;
+    min-height: 108px !important;
+    max-height: 108px !important;
+    align-content: start !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    gap: 8px 0 !important;
+}
+
+.vw-field {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    padding: 0 14px 0 0 !important;
+    border-right: 1px solid #EDF1F7 !important;
+    min-height: 0 !important;
+}
+.vw-field:last-child { border-right: none !important; }
+.vw-field > table, .vw-field.z-vbox > table, .vw-field > .z-vbox-inner { display: none !important; }
+
+.vw-field-lbl.z-label, .vw-field-lbl {
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    color: #6B7280 !important;
+    text-transform: uppercase !important;
+    letter-spacing: .07em !important;
+    line-height: 1 !important;
+}
+.vw-field-val.z-label, .vw-field-val {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #111827 !important;
+    line-height: 1.2 !important;
+}
+.vw-field-val.mono.z-label, .vw-field-val.mono {
+    font-family: 'Roboto Mono', 'Courier New', monospace !important;
+    font-size: 12px !important;
+    letter-spacing: .03em !important;
+    color: #111827 !important;
+}
+.vw-field-val.amt.z-label, .vw-field-val.amt {
+    font-family: 'Roboto Mono', 'Courier New', monospace !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    color: #166534 !important;
+}
+.vw-date-alert.z-label, .vw-date-alert { color: #DC2626 !important; font-weight: 700 !important; }
+
+/* ── Footer (52px, fixed) — [‹Prev] [1/9] [Next›]  [remarks]  [✓Accept] [✗Reject] ── */
+.vw-footer {
+    flex-shrink: 0 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 0 14px !important;
+    border-top: 1px solid var(--border) !important;
+    background: #fff !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    overflow: visible !important;
+}
+/* ZK hbox renders a wrapper table — rewrite as flex so children flow correctly */
+.vw-footer > table, .vw-footer.z-hbox > table { display: flex !important; width: 100% !important; align-items: center !important; }
+.vw-footer > table > tbody, .vw-footer.z-hbox > table > tbody { display: flex !important; width: 100% !important; align-items: center !important; gap: 8px !important; }
+.vw-footer > table > tbody > tr, .vw-footer.z-hbox > table > tbody > tr { display: flex !important; width: 100% !important; align-items: center !important; gap: 8px !important; }
+.vw-footer > table > tbody > tr > td { display: inline-flex !important; align-items: center !important; padding: 0 !important; }
+/* Push Accept + all action buttons to the far right */
+.vw-footer .vw-btn-accept.z-button, .vw-footer .vw-btn-accept { margin-left: auto !important; }
+.vw-footer .z-button, .vw-footer button { display: inline-flex !important; align-items: center !important; }
+
+/* Prev / Next — dark navy, matches teammate */
+.vw-nav-btn.z-button, .vw-nav-btn {
+    background: var(--navy) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 0 14px !important;
+    height: 34px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+}
+.vw-nav-btn.z-button:hover { background: var(--navy2) !important; }
+.vw-nav-btn.z-button[disabled], .vw-nav-btn.z-button.z-button-disabled {
+    opacity: .38 !important; cursor: not-allowed !important;
+    background: var(--gray-100) !important; color: var(--gray-400) !important;
+}
+
+/* Spacer between nav group and action group — pushes actions to far right */
+.vw-footer-spacer {
+    flex: 1 1 auto !important;
+    min-width: 8px !important;
+}
+
+/* Page position label  e.g. "1 / 9" */
+.vw-record-pos.z-label, .vw-record-pos {
+    font-size: 13px !important;
+    color: var(--text-main) !important;
+    white-space: nowrap !important;
+    font-weight: 600 !important;
+    min-width: 40px !important;
+    text-align: center !important;
+    flex-shrink: 0 !important;
+}
+
+/* Remarks textbox — fixed width, sits just before the action buttons */
+.vw-remarks-box.z-textbox, .vw-remarks-box {
+    flex: 0 0 160px !important;
+    width: 160px !important;
+    min-width: 0 !important;
+    height: 34px !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    font-family: 'Inter', sans-serif !important;
+    color: var(--text-main) !important;
+    padding: 0 10px !important;
+    background: #fff !important;
+    outline: none !important;
+}
+.vw-remarks-box.z-textbox:focus, .vw-remarks-box:focus {
+    border-color: var(--cyan) !important;
+    box-shadow: 0 0 0 3px rgba(11,116,209,.10) !important;
+}
+.vw-remarks-box.z-textbox::placeholder, .vw-remarks-box::placeholder {
+    color: var(--gray-400) !important;
+    font-size: 11px !important;
+}
+
+/* ── Reject / Refer comboboxes ── */
+/* ── Reason comboboxes (Rejection / Refer) ──
+   ZK renders: <div.z-combobox> containing <input> + <button.z-combobox-btn>
+   The button contains an <img> (the square icon) — we hide it completely
+   and draw a pure CSS chevron via ::after instead.                        */
+.vw-reason-cmb.z-combobox {
+    width: 140px !important;
+    height: 34px !important;
+    position: relative !important;
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+.vw-reason-cmb .z-combobox-input, .vw-reason-cmb input {
+    height: 34px !important;
+    width: 100% !important;
+    font-size: 12px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 500 !important;
+    color: var(--text-main) !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: 6px !important;
+    background: #fff !important;
+    padding: 0 28px 0 10px !important;   /* right pad for chevron */
+    outline: none !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+    transition: border-color .18s !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+}
+.vw-reason-cmb .z-combobox-input:focus, .vw-reason-cmb input:focus { border-color: var(--navy) !important; }
+.vw-reason-cmb .z-combobox-input::placeholder, .vw-reason-cmb input::placeholder { color: #9CA3AF !important; font-size: 11px !important; }
+
+/* The ZK dropdown trigger button — make it invisible, just a click target */
+.vw-reason-cmb .z-combobox-btn,
+.vw-reason-cmb .z-combobox-button {
+    position: absolute !important;
+    right: 0 !important;
+    top: 0 !important;
+    height: 34px !important;
+    width: 28px !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    /* hide any ZK-rendered border/background */
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    overflow: hidden !important;
+}
+/* Draw a clean CSS-only chevron */
+.vw-reason-cmb .z-combobox-btn::after,
+.vw-reason-cmb .z-combobox-button::after {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    right: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-left: 4px solid transparent !important;
+    border-right: 4px solid transparent !important;
+    border-top: 5px solid #6B7280 !important;
+    pointer-events: none !important;
+}
+/* Kill the img, any span/i icons ZK injects */
+.vw-reason-cmb .z-combobox-btn img,
+.vw-reason-cmb .z-combobox-button img,
+.vw-reason-cmb .z-combobox-btn span,
+.vw-reason-cmb .z-combobox-button span,
+.vw-reason-cmb .z-combobox-btn i,
+.vw-reason-cmb .z-combobox-button i { display: none !important; }
+
+/* Accept — green */
+.vw-btn-accept.z-button, .vw-btn-accept {
+    background: #16A34A !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 0 18px !important;
+    height: 34px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    flex-shrink: 0 !important;
+}
+.vw-btn-accept.z-button:hover { background: #15803D !important; }
+.vw-btn-accept.z-button[disabled], .vw-btn-accept.z-button.z-button-disabled { opacity: .40 !important; cursor: not-allowed !important; }
+
+/* Reject — red */
+.vw-btn-blue-outline.z-button, .vw-btn-blue-outline {
+    background: #DC2626 !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 0 18px !important;
+    height: 34px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    flex-shrink: 0 !important;
+}
+.vw-btn-blue-outline.z-button:hover { background: #B91C1C !important; }
+.vw-btn-blue-outline.z-button[disabled], .vw-btn-blue-outline.z-button.z-button-disabled { opacity: .40 !important; cursor: not-allowed !important; }
+
+/* Refer */
+.vw-btn-refer.z-button, .vw-btn-refer {
+    background: var(--navy) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 0 14px !important;
+    height: 34px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+}
+.vw-btn-refer.z-button:hover { background: var(--navy2) !important; }
+.vw-btn-refer.z-button[disabled], .vw-btn-refer.z-button.z-button-disabled { opacity: .40 !important; cursor: not-allowed !important; }
+
+.vw-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; margin: 0 2px; }
+
+/* ══ UTILITY ══ */
+.mono { font-family: 'Roboto Mono', 'Courier New', monospace !important; }
+
+/* =========================================================
+   LIST FIXES
+========================================================= */
+.v1-listbox .z-listheader, .v1-listbox .z-listheader-cnt { text-align: center !important; justify-content: center !important; align-items: center !important; }
+.v1-listbox .z-listcell, .v1-listbox .z-listcell-cnt { text-align: center !important; justify-content: center !important; align-items: center !important; }
+.v1-batch-lb .z-listitem > .z-listcell:nth-child(6), .v1-cheque-lb .z-listitem > .z-listcell:nth-child(6) { overflow: visible !important; white-space: normal !important; text-overflow: unset !important; }
+.v1-batch-lb .z-listitem > .z-listcell:nth-child(6) .z-listcell-cnt, .v1-cheque-lb .z-listitem > .z-listcell:nth-child(6) .z-listcell-cnt { overflow: visible !important; white-space: normal !important; text-overflow: unset !important; display: flex !important; justify-content: center !important; align-items: center !important; }
+.batch-pill, .v1-row-status-badge { display: inline-flex !important; align-items: center !important; justify-content: center !important; min-height: 28px !important; max-width: 220px !important; padding: 4px 12px !important; white-space: normal !important; word-break: break-word !important; overflow-wrap: break-word !important; text-align: center !important; line-height: 1.3 !important; }
+.v1-cheque-lb .z-listitem > .z-listcell:nth-child(3), .v1-cheque-lb .z-listitem > .z-listcell:nth-child(3) .z-listcell-cnt { text-align: center !important; justify-content: center !important; white-space: normal !important; word-break: break-word !important; overflow-wrap: break-word !important; }
+.v1-batch-lb .z-listitem > .z-listcell:nth-child(7) .z-listcell-cnt, .v1-cheque-lb .z-listitem > .z-listcell:nth-child(7) .z-listcell-cnt { text-align: center !important; justify-content: center !important; }
+
+/* =========================================================
+   RESPONSIVE BREAKPOINTS
+========================================================= */
+@media screen and (max-width: 1400px) {
+    .v1-verify-window {
+        left:   calc(var(--sidebar-w) + 12px) !important;
+        top:    calc(var(--topbar-h)  + 12px) !important;
+        width:  min(800px, calc(100vw - var(--sidebar-w) - 24px)) !important;
+        height: 600px !important;
+    }
+    #dlgBackdrop {
+        top:    var(--topbar-h)  !important;
+        left:   var(--sidebar-w) !important;
+        width:  calc(100vw - var(--sidebar-w)) !important;
+        height: calc(100vh - var(--topbar-h))  !important;
+    }
+}
+
+@media screen and (max-height: 680px) {
+    /* On very short screens shrink image to keep footer visible */
+    .vw-img-row {
+        flex: 0 0 200px !important;
+        height: 200px !important;
+        min-height: 200px !important;
+        max-height: 200px !important;
+    }
+    .v1-verify-window {
+        height: 530px !important;
+        min-height: 530px !important;
+        top: calc(var(--topbar-h) + 8px) !important;
+    }
+}

@@ -6,23 +6,19 @@
 <hibernate-configuration>
   <session-factory>
 
-    <!-- ═══════════════════════════════════════════════════════
-         HIKARICP CONNECTION POOL
-    ═══════════════════════════════════════════════════════ -->
-
     <property name="hibernate.connection.provider_class">
       org.hibernate.hikaricp.internal.HikariCPConnectionProvider
     </property>
 
     <property name="hibernate.hikari.minimumIdle">2</property>
     <property name="hibernate.hikari.maximumPoolSize">10</property>
-    <property name="hibernate.hikari.connectionTimeout">10000</property>
-    <property name="hibernate.hikari.idleTimeout">300000</property>
-    <property name="hibernate.hikari.maxLifetime">600000</property>
+    <property name="hibernate.hikari.connectionTimeout">30000</property>
+    <property name="hibernate.hikari.idleTimeout">120000</property>
+    <property name="hibernate.hikari.maxLifetime">180000</property>
     <property name="hibernate.hikari.keepaliveTime">60000</property>
+    <property name="hibernate.hikari.connectionTestQuery">SELECT 1</property>
     <property name="hibernate.hikari.poolName">NavbharatCTS-Pool</property>
 
-    <!-- JDBC settings forwarded through HikariCP to the PG driver -->
     <property name="hibernate.hikari.dataSourceClassName">
       org.postgresql.ds.PGSimpleDataSource
     </property>
@@ -35,51 +31,20 @@
     <property name="hibernate.hikari.dataSource.password"><![CDATA[4b%KA.#b3h)D%mt]]></property>
     <property name="hibernate.hikari.dataSource.sslMode">require</property>
 
-    <!-- ═══════════════════════════════════════════════════════
-         DIALECT — MANDATORY for Hibernate 6 + PostgreSQL
-         ─────────────────────────────────────────────────────
-         FIX: This property was MISSING from the original file.
-         Without it Hibernate 6 cannot determine which SQL
-         dialect to use. Every DAO query either throws
-         org.hibernate.HibernateException or returns empty
-         results silently — so the UI shows "Loading..." forever
-         and all stat cards show 0.
-    ═══════════════════════════════════════════════════════ -->
-
     <property name="hibernate.dialect">
       org.hibernate.dialect.PostgreSQLDialect
     </property>
 
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA
-    ═══════════════════════════════════════════════════════ -->
-
     <property name="hibernate.hbm2ddl.auto">none</property>
-
-    <!-- ═══════════════════════════════════════════════════════
-         SQL LOGGING
-         Set show_sql=true during debugging to see every query
-         in the Tomcat console. Switch back to false in prod.
-    ═══════════════════════════════════════════════════════ -->
 
     <property name="hibernate.show_sql">true</property>
     <property name="hibernate.format_sql">false</property>
 
-    <!-- ═══════════════════════════════════════════════════════
-         BATCH INSERT
-    ═══════════════════════════════════════════════════════ -->
-
     <property name="hibernate.jdbc.batch_size">50</property>
     <property name="hibernate.order_inserts">true</property>
 
-    <!-- ═══════════════════════════════════════════════════════
-         ENTITY MAPPINGS
-    ═══════════════════════════════════════════════════════ -->
-
- 
-<mapping class="com.cts.outward.entity.BatchEntity"/>
-<mapping class="com.cts.outward.entity.ChequeEntity"/>
-
+    <mapping class="com.cts.outward.entity.BatchEntity"/>
+    <mapping class="com.cts.outward.entity.ChequeEntity"/>
 
   </session-factory>
 </hibernate-configuration>
