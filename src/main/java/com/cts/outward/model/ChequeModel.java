@@ -27,16 +27,34 @@ import java.time.LocalDateTime;
 public class ChequeModel {
 
 	// ── Identity ─────────────────────────────────────────────
-	private String id; // UUID or composite key
-	private String batchId; // Parent batch
-	private String chequeNo; // Instrument number (6–7 digits)
-	private String accountNo; // Payee account number
+	private String id;           // UUID or composite key
+	private String batchId;      // Parent batch
+	private String chequeNo;     // Instrument number (6–7 digits)
+	private String accountNo;    // MICR account_no — displayed in UI only
+	                             // NOT used for CBS lookup (different column)
+
+	/**
+	 * payeeAccountNo — maps to cts_cheques.payee_account_no
+	 *
+	 * This is the CBS lookup key used by both V1 (VerificationOneComposer)
+	 * and V2 (VerificationIIComposer) to query Firestore.
+	 *
+	 * Root cause of the V2 CBS "Not found" bug:
+	 *   V2 was calling getAccountNo() which reads the MICR account_no column.
+	 *   V1 calls getPayeeAccountNo() which reads payee_account_no — the column
+	 *   whose values match Firestore document IDs in the "accounts" collection.
+	 *   Fix: VerificationIIDAOImpl now selects payee_account_no and sets this
+	 *   field; VerificationIIComposer now calls getPayeeAccountNo() for CBS.
+	 */
+	private String payeeAccountNo;
+
+	private String payeeName;    // Payee name (cts_cheques.payee_name)
 
 	// ── MICR Fields ──────────────────────────────────────────
-	private String sortCode; // 9-digit MICR sort code (cityBankBranch)
-	private String cityCode; // 3 digits
-	private String bankCode; // 3 digits
-	private String branchCode; // 3 digits
+	private String sortCode;        // 9-digit MICR sort code (cityBankBranch)
+	private String cityCode;        // 3 digits
+	private String bankCode;        // 3 digits
+	private String branchCode;      // 3 digits
 	private String transactionCode; // TC (2 digits)
 
 	// ── Instrument Data ──────────────────────────────────────
@@ -57,7 +75,10 @@ public class ChequeModel {
 	private boolean highValue; // amount >= 10,00,000 (1 million)
 	private boolean duplicate;
 	private boolean hni;
-	private boolean amountWordsMismatch;
+	private boolean amountWordsMismatch; // true if amount in digits != amount in words
+	private boolean referred; // set by V1 when cheque is sent to V2 for referral.
+	                          // Stays true even after V2 verifies/rejects it —
+	                          // this is the permanent flag, NOT derived from ver_action.
 
 	// ── Status ───────────────────────────────────────────────
 	// Ready | MICR_Repair | Verified | Rejected | CXF | Exported
@@ -140,12 +161,26 @@ public class ChequeModel {
 		this.updatedAt = LocalDateTime.now();
 	}
 
-	public String getAmountInWords() {
-		return amountInWords;
+	/**
+	 * Returns the payee account number from cts_cheques.payee_account_no.
+	 * This is the CBS Firestore lookup key — use this, NOT getAccountNo(),
+	 * when querying CBS in both V1 and V2 composers.
+	 */
+	public String getPayeeAccountNo() {
+		return payeeAccountNo;
 	}
 
-	public void setAmountInWords(String v) {
-		this.amountInWords = v;
+	public void setPayeeAccountNo(String v) {
+		this.payeeAccountNo = v;
+	}
+
+	public String getPayeeName() {
+		return payeeName;
+	}
+
+	public void setPayeeName(String v) {
+		this.payeeName = v;
+		this.updatedAt = LocalDateTime.now();
 	}
 
 	public String getSortCode() {
@@ -199,6 +234,14 @@ public class ChequeModel {
 		this.amount = v;
 		this.highValue = isHighValue();
 		this.updatedAt = LocalDateTime.now();
+	}
+
+	public String getAmountInWords() {
+		return amountInWords;
+	}
+
+	public void setAmountInWords(String v) {
+		this.amountInWords = v;
 	}
 
 	public String getDrawerBank() {
@@ -290,6 +333,14 @@ public class ChequeModel {
 		this.amountWordsMismatch = v;
 	}
 
+	public boolean isReferred() {
+		return referred;
+	}
+
+	public void setReferred(boolean v) {
+		this.referred = v;
+	}
+
 	public String getStatus() {
 		return status;
 	}
@@ -349,7 +400,8 @@ public class ChequeModel {
 
 	@Override
 	public String toString() {
-		return "ChequeModel{chequeNo='" + chequeNo + "', acct='" + accountNo + "', amount=" + amount + ", iqaStatus='"
-				+ iqaStatus + "', status='" + status + "'}";
+		return "ChequeModel{chequeNo='" + chequeNo + "', acct='" + accountNo
+				+ "', payeeAcct='" + payeeAccountNo + "', amount=" + amount
+				+ ", iqaStatus='" + iqaStatus + "', status='" + status + "'}";
 	}
 }
