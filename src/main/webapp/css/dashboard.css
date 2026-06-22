@@ -38,6 +38,7 @@ html, body, .z-page {
 	padding: 0 !important;
 	margin: 0 !important;
 	overflow: hidden !important;
+	background: #1a1633 !important; /* matches --hdr-bg, kills any skin-default white sliver */
 }
 
 /* ==================================================

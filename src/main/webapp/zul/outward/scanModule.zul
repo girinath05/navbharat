@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?page title="ClearPay CTS — Batch &amp; Cheque Entry" contentType="text/html;charset=UTF-8"?>
 
-
 <!--
  ============================================================
   Project     : Navbharat CTS Outward
@@ -14,52 +13,36 @@
  ============================================================
 -->
 
-
 <zk xmlns="http://www.zkoss.org/2005/zul"
     xmlns:n="native"
     xmlns:w="client">
 
-    <!-- FIX: bce.js FIRST — before composer fires any evalJavaScript -->
-    <n:script src="/navbharat/js/bce.js"/>
+    <!-- batch-cheque-entry.js: live clock, session timer, bce_updateBatchLabel.
+         Modal/toast/dialog logic migrated to pure ZK MVC — see composer. -->
+    <n:script src="/navbharat/js/batch-cheque-entry.js"/>
+    <!-- batch-detail.js: validatePayeeAccount, resetPayeeLookup, bce_renderImages -->
+    <n:script src="/navbharat/js/batch-detail.js"/>
 
     <n:link rel="stylesheet" href="/navbharat/css/outward/batch-cheque-entry.css"/>
+    <n:link rel="stylesheet" href="/navbharat/css/outward/batch-detail.css"/>
+    <!-- my-batches.css: mb-card, mb-toolbar, mb-listbox, mb-th, mb-row, mb-pg-bar etc. -->
+    <n:link rel="stylesheet" href="/navbharat/css/outward/my-batches.css"/>
 
     <div id="bceRoot" apply="com.cts.outward.composer.BatchChequeEntryComposer">
 
-        <!-- No header/sidebar — dashboard.zul provides layout -->
-        <n:div class="content-pad">
-
-            <!-- PAGE HEADER
-                 pg-actions:
-                   btnViewBatches  → @Listen onClick → DashboardComposer.loadPage(batchManagement.zul)
-                   bce_openBatchModal() → opens #batchModal overlay (Step 1 of 2)
-            -->
-            <n:div class="pg-head">
+        <!-- PAGE HEADER -->
+        <n:div class="pg-head">
                 <n:div>
                     <n:div class="pg-title">Batch &amp; Cheque Entry</n:div>
-                    <n:div class="pg-subtitle">Create batches · Upload ZIP · Click row to expand</n:div>
+                    <n:div class="pg-subtitle">Create batches · Capture &amp; process cheques · Click batch to expand</n:div>
                 </n:div>
                 <n:div class="pg-actions">
-                    <!-- FIX: ZK button so @Listen("onClick=#btnViewBatches") fires in composer -->
                     <button id="btnViewBatches" sclass="btn btn-outline" label="&#x1F4CB; View All Batches"/>
-                    <!-- Native button — opens modal via JS only, no server round-trip needed -->
-                    <n:button class="btn btn-primary" onclick="bce_openBatchModal()">+ Create Batch</n:button>
+                    <button id="btnOpenBatchModal" sclass="btn btn-primary" label="+ Create Batch"/>
                 </n:div>
             </n:div>
 
-            <!-- ALERT -->
-            <n:div class="alert alert-info">
-                <n:span class="alert-icon">&#x2139;</n:span>
-                <n:div>Upload a ZIP containing XML + front/rear cheque images.
-                    <n:strong>Click a batch row</n:strong> to expand its cheques.
-                    <n:strong>Click a cheque row</n:strong> to view details and images.
-                </n:div>
-            </n:div>
-
-            <!-- STATS
-                 lblStatBatches / lblStatCheques / lblStatPending
-                 → set by BatchChequeEntryComposer.refreshStats()
-            -->
+            <!-- STATS -->
             <n:div class="stats-row">
                 <n:div class="stat-card stat-blue">
                     <n:div class="stat-icon-wrap stat-icon-blue">&#x1F4C2;</n:div>
@@ -84,370 +67,301 @@
                 </n:div>
             </n:div>
 
-            <!-- BATCH LISTING
-                 lbBatches → rendered by BatchChequeEntryComposer.renderBatches()
-                 Row click → toggleBatchExpand() → shows cheque sub-grid inline
-                 batchCountLabel → updated by bce_updateBatchLabel(count) JS call
-            -->
-            <n:div class="section-card" id="batchPanel">
-                <n:div class="section-card-head">
-                    <n:div class="section-card-title-row">
-                        <n:span class="section-card-title">&#x1F4C4; Batch-wise Listing</n:span>
-                        <n:span id="batchCountLabel" class="section-card-badge">0 batches</n:span>
+            <!-- ═══════════════════════════════════════════════════════
+                 BATCH LISTING — My Batches format
+                 Shows Draft / Pending batches only.
+                 Row click → opens cheque sub-panel below.
+            ═══════════════════════════════════════════════════════ -->
+            <n:div class="mb-card" id="batchPanel">
+
+                <!-- Card header -->
+                <n:div class="mb-card-head">
+                    <n:span class="mb-card-title">ALL BATCHES</n:span>
+                    <label id="batchCountLabel" sclass="mb-count-badge" value="0 batches"/>
+                </n:div>
+
+                <!-- Search + filter toolbar -->
+                <n:div class="mb-toolbar">
+                    <n:div class="mb-search-wrap">
+                        <n:span class="mb-search-icon">&#x1F50D;</n:span>
+                        <textbox id="txtBatchSearch"
+                                 sclass="mb-search-input"
+                                 placeholder="Search batch ID, branch..."
+                                 instant="true"/>
                     </n:div>
-                    <n:button class="action-ghost-btn" onclick="location.reload()">&#x21BB; Refresh</n:button>
+                    <n:div class="mb-filter-group">
+                        <n:span class="mb-filter-lbl">Status:</n:span>
+                        <combobox id="cmbBatchStatus" sclass="mb-filter-combo"
+                                  value="All Status" readonly="true">
+                            <comboitem label="All Status"/>
+                            <comboitem label="Draft"/>
+                            <comboitem label="Pending"/>
+                        </combobox>
+                    </n:div>
+                    <n:div class="mb-filter-group">
+                        <n:span class="mb-filter-lbl">From:</n:span>
+                        <datebox id="dtBatchFrom" sclass="mb-filter-combo"
+                                 format="dd/MM/yyyy" lenient="false"/>
+                    </n:div>
+                    <n:div class="mb-filter-group">
+                        <n:span class="mb-filter-lbl">To:</n:span>
+                        <datebox id="dtBatchTo" sclass="mb-filter-combo"
+                                 format="dd/MM/yyyy" lenient="false"/>
+                    </n:div>
+                    <n:div class="mb-filter-group">
+                        <button id="btnBatchClearDate" sclass="btn btn-sm btn-secondary" label="Clear"/>
+                    </n:div>
                 </n:div>
-                <n:div class="bce-tbl-wrap">
-                    <listbox id="lbBatches" sclass="bce-listbox" mold="default" style="width:100%;border:none;">
-                        <listhead sizable="true" sclass="bce-listhead">
-                            <listheader label="BATCH ID"    sclass="bce-lh" width="155px"/>
-                            <listheader label="BRANCH"      sclass="bce-lh" width="90px"/>
-                            <listheader label="CHEQUES"     sclass="bce-lh" width="85px"/>
-                            <listheader label="CONTROL AMT" sclass="bce-lh" width="140px"/>
-                            <listheader label="ACTUAL AMT"  sclass="bce-lh" width="140px"/>
-                            <listheader label="TYPE"        sclass="bce-lh" width="110px"/>
-                            <listheader label="STATUS"      sclass="bce-lh" width="190px"/>
-                            <listheader label=""            sclass="bce-lh bce-lh-filler"/>
-                        </listhead>
-                    </listbox>
+
+                <!-- Batch listbox — rows injected by renderBatches() -->
+                <listbox id="lbBatches"
+                         sclass="mb-listbox"
+                         hflex="1"
+                         mold="default"
+                         emptyMessage="No draft or pending batches found.">
+                    <listhead sclass="mb-listhead" hflex="1">
+                        <listheader label="BATCH ID"     sclass="mb-th" hflex="2"/>
+                        <listheader label="CHEQUE COUNT" sclass="mb-th" hflex="2"/>
+                        <listheader label="TOTAL AMOUNT" sclass="mb-th" hflex="2"/>
+                        <listheader label="CREATED DATE" sclass="mb-th" hflex="2"/>
+                        <listheader label="STATUS"       sclass="mb-th" hflex="2"/>
+                        <listheader label="ACTION"       sclass="mb-th" hflex="2"/>
+                    </listhead>
+                </listbox>
+
+                <!-- Pagination bar -->
+                <n:div class="mb-pg-bar">
+                    <n:div class="mb-pg-inner">
+                        <button id="btnBatchPgFirst" sclass="mb-pg-btn" label="&#x00AB; First" disabled="true"/>
+                        <button id="btnBatchPgPrev"  sclass="mb-pg-btn" label="&#x2039; Prev"  disabled="true"/>
+                        <label  id="lblBatchPgInfo"  sclass="mb-pg-info" value="Page 1 of 1"/>
+                        <button id="btnBatchPgNext"  sclass="mb-pg-btn" label="Next &#x203A;"/>
+                        <button id="btnBatchPgLast"  sclass="mb-pg-btn" label="Last &#x00BB;"/>
+                    </n:div>
                 </n:div>
+
             </n:div>
 
-            <!-- CHEQUE GRID PANEL
-                 Shown when a batch row is expanded.
-                 cpBatchIdLabel / cpBranchLabel / cpStatusLabel / cpCountLabel
-                 → set by bce_openChequePanel() JS call from composer
-            -->
-            <div id="chequeGridPanel" visible="false" style="margin-top:0;">
-                <n:div class="cheque-panel-connector"/>
-                <n:div class="section-card cheque-section-card">
-                    <n:div class="section-card-head cheque-panel-head">
-                        <n:div class="cheque-panel-title-group">
-                            <n:div class="cheque-panel-icon">&#x1F4C3;</n:div>
-                            <n:div>
-                                <n:div class="cheque-panel-title">
-                                    Cheques for Batch
-                                    <n:span id="cpBatchIdLabel" class="cheque-panel-batch-id">&#x2014;</n:span>
-                                </n:div>
-                                <n:div class="cheque-panel-meta">
-                                    <n:span id="cpBranchLabel"  class="cp-meta-item">Branch: &#x2014;</n:span>
-                                    <n:span class="cp-meta-sep">&#xB7;</n:span>
-                                    <n:span id="cpStatusLabel"  class="cp-meta-item">Status: &#x2014;</n:span>
-                                    <n:span class="cp-meta-sep">&#xB7;</n:span>
-                                    <n:span id="cpCountLabel"   class="cp-meta-item">0 records</n:span>
-                                </n:div>
-                            </n:div>
-                        </n:div>
-                        <n:div class="cheque-panel-actions">
-                            <n:button class="action-ghost-btn action-ghost-sm"
-                                      onclick="bce_closeChequePanel()">&#x2715; Close</n:button>
-                        </n:div>
-                    </n:div>
-                    <n:div class="bce-tbl-wrap">
-                        <listbox id="lbCheques" sclass="cheque-listbox" mold="default" style="width:100%;border:none;">
-                            <listhead sizable="true" sclass="cheque-listhead">
-                                <listheader label="#"          sclass="clh" width="48px"/>
-                                <listheader label="CHQ ID"     sclass="clh" width="90px"/>
-                                <listheader label="CHEQUE NO"  sclass="clh" width="110px"/>
-                                <listheader label="ACCOUNT NO" sclass="clh" width="150px"/>
-                                <listheader label="AMOUNT"     sclass="clh" width="130px"/>
-                                <listheader label="DRAWER"     sclass="clh" width="180px"/>
-                                <listheader label="DATE"       sclass="clh" width="105px"/>
-                                <listheader label="IQA"        sclass="clh" width="80px"/>
-                                <listheader label="STATUS"     sclass="clh clh-filler"/>
-                            </listhead>
-                        </listbox>
-                    </n:div>
-                    <div id="chequePaginationBar" visible="false" sclass="cheque-pagination-bar"/>
-                </n:div>
-            </div>
 
-        </n:div><!-- /content-pad -->
 
         <!-- ═══════════════════════════════════════════════════════
              CREATE BATCH MODAL  (Step 1 of 2)
-             Opened by: bce_openBatchModal() — called from pg-actions native button
-             Closed by: bce_closeBatchModal() — Cancel button / X button
-             Save:      btnCreateBatch → @Listen onClick → onCreateBatch()
-                        saves batch to DB, then opens scan modal (Step 2)
-             FIX: modal-close-btn is native n:button — JS only, no ZK needed
+             Pure ZK MVC: visibility driven by composer field
+             (batchModal.setVisible).
         ═══════════════════════════════════════════════════════ -->
-        <n:div id="batchModal" class="modal-overlay">
-            <n:div class="modal-box">
-                <n:div class="modal-head">
-                    <n:div class="modal-head-left">
-                        <n:div class="modal-head-icon">&#x1F4C2;</n:div>
-                        <n:span class="modal-title">Create New Batch</n:span>
-                    </n:div>
-                    <n:button class="modal-close-btn" onclick="bce_closeBatchModal()">&#x2715;</n:button>
-                </n:div>
-                <n:div class="modal-body">
-                    <n:div class="mf-row">
-                        <n:div class="mf-group mf-half">
+        <div id="batchModal" sclass="modal-overlay open" visible="false">
+            <div sclass="modal-box">
+                <div sclass="modal-head">
+                    <div sclass="modal-head-left">
+                        <div sclass="modal-head-icon">&#x1F4C2;</div>
+                        <span sclass="modal-title">Create New Batch</span>
+                    </div>
+                    <button id="btnCloseBatchModal" sclass="modal-close-btn" label="&#x2715;"/>
+                </div>
+                <div sclass="modal-body">
+                    <div sclass="mf-row">
+                        <div sclass="mf-group mf-half">
                             <n:label class="mf-label">Total Cheques <n:span class="mf-req">*</n:span></n:label>
-                            <intbox id="txtChequeCount" sclass="mf-input" value="0"/>
-                        </n:div>
-                        <n:div class="mf-group mf-half">
+                            <intbox id="txtChequeCount" sclass="mf-input" placeholder="e.g. 5"/>
+                            <label id="errChequeCount" sclass="mf-error" value=""/>
+                        </div>
+                        <div sclass="mf-group mf-half">
                             <n:label class="mf-label">Control Amount (&#x20B9;) <n:span class="mf-req">*</n:span></n:label>
-                            <decimalbox id="txtExpectedAmount" sclass="mf-input" value="0.00"/>
-                        </n:div>
-                    </n:div>
-                </n:div>
-                <n:div class="modal-footer">
-                    <n:button class="btn btn-outline" onclick="bce_closeBatchModal()">Cancel</n:button>
-                    <!-- ZK button — @Listen("onClick=#btnCreateBatch") in composer
-                         Disabled on click to prevent double-fire loop, re-enabled after -->
+                            <decimalbox id="txtExpectedAmount" sclass="mf-input" placeholder="e.g. 10000.00"/>
+                            <label id="errExpectedAmount" sclass="mf-error" value=""/>
+                        </div>
+                    </div>
+                </div>
+                <div sclass="modal-footer">
+                    <button id="btnCancelBatchModal" sclass="btn btn-outline" label="Cancel"/>
                     <button id="btnCreateBatch" sclass="btn btn-primary" label="&#x1F4BE; Save Batch"/>
-                </n:div>
-            </n:div>
-        </n:div>
+                </div>
+            </div>
+        </div>
 
-        <!-- ═══════════════════════════════════════════════════════
+
+        <!-- = 
              SCAN MODAL  (Step 2 of 2)
-             Opened by: bce_openScanModal(batchId) — called from onCreateBatch()
-             Closed by: btnCloseScanModal ZK button → onCloseScanModal()
-                        which calls discardPendingBatch() to delete the empty
-                        batch row created in Step 1 if user cancels here.
-             Upload:    btnScanUploadZip → @Listen onUpload → onScanZipUpload()
-             FIX: X button changed from native n:button to ZK button so
-                  composer can intercept and discard the pending batch on cancel.
+             Pure ZK MVC: visibility, batch-id label, and progress bar
+             are all driven by composer fields (visible=, value=,
+             width=)
         ═══════════════════════════════════════════════════════ -->
-        <n:div id="scanModal" class="modal-overlay">
-            <n:div class="modal-box scan-modal-box">
-                <n:div class="modal-head">
-                    <n:div class="modal-head-left">
-                        <n:div class="modal-head-icon">&#x1F4F7;</n:div>
-                        <n:div>
-                            <n:span class="modal-title">Scan Cheques</n:span>
-                            <n:div class="scan-modal-subtitle">
+        <div id="scanModal" sclass="modal-overlay open" visible="false">
+            <div sclass="modal-box scan-modal-box">
+                <div sclass="modal-head">
+                    <div sclass="modal-head-left">
+                        <div sclass="modal-head-icon">&#x1F4F7;</div>
+                        <div>
+                            <span sclass="modal-title">Scan Cheques</span>
+                            <div sclass="scan-modal-subtitle">
                                 Step 2 &#x2014; Scan Instruments
-                                <n:span id="scanBatchIdLabel" class="scan-bid">—</n:span>
-                            </n:div>
-                        </n:div>
-                    </n:div>
-                    <!-- FIX: was <n:button onclick="bce_closeScanModal()">
-                         Changed to ZK button so onCloseScanModal() fires in composer
-                         and discards the pending empty batch on cancel -->
+                                <label id="scanBatchIdLabel" sclass="scan-bid" value="—"/>
+                            </div>
+                        </div>
+                    </div>
                     <button id="btnCloseScanModal" sclass="modal-close-btn" label="&#x2715;"/>
-                </n:div>
-                <n:div class="scan-body">
-                    <n:div class="scan-dropzone">
-                        <n:div class="scan-dz-icon">&#x1F4C2;</n:div>
-                        <n:div class="scan-dz-title">Scan</n:div>
-                        <n:div class="scan-dz-sub">or click Browse to select the file containing cheque images + XML</n:div>
-                        <n:div style="margin-top:16px;">
+                </div>
+                <div sclass="scan-body">
+                    <div sclass="scan-dropzone">
+                        <div sclass="scan-dz-icon">&#x1F4C2;</div>
+                        <div sclass="scan-dz-title">Place cheques in scanner</div>
+                        <div sclass="scan-dz-sub">or click Browse to load captured cheque data</div>
+                        <div style="margin-top:16px;">
                             <button id="btnScanUploadZip"
                                     sclass="btn btn-primary scan-upload-btn"
-                                    label="&#x2B06; Browse &amp; Upload ZIP"
+                                    label="&#x2B06; Browse &amp; Load Scan Data"
                                     upload="true,maxsize=-1,accept=.zip"/>
-                        </n:div>
-                    </n:div>
-                    <n:div id="scanProgress" style="display:none;margin-top:16px;">
-                        <n:div class="scan-progress-bar">
-                            <n:div class="scan-progress-fill" id="scanProgressFill"/>
-                        </n:div>
-                        <n:div class="scan-progress-text" id="scanProgressText">Scanning…</n:div>
-                    </n:div>
-                </n:div>
-            </n:div>
-        </n:div>
+                        </div>
+                    </div>
+                    <div id="scanProgress" visible="false" style="margin-top:16px;">
+                        <div sclass="scan-progress-bar">
+                            <div id="scanProgressFill" sclass="scan-progress-fill" style="width:0%;"/>
+                        </div>
+                        <label id="scanProgressText" sclass="scan-progress-text" value="Scanning…"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+
+
 
         <!-- ═══════════════════════════════════════════════════════
              MISMATCH DIALOG
-             Shown when scanned cheque count ≠ expected batch count.
-             Accept  → btnMismatchAccept  → onMismatchAccept()  — keeps scanned count
-             Discard → btnMismatchDiscard → onMismatchDiscard() — deletes batch + cheques
+             Pure ZK MVC: visibility + every dynamic value (counts,
+             amounts, duplicate row, footer message) are set by the
+             composer via @Wire labels/divs — no innerHTML rebuild,
+             no bce_openMismatchDialog/bce_closeMismatchDialog JS.
         ═══════════════════════════════════════════════════════ -->
-        <n:div id="mismatchDialog" class="modal-overlay" style="z-index:3000;">
-            <n:div class="modal-box" style="max-width:400px;text-align:center;padding:32px 28px;">
-                <n:div style="font-size:18px;font-weight:700;color:#0f2347;margin-bottom:16px;">
-                    Mismatch found in batch count!
-                </n:div>
-                <n:div style="font-size:13px;color:#64748b;margin-bottom:28px;">
-                    The number of scanned cheques does not match the entered batch count.
-                    Click <n:strong>Accept</n:strong> to continue with the scanned count,
-                    or <n:strong>Discard</n:strong> to remove this batch and its cheques.
-                </n:div>
-                <n:div style="display:flex;justify-content:center;gap:16px;">
-                    <button id="btnMismatchAccept"  label="Accept"  sclass="btn btn-primary" style="min-width:100px;"/>
-                    <button id="btnMismatchDiscard" label="Discard" sclass="btn btn-outline"
-                            style="min-width:100px;border-color:#ef4444;color:#ef4444;"/>
-                </n:div>
-            </n:div>
-        </n:div>
+        <div id="mismatchDialog" sclass="modal-overlay open" style="z-index:99999;" visible="false">
+            <div sclass="bce-md-box">
+
+                <div sclass="bce-md-head">
+                    <span sclass="bce-md-icon">&#x26A0;&#xFE0F;</span>
+                    <span sclass="bce-md-title">Cheque Count Mismatch</span>
+                </div>
+
+                <div sclass="bce-md-grid">
+
+                    <div sclass="bce-md-row">
+                        <span sclass="bce-md-lbl">Expected (batch entry)</span>
+                        <span sclass="bce-md-val">
+                            <label id="lblMdExpectedCount" sclass="bce-md-num"/>
+                            <span sclass="bce-md-sep">&#xB7;</span>
+                            <label id="lblMdControlAmt" sclass="bce-md-mono"/>
+                        </span>
+                    </div>
+
+                    <div sclass="bce-md-row">
+                        <span sclass="bce-md-lbl">Parsed from ZIP</span>
+                        <span sclass="bce-md-val bce-md-accent">
+                            <label id="lblMdParsedCount" sclass="bce-md-num"/>
+                            <span sclass="bce-md-sep">&#xB7;</span>
+                            <label id="lblMdParsedAmt" sclass="bce-md-mono"/>
+                        </span>
+                    </div>
+
+                    <div id="mdDupRow" sclass="bce-md-row bce-md-warn" visible="false">
+                        <span sclass="bce-md-lbl">&#x26A0; Already in system (duplicates)</span>
+                        <span sclass="bce-md-val bce-md-dup">
+                            <label id="lblMdSkippedCount"/>
+                        </span>
+                    </div>
+
+                    <div sclass="bce-md-row bce-md-new">
+                        <span sclass="bce-md-lbl">New cheques to be saved</span>
+                        <span sclass="bce-md-val bce-md-green">
+                            <label id="lblMdSavedCount"/>
+                        </span>
+                    </div>
+
+                </div>
+
+                <div sclass="bce-md-body">
+                    Click <n:strong>Accept</n:strong> to proceed with the new cheques
+                    (<label id="lblMdFooterAmt" sclass="bce-md-mono"/>),
+                    or <n:strong>Discard</n:strong> to delete this batch entirely.
+                </div>
+
+                <div sclass="bce-md-actions">
+                    <button id="btnMismatchAccept"  label="Accept"  sclass="btn-primary"/>
+                    <button id="btnMismatchDiscard" label="Discard" sclass="btn-outline"/>
+                </div>
+            </div>
+        </div>
 
         <!-- ═══════════════════════════════════════════════════════
-             BATCH SUCCESS TOAST
-             Shown by: bce_showBatchSuccessToast(batchId, count, amt)
-             Hidden by: bce_hideToast() — auto after 4s or on Close click
-             Positioned below header (top:68px) to avoid overlap.
+             ALL-DUPLICATES DIALOG
+             Pure ZK MVC: visibility + counts/amount set by the
+             composer via @Wire labels — no bce_openDuplicateDialog
+             JS / innerHTML build.
         ═══════════════════════════════════════════════════════ -->
-        <n:div id="batchSuccessToast" class="bce-toast" style="display:none;"/>
+        <div id="duplicateDialog" sclass="modal-overlay open" style="z-index:99999;" visible="false">
+            <div sclass="bce-dup-box">
+                <div sclass="bce-dup-stripe"/>
+                <div sclass="bce-dup-body">
 
-        <!-- ═══════════════════════════════════════════════════════
-             HIDDEN DISCARD BUTTON
-             FIX: fallback for bce_closeScanModal() JS → fires server-side
-             onScanCancelDiscard() which calls discardPendingBatch().
-             Used when scan modal is closed via JS path (not ZK button).
-        ═══════════════════════════════════════════════════════ -->
+                    <div sclass="bce-dup-head">
+                        <div sclass="bce-dup-head-icon">&#x26A0;&#xFE0F;</div>
+                        <div>
+                            <div sclass="bce-dup-title">All Cheques Already Present</div>
+                            <div sclass="bce-dup-subtitle">No new records were added to the system</div>
+                        </div>
+                    </div>
+
+                    <div sclass="bce-dup-card">
+                        <div sclass="bce-dup-row">
+                            <span sclass="bce-dup-lbl">Cheques in Scanner</span>
+                            <label id="lblDupCount" sclass="bce-dup-val"/>
+                        </div>
+                        <div sclass="bce-dup-row">
+                            <span sclass="bce-dup-lbl">Total Amount</span>
+                            <label id="lblDupAmt" sclass="bce-dup-val bce-dup-mono"/>
+                        </div>
+                        <div sclass="bce-dup-flag">
+                            <span sclass="bce-dup-dot"/>
+                            <label id="lblDupFlag" sclass="bce-dup-flag-text"/>
+                        </div>
+                    </div>
+
+                    <div sclass="bce-dup-actions">
+                        <button id="btnDuplicateOk" label="OK, Got It" sclass="btn-primary"/>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- BATCH SUCCESS TOAST -->
+        <div id="batchSuccessToast" sclass="bce-toast" visible="false">
+            <div sclass="bce-toast-stripe"/>
+            <div sclass="bce-toast-icon">&#x2705;</div>
+            <div sclass="bce-toast-body">
+                <div sclass="bce-toast-title">Batch Created Successfully</div>
+                <div sclass="bce-toast-meta">
+                    <label id="lblToastBatchId" sclass="bce-toast-bid"/>
+                    <span sclass="bce-toast-dot">&#xB7;</span>
+                    <label id="lblToastChequeCount"/>
+                    <span sclass="bce-toast-dot">&#xB7;</span>
+                    <label id="lblToastAmount"/>
+                </div>
+                <div sclass="bce-toast-actions">
+                    <button id="btnToastDismiss" sclass="bce-toast-btn-dismiss" label="&#x2715; Close"/>
+                </div>
+            </div>
+            <button id="btnToastClose" sclass="bce-toast-x" label="&#x2715;"/>
+        </div>
+
+        <!-- Auto-dismiss timer for batch success toast — pure ZK MVC,
+             no setTimeout/evalJavaScript needed. Started/stopped from
+             the composer via toastTimer.setRunning(). -->
+        <timer id="toastTimer" delay="5000" repeats="false" running="false"/>
+
+        <!-- HIDDEN DISCARD BUTTON — fallback for JS-path scan cancel -->
         <button id="btnScanCancelDiscard" visible="false"/>
-
-        <!-- ═══════════════════════════════════════════════════════
-             CHEQUE DETAIL POPUP
-             Opened by: bce_showChequePop() — called from openBcePopup()
-             Closed by: bceBtnPopClose → onBcePopClose() → bce_hideChequePop()
-             Nav:       bceBtnPopPrev / bceBtnPopNext → onBcePopPrev/Next()
-             Save:      bceBtnPopSave → onBcePopSave() — validates MICR, saves to DB
-             Portalled to document.body via tryPortal() script below.
-        ═══════════════════════════════════════════════════════ -->
-        <n:div id="bceChequePop" class="pop-overlay" style="display:none;">
-            <n:div class="pop-box">
-
-                <n:div class="pop-head">
-                    <label id="bcePopTitle" sclass="pop-title" value="Cheque #&#x2014;"/>
-                    <button id="bceBtnPopClose" sclass="pop-close-btn" label="&#x2715; Close"/>
-                </n:div>
-
-                <n:div class="pop-body">
-
-                    <!-- Cheque images: bceFrontImageBox / bceRearImageBox
-                         Loaded by bce_bceRenderImages(chequeDbId) after popup opens -->
-                    <n:div class="pop-images-row">
-                        <n:div class="pop-img-panel">
-                            <n:div class="pop-img-label"><n:span class="pop-img-icon">&#x1F5BC;</n:span> FRONT SIDE</n:div>
-                            <n:div id="bceFrontImageBox" class="pop-img-box">
-                                <n:div class="img-empty">
-                                    <n:div class="img-empty-icon">&#x1F5BC;</n:div>
-                                    <n:div class="img-empty-text">Loading&#x2026;</n:div>
-                                </n:div>
-                            </n:div>
-                        </n:div>
-                        <n:div class="pop-img-panel">
-                            <n:div class="pop-img-label"><n:span class="pop-img-icon">&#x1F5BC;</n:span> REAR SIDE</n:div>
-                            <n:div id="bceRearImageBox" class="pop-img-box">
-                                <n:div class="img-empty">
-                                    <n:div class="img-empty-icon">&#x1F5BC;</n:div>
-                                    <n:div class="img-empty-text">Loading&#x2026;</n:div>
-                                </n:div>
-                            </n:div>
-                        </n:div>
-                    </n:div>
-
-                    <n:div class="pop-section-label">Cheque Data Entry</n:div>
-
-                    <!-- MICR row: CTS-2010 fields
-                         Cheque No(6) · City(3) · Bank(3) · Branch(3) · Base No(6-7) · TC(2-3)
-                         Validated by validateBcePopupMicr() before save -->
-                    <n:div class="pop-micr-row">
-                        <n:div class="pop-field pop-field-micr">
-                            <n:label class="pop-field-lbl">Cheque No. <n:span class="req-star">*</n:span><n:span class="field-hint">6 digits</n:span></n:label>
-                            <textbox id="bcePopCheckNo" sclass="pop-input pop-input-mono" placeholder="000000" maxlength="6"/>
-                            <label id="bceErrCheckNo" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field pop-field-micr">
-                            <n:label class="pop-field-lbl">City <n:span class="req-star">*</n:span><n:span class="field-hint">3 digits</n:span></n:label>
-                            <textbox id="bcePopCity" sclass="pop-input pop-input-mono" placeholder="400" maxlength="3"/>
-                            <label id="bceErrCity" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field pop-field-micr">
-                            <n:label class="pop-field-lbl">Bank <n:span class="req-star">*</n:span><n:span class="field-hint">3 digits</n:span></n:label>
-                            <textbox id="bcePopBank" sclass="pop-input pop-input-mono" placeholder="002" maxlength="3"/>
-                            <label id="bceErrBank" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field pop-field-micr">
-                            <n:label class="pop-field-lbl">Branch <n:span class="req-star">*</n:span><n:span class="field-hint">3 digits</n:span></n:label>
-                            <textbox id="bcePopBranch" sclass="pop-input pop-input-mono" placeholder="001" maxlength="3"/>
-                            <label id="bceErrBranch" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field pop-field-micr">
-                            <n:label class="pop-field-lbl">Base No. <n:span class="field-hint">6-7 digits</n:span></n:label>
-                            <textbox id="bcePopBaseNo" sclass="pop-input pop-input-mono" placeholder="000000" maxlength="7"/>
-                            <label id="bceErrBaseNo" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field pop-field-micr">
-                            <n:label class="pop-field-lbl">TC <n:span class="req-star">*</n:span><n:span class="field-hint">2-3 digits</n:span></n:label>
-                            <textbox id="bcePopTc" sclass="pop-input pop-input-mono" placeholder="31" maxlength="3"/>
-                            <label id="bceErrTc" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                    </n:div>
-
-                    <!-- Face row: Drawee Acc No · Date · Amount · Amount in Words -->
-                    <n:div class="pop-face-row">
-                        <n:div class="pop-field">
-                            <n:label class="pop-field-lbl">Acc No (Drawee) <n:span class="req-star">*</n:span></n:label>
-                            <textbox id="bcePopAccountNo" sclass="pop-input pop-input-mono" placeholder="Account printed on cheque" maxlength="20"/>
-                            <label id="bceErrAccountNo" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field">
-                            <n:label class="pop-field-lbl">Date <n:span class="req-star">*</n:span><n:span class="field-hint">DD/MM/YYYY</n:span></n:label>
-                            <textbox id="bcePopDate" sclass="pop-input" placeholder="05/05/2026" maxlength="10"/>
-                            <label id="bceErrDate" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field">
-                            <n:label class="pop-field-lbl">Amt in Digits (&#x20B9;) <n:span class="req-star">*</n:span></n:label>
-                            <textbox id="bcePopAmount" sclass="pop-input pop-input-mono" placeholder="2000000.00"/>
-                            <label id="bceErrAmount" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field pop-field-wide">
-                            <n:label class="pop-field-lbl">Amt in Words</n:label>
-                            <textbox id="bcePopAmountWords" sclass="pop-input" placeholder="Twenty Lakh Rupees Only"/>
-                        </n:div>
-                    </n:div>
-
-                    <!-- IQA flags: readonly display from import — not editable -->
-                    <n:div class="pop-iqa-row">
-                        <n:div class="pop-iqa-item"><n:span class="pop-iqa-lbl">IQA RESULT</n:span><label id="bceIqaResult" sclass="pop-iqa-val" value="&#x2014;"/></n:div>
-                        <n:div class="pop-iqa-item"><n:span class="pop-iqa-lbl">DUPLICATE</n:span><label id="bceIqaDup" sclass="pop-iqa-val" value="&#x2014;"/></n:div>
-                        <n:div class="pop-iqa-item"><n:span class="pop-iqa-lbl">NO MICR</n:span><label id="bceIqaNoMicr" sclass="pop-iqa-val" value="&#x2014;"/></n:div>
-                        <n:div class="pop-iqa-item"><n:span class="pop-iqa-lbl">MICR MISMATCH</n:span><label id="bceIqaMicrMismatch" sclass="pop-iqa-val" value="&#x2014;"/></n:div>
-                    </n:div>
-
-                    <!-- Payee Account Lookup
-                         bceBtnAcctLookup → onBceAcctLookup() → queries cts_accounts
-                         Result fills: bceLblAcctHolderName / bceLblAcctStatus / bceLblAcctSubcategory -->
-                    <n:div class="acct-lookup-panel">
-                        <n:div class="acct-lookup-header"><n:span class="acct-lookup-icon">&#x1F50D;</n:span> Payee Account Lookup</n:div>
-                        <n:div class="acct-lookup-row">
-                            <n:label class="acct-lbl">Account Number:</n:label>
-                            <textbox id="bcePopCreditAccNo" sclass="pop-input acct-no-input" placeholder="Enter payee account number&#x2026;"/>
-                            <button id="bceBtnAcctLookup" sclass="acct-lookup-btn" label="Save"/>
-                        </n:div>
-                        <n:div class="acct-result-grid">
-                            <n:div class="acct-result-row"><n:span class="acct-result-lbl">Account Holder's Name:</n:span><label id="bceLblAcctHolderName" sclass="acct-result-val" value="&#x2014;"/></n:div>
-                            <n:div class="acct-result-row"><n:span class="acct-result-lbl">Account Status:</n:span><label id="bceLblAcctStatus" sclass="acct-result-val" value="&#x2014;"/></n:div>
-                            <n:div class="acct-result-row"><n:span class="acct-result-lbl">Account Subcategory:</n:span><label id="bceLblAcctSubcategory" sclass="acct-result-val" value="&#x2014;"/></n:div>
-                        </n:div>
-                    </n:div>
-
-                </n:div><!-- /pop-body -->
-
-                <!-- Popup footer: Prev/Next navigation + Save & Next
-                     bcePgInfo → "current / total" label
-                     bceBtnPopSave → onBcePopSave() — validates, saves, advances to next cheque -->
-                <n:div class="pop-footer">
-                    <n:div class="pop-footer-left">
-                        <button id="bceBtnPopPrev" sclass="pop-nav-btn" label="&#x2039; Prev" disabled="true"/>
-                        <label  id="bcePgInfo" sclass="bd-pg-info" value=""/>
-                        <button id="bceBtnPopNext" sclass="pop-nav-btn" label="Next &#x203A;" disabled="true"/>
-                    </n:div>
-                    <n:div class="pop-footer-right">
-                        <button id="bceBtnPopSave" sclass="btn btn-primary" label="&#x1F4BE; Save &amp; Next"/>
-                    </n:div>
-                </n:div>
-
-            </n:div>
-        </n:div><!-- /bceChequePop -->
-
-        <!-- Portal: move cheque popup to document.body so position:fixed
-             escapes ZK's stacking context and covers full viewport -->
-        <n:script><![CDATA[
-        (function tryPortal(attempt){
-            var pop = document.getElementById('bceChequePop');
-            if(pop){ document.body.appendChild(pop); return; }
-            if(attempt < 20) setTimeout(function(){ tryPortal(attempt+1); }, 100);
-        })(0);
-        ]]></n:script>
-
+ 
     </div><!-- /bceRoot -->
 
 </zk>

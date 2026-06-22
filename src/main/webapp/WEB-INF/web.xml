@@ -48,6 +48,18 @@
          Must come BEFORE the servlets.
     ================================================================= -->
 
+    <!-- =================================================================
+         APP STARTUP LISTENER — warms Hibernate SessionFactory and
+         Supabase connection pool at deploy time so the first user
+         request does not pay the 2-5s cold-start cost.
+         Must come BEFORE zkLoader servlet.
+    ================================================================= -->
+    <listener>
+        <listener-class>
+            com.cts.outward.listener.AppStartupListener
+        </listener-class>
+    </listener>
+
     <listener>
         <listener-class>
             org.zkoss.zk.ui.http.HttpSessionListener

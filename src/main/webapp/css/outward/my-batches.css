@@ -63,45 +63,383 @@
     pointer-events: none;
 }
 
+/* ── Search input — pill style ── */
 .mb-search-input.z-textbox {
+    height: 32px !important;
     width: 100% !important;
-    padding: 7px 12px 7px 30px !important;
-    border: 1.5px solid var(--border) !important;
-    border-radius: 7px !important;
-    font-size: 13px !important;
+    padding: 0 12px 0 30px !important;
+    border: 1.5px solid #d0dae8 !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
     font-family: 'Inter', sans-serif !important;
     background: #fff !important;
-    color: var(--text-main) !important;
+    color: #1e293b !important;
+    box-shadow: none !important;
+    transition: border-color .15s, box-shadow .15s !important;
+}
+.mb-search-input.z-textbox:focus,
+.mb-search-input.z-textbox:focus-within {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.12) !important;
+    outline: none !important;
+}
+/* ZK inner input — inherit pill shape */
+.mb-search-input.z-textbox input {
+    border: none !important;
+    background: transparent !important;
+    border-radius: 20px !important;
+    padding: 0 !important;
+    height: 100% !important;
+    font-size: 12px !important;
+    font-family: 'Inter', sans-serif !important;
+    color: #1e293b !important;
+    outline: none !important;
+    box-shadow: none !important;
 }
 
+.mb-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mb-filter-lbl {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-sub);
+    white-space: nowrap;
+}
+
+/* ── Status combo — pill style ── */
+/* ── Status combo — split pill ── */
 .mb-filter-combo.z-combobox {
-    min-width: 150px !important;
-    border: 1.5px solid var(--border) !important;
-    border-radius: 7px !important;
-    font-size: 13px !important;
+    height: 32px !important;
+    width: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    vertical-align: middle !important;
+}
+.mb-filter-combo.z-combobox input,
+.mb-filter-combo.z-combobox .z-combobox-input {
+    width: 90px !important;
+    flex: 0 0 90px !important;
+    height: 32px !important;
+    border: 1.5px solid #d0dae8 !important;
+    border-right: none !important;
+    border-radius: 20px 0 0 20px !important;
+    background: #fff !important;
+    font-size: 12px !important;
     font-family: 'Inter', sans-serif !important;
+    padding: 0 8px 0 12px !important;
+    outline: none !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+}
+.mb-filter-combo.z-combobox .z-combobox-button,
+.mb-filter-combo.z-combobox button {
+    flex: 0 0 28px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 32px !important;
+    border: 1.5px solid #d0dae8 !important;
+    border-left: none !important;
+    border-radius: 0 20px 20px 0 !important;
+    background: #f1f5f9 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+}
+/* hide ZK sprite, replace with ▾ via ::after */
+.mb-filter-combo.z-combobox .z-combobox-button i,
+.mb-filter-combo.z-combobox .z-combobox-button .z-icon-caret-down,
+.mb-filter-combo.z-combobox .z-combobox-button img,
+.mb-filter-combo.z-combobox button i {
+    display: none !important;
+    width: 0 !important; height: 0 !important;
+}
+.mb-filter-combo.z-combobox .z-combobox-button,
+.mb-filter-combo.z-combobox button {
+    background-image: none !important;
+    font-size: 0 !important;
+    text-indent: -9999px !important;
+    position: relative !important;
+}
+.mb-filter-combo.z-combobox .z-combobox-button::after,
+.mb-filter-combo.z-combobox button::after {
+    content: "\25BE" !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+    color: #64748b !important;
+    position: absolute !important;
+    top: 50% !important; left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    text-indent: 0 !important;
+    pointer-events: none !important;
+}
+
+/* ── Datebox — split pill ── */
+.mb-filter-date.z-datebox {
+    height: 32px !important;
+    width: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    vertical-align: middle !important;
+}
+.mb-filter-date.z-datebox input,
+.mb-filter-date.z-datebox .z-datebox-input {
+    width: 108px !important;
+    flex: 0 0 108px !important;
+    height: 32px !important;
+    border: 1.5px solid #d0dae8 !important;
+    border-right: none !important;
+    border-radius: 20px 0 0 20px !important;
+    background: #fff !important;
+    font-family: 'Roboto Mono', monospace !important;
+    font-size: 12px !important;
+    color: #0f2347 !important;
+    padding: 0 8px 0 12px !important;
+    outline: none !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    transition: border-color .15s !important;
+}
+.mb-filter-date.z-datebox input:focus,
+.mb-filter-date.z-datebox .z-datebox-input:focus {
+    border-color: #3b82f6 !important;
+    background: #f8fbff !important;
+}
+.mb-filter-date.z-datebox .z-datebox-button,
+.mb-filter-date.z-datebox button {
+    flex: 0 0 28px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 32px !important;
+    border: 1.5px solid #d0dae8 !important;
+    border-left: none !important;
+    border-radius: 0 20px 20px 0 !important;
+    background: #f1f5f9 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    transition: background .15s !important;
+}
+.mb-filter-date.z-datebox .z-datebox-button:hover,
+.mb-filter-date.z-datebox button:hover {
+    background: #e2e8f0 !important;
+}
+/* hide ZK sprite, replace with 📅 via ::after */
+.mb-filter-date.z-datebox .z-datebox-button i,
+.mb-filter-date.z-datebox .z-datebox-button .z-icon-calendar,
+.mb-filter-date.z-datebox .z-datebox-button img,
+.mb-filter-date.z-datebox button i {
+    display: none !important;
+    width: 0 !important; height: 0 !important;
+}
+.mb-filter-date.z-datebox .z-datebox-button,
+.mb-filter-date.z-datebox button {
+    background-image: none !important;
+    font-size: 0 !important;
+    text-indent: -9999px !important;
+    position: relative !important;
+}
+.mb-filter-date.z-datebox .z-datebox-button::after,
+.mb-filter-date.z-datebox button::after {
+    content: "\1F4C5" !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+    color: #64748b !important;
+    position: absolute !important;
+    top: 50% !important; left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    text-indent: 0 !important;
+    pointer-events: none !important;
+}
+
+/* ── mb-filter-combo used on datebox (scanModule) — same as mb-filter-date ── */
+.mb-filter-combo.z-datebox {
+    height: 32px !important;
+    width: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    vertical-align: middle !important;
+}
+.mb-filter-combo.z-datebox input,
+.mb-filter-combo.z-datebox .z-datebox-input {
+    width: 108px !important;
+    flex: 0 0 108px !important;
+    height: 32px !important;
+    border: 1.5px solid #d0dae8 !important;
+    border-right: none !important;
+    border-radius: 20px 0 0 20px !important;
+    background: #fff !important;
+    font-family: 'Roboto Mono', monospace !important;
+    font-size: 12px !important;
+    color: #0f2347 !important;
+    padding: 0 8px 0 12px !important;
+    outline: none !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    transition: border-color .15s !important;
+}
+.mb-filter-combo.z-datebox input:focus,
+.mb-filter-combo.z-datebox .z-datebox-input:focus {
+    border-color: #3b82f6 !important;
+    background: #f8fbff !important;
+}
+.mb-filter-combo.z-datebox .z-datebox-button,
+.mb-filter-combo.z-datebox button {
+    flex: 0 0 28px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 32px !important;
+    border: 1.5px solid #d0dae8 !important;
+    border-left: none !important;
+    border-radius: 0 20px 20px 0 !important;
+    background: #f1f5f9 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    transition: background .15s !important;
+}
+.mb-filter-combo.z-datebox .z-datebox-button:hover,
+.mb-filter-combo.z-datebox button:hover {
+    background: #e2e8f0 !important;
+}
+.mb-filter-combo.z-datebox .z-datebox-button i,
+.mb-filter-combo.z-datebox .z-datebox-button .z-icon-calendar,
+.mb-filter-combo.z-datebox .z-datebox-button img,
+.mb-filter-combo.z-datebox button i {
+    display: none !important;
+    width: 0 !important; height: 0 !important;
+}
+.mb-filter-combo.z-datebox .z-datebox-button,
+.mb-filter-combo.z-datebox button {
+    background-image: none !important;
+    font-size: 0 !important;
+    text-indent: -9999px !important;
+    position: relative !important;
+}
+.mb-filter-combo.z-datebox .z-datebox-button::after,
+.mb-filter-combo.z-datebox button::after {
+    content: "\1F4C5" !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+    color: #64748b !important;
+    position: absolute !important;
+    top: 50% !important; left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    text-indent: 0 !important;
+    pointer-events: none !important;
+}
+
+/* ── Arrow separator between dates ── */
+.mb-date-sep {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+/* ── Clear / Secondary button — pill style ── */
+.btn-secondary.z-button,
+.btn-secondary.z-button .z-button-cm {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 32px !important;
+    padding: 0 14px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    font-family: 'Inter', sans-serif !important;
+    color: #64748b !important;
+    background: #fff !important;
+    background-image: none !important;
+    border: 1.5px solid #d0dae8 !important;
+    border-radius: 20px !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    white-space: nowrap !important;
+    letter-spacing: .02em !important;
+    transition: all .15s !important;
+}
+.btn-secondary.z-button:hover,
+.btn-secondary.z-button:hover .z-button-cm {
+    background: #fee2e2 !important;
+    background-image: none !important;
+    border-color: #fca5a5 !important;
+    color: #dc2626 !important;
 }
 
 /* Batch listbox */
 .mb-listbox.z-listbox {
     border: none !important;
+    height: auto !important;
+}
+
+/* ZK internal scroll container — disable scroll, auto height */
+.mb-listbox .z-listbox-body {
+    overflow: visible !important;
+    overflow-y: unset !important;
+    height: auto !important;
+    max-height: none !important;
 }
 
 .mb-listhead.z-listhead,
 .mb-listhead .z-listheader {
     background: var(--navy) !important;
     color: #fff !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
     letter-spacing: .06em !important;
     border: none !important;
-    padding: 11px 14px !important;
+    padding: 6px 14px !important;
+    text-align: center !important;
 }
 
 .mb-th.z-listheader {
     background: var(--navy) !important;
     color: #fff !important;
     border-right: 1px solid rgba(255,255,255,.1) !important;
+    text-align: center !important;
+}
+
+/* Center the label text + sort-arrow box inside each ZK listheader */
+.mb-th.z-listheader .z-listheader-content,
+.mb-listhead .z-listheader-content {
+    width: 100% !important;
+    text-align: center !important;
+    justify-content: center !important;
 }
 
 .mb-row.z-listitem {
@@ -115,10 +453,21 @@
 }
 
 .mb-row .z-listcell {
-    padding: 13px 14px !important;
+    padding: 7px 14px !important;
     font-size: 13px !important;
+    font-weight: 700 !important;
     color: var(--text-main) !important;
     font-family: 'Inter', sans-serif !important;
+    text-align: center !important;
+}
+
+/* Center the inner content wrapper ZK puts inside each listcell */
+.mb-row .z-listcell-content {
+    width: 100% !important;
+    text-align: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
 }
 
 .mb-link.z-label {
@@ -148,11 +497,86 @@
         font-size:11px; font-weight:700; letter-spacing:.04em; }
 .ch-pending   { background:#fef3c7; color:#92400e; }
 .ch-submitted { background:#dbeafe; color:#1e40af; }
+.ch-progress  { background:#ffedd5; color:#9a3412; }
 .ch-approved  { background:#dcfce7; color:#166534; }
 .ch-rejected  { background:#fee2e2; color:#991b1b; }
 .ch-pass      { background:#dcfce7; color:#166534; }
 .ch-fail      { background:#fee2e2; color:#991b1b; }
 .ch-amber     { background:#fef3c7; color:#92400e; }
+
+/* ── BATCH LIST PAGINATION BAR ──────────────────────────────── */
+
+/* ── Pagination bar ── */
+.mb-pg-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 18px;
+    border-top: 1px solid #e2e8f0;
+    background: #f8f9fb;
+}
+
+.mb-pg-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ── Pagination buttons — full ZK override ── */
+.mb-pg-btn.z-button,
+.mb-pg-btn.z-button .z-button-cm {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 32px !important;
+    padding: 0 14px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    font-family: 'Inter', sans-serif !important;
+    color: #374151 !important;
+    background: #ffffff !important;
+    background-image: none !important;
+    border: 1.5px solid #d1d5db !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    transition: border-color 0.15s, color 0.15s, background 0.15s !important;
+    text-shadow: none !important;
+}
+
+.mb-pg-btn.z-button:hover:not(.z-button-disd):not([disabled]),
+.mb-pg-btn.z-button:hover:not(.z-button-disd):not([disabled]) .z-button-cm {
+    background: #eff6ff !important;
+    background-image: none !important;
+    border-color: #3b82f6 !important;
+    color: #2563eb !important;
+}
+
+/* ZK disabled state — class-based AND attribute-based */
+.mb-pg-btn.z-button.z-button-disd,
+.mb-pg-btn.z-button[disabled],
+.mb-pg-btn.z-button.z-button-disd .z-button-cm,
+.mb-pg-btn.z-button[disabled] .z-button-cm {
+    opacity: 0.4 !important;
+    background: #ffffff !important;
+    background-image: none !important;
+    border-color: #d1d5db !important;
+    color: #374151 !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    text-shadow: none !important;
+}
+
+.mb-pg-info.z-label {
+    min-width: 90px !important;
+    text-align: center !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #111827 !important;
+    padding: 0 8px !important;
+    font-family: 'Inter', sans-serif !important;
+}
 
 /* ── BATCH DETAIL PAGE ──────────────────────────────────────── */
 
@@ -917,3 +1341,97 @@
 }
 
 .bce-toast-close:hover { color: var(--text-main); }
+/* ══════════════════════════════════════════════════════
+   SCAN MODULE — datebox pill fix (IDs scoped to #bceRoot)
+   scanModule uses sclass="mb-filter-combo" on <datebox>.
+   mb-filter-combo.z-datebox above handles it via class.
+   This ID block is a fallback with higher specificity.
+══════════════════════════════════════════════════════ */
+#bceRoot #dtBatchFrom.z-datebox,
+#bceRoot #dtBatchTo.z-datebox {
+    height: 32px !important;
+    width: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    vertical-align: middle !important;
+}
+#bceRoot #dtBatchFrom.z-datebox input,
+#bceRoot #dtBatchFrom.z-datebox .z-datebox-input,
+#bceRoot #dtBatchTo.z-datebox input,
+#bceRoot #dtBatchTo.z-datebox .z-datebox-input {
+    width: 108px !important;
+    flex: 0 0 108px !important;
+    height: 32px !important;
+    border: 1.5px solid #d0dae8 !important;
+    border-right: none !important;
+    border-radius: 20px 0 0 20px !important;
+    background: #fff !important;
+    font-family: 'Roboto Mono', monospace !important;
+    font-size: 12px !important;
+    color: #0f2347 !important;
+    padding: 0 8px 0 12px !important;
+    outline: none !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+}
+#bceRoot #dtBatchFrom.z-datebox .z-datebox-button,
+#bceRoot #dtBatchFrom.z-datebox button,
+#bceRoot #dtBatchFrom.z-datebox a,
+#bceRoot #dtBatchTo.z-datebox .z-datebox-button,
+#bceRoot #dtBatchTo.z-datebox button,
+#bceRoot #dtBatchTo.z-datebox a {
+    flex: 0 0 28px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 32px !important;
+    border: 1.5px solid #d0dae8 !important;
+    border-left: none !important;
+    border-radius: 0 20px 20px 0 !important;
+    background: #f1f5f9 !important;
+    background-image: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    font-size: 0 !important;
+    text-indent: -9999px !important;
+    position: relative !important;
+}
+#bceRoot #dtBatchFrom.z-datebox .z-datebox-button i,
+#bceRoot #dtBatchFrom.z-datebox .z-datebox-button img,
+#bceRoot #dtBatchFrom.z-datebox button i,
+#bceRoot #dtBatchFrom.z-datebox a i,
+#bceRoot #dtBatchTo.z-datebox .z-datebox-button i,
+#bceRoot #dtBatchTo.z-datebox .z-datebox-button img,
+#bceRoot #dtBatchTo.z-datebox button i,
+#bceRoot #dtBatchTo.z-datebox a i {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+#bceRoot #dtBatchFrom.z-datebox .z-datebox-button::after,
+#bceRoot #dtBatchFrom.z-datebox button::after,
+#bceRoot #dtBatchFrom.z-datebox a::after,
+#bceRoot #dtBatchTo.z-datebox .z-datebox-button::after,
+#bceRoot #dtBatchTo.z-datebox button::after,
+#bceRoot #dtBatchTo.z-datebox a::after {
+    content: "\1F4C5" !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+    color: #64748b !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    text-indent: 0 !important;
+    pointer-events: none !important;
+}

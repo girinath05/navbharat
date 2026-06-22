@@ -1,16 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?page title="Verification II" contentType="text/html;charset=UTF-8"?>
+
 <!--
  ============================================================
   Project     : Navbharat CTS Outward
   File        : verification-II.zul
   Package     : webapp/zul/outward
-  Author      : Anusha & Girinath.
+  Author      : Girinath
   Created     : June 2026
-  Description : Level-2 verification screen. Supervisor sign-off
-                on batch. Triggers final outward processing.
+  Description : Verification Level-2 screen. Shows all cheques
+                in V2_PENDING queue — both high-value cheques
+                (amount > 50,000 routed directly from Maker
+                submit) and normal cheques referred here by V1
+                verifier. V2 can Accept or Reject only; no
+                further referral is possible.
  ============================================================
 -->
 
+<zk xmlns="http://www.zkoss.org/2005/zul"
+    xmlns:n="native">
 
-<zk>
-	<label value="Verification-II Page" />
+    <n:link rel="stylesheet" href="/navbharat/css/outward/batch-cheque-entry.css"/>
+    <n:link rel="stylesheet" href="/navbharat/css/outward/my-batches.css"/>
+    <n:link rel="stylesheet" href="/navbharat/css/outward/verification.css"/>
+
+    <div id="v2Root" apply="com.cts.outward.composer.VerificationTwoComposer"
+         style="padding: 20px;">
+
+        <!-- Page heading -->
+        <n:div class="pg-head">
+            <n:div>
+                <n:div class="pg-title">Verification — Level II</n:div>
+                <n:div class="pg-subtitle">Outward Clearing — High-Value Cheques (&gt; ₹50,000) &amp; V1 Referrals</n:div>
+            </n:div>
+            <n:div class="pg-actions">
+                <label id="lblPendingCount" sclass="mb-count-badge" value="0 pending"/>
+            </n:div>
+        </n:div>
+
+        <!-- Summary stats bar -->
+        <n:div class="ver-stats-bar">
+            <n:div class="ver-stat-box">
+                <n:span class="ver-stat-label">Total V2 Pending</n:span>
+                <label id="lblStatPending" sclass="ver-stat-val ver-stat-orange" value="0"/>
+            </n:div>
+            <n:div class="ver-stat-box">
+                <n:span class="ver-stat-label">High Value (Direct)</n:span>
+                <label id="lblStatHighValue" sclass="ver-stat-val ver-stat-blue" value="0"/>
+            </n:div>
+            <n:div class="ver-stat-box">
+                <n:span class="ver-stat-label">Referred from V1</n:span>
+                <label id="lblStatReferred" sclass="ver-stat-val ver-stat-blue" value="0"/>
+            </n:div>
+            <n:div class="ver-stat-box">
+                <n:span class="ver-stat-label">Accepted</n:span>
+                <label id="lblStatAccepted" sclass="ver-stat-val ver-stat-green" value="0"/>
+            </n:div>
+            <n:div class="ver-stat-box">
+                <n:span class="ver-stat-label">Rejected</n:span>
+                <label id="lblStatRejected" sclass="ver-stat-val ver-stat-red" value="0"/>
+            </n:div>
+        </n:div>
+
+        <!-- Search + filter toolbar -->
+        <n:div class="mb-card">
+            <n:div class="mb-card-head">
+                <n:span class="mb-card-title">V2 QUEUE</n:span>
+                <n:div class="mb-toolbar" style="margin:0;">
+                    <n:div class="mb-search-wrap">
+                        <n:span class="mb-search-icon">&#x1F50D;</n:span>
+                        <textbox id="txtSearch"
+                                 sclass="mb-search-input"
+                                 placeholder="Search batch ID, cheque no, account..."/>
+                    </n:div>
+                    <combobox id="cmbBatchFilter" sclass="mb-filter-combo"
+                              readonly="true" placeholder="All Batches"/>
+                    <combobox id="cmbOriginFilter" sclass="mb-filter-combo"
+                              readonly="true" placeholder="All Origins"/>
+                </n:div>
+            </n:div>
+
+            <!-- Cheque list — includes Origin column to distinguish HV vs Referred -->
+            <listbox id="lbCheques"
+                     sclass="mb-listbox"
+                     hflex="1"
+                     mold="default"
+                     emptyMessage="No cheques pending in V2 queue.">
+                <listhead sclass="mb-listhead" hflex="1">
+                    <listheader label="BATCH ID"      sclass="mb-th" hflex="2"/>
+                    <listheader label="CHEQUE NO"     sclass="mb-th" hflex="2"/>
+                    <listheader label="ACCOUNT NO"    sclass="mb-th" hflex="2"/>
+                    <listheader label="DRAWER"        sclass="mb-th" hflex="2"/>
+                    <listheader label="AMOUNT (₹)"    sclass="mb-th" hflex="2"/>
+                    <listheader label="DATE"          sclass="mb-th" hflex="2"/>
+                    <listheader label="IQA"           sclass="mb-th" hflex="1"/>
+                    <listheader label="ORIGIN"        sclass="mb-th" hflex="2"/>
+                    <listheader label="ACTION"        sclass="mb-th" hflex="3"/>
+                </listhead>
+                <!-- Rows injected by VerificationTwoComposer → renderCheques() -->
+            </listbox>
+        </n:div>
+
+        <!-- ── Action modal (Accept / Reject only — no Refer in V2) ── -->
+        <n:div id="v2Modal" class="ver-modal-overlay" style="display:none;">
+            <n:div class="ver-modal">
+
+                <n:div class="ver-modal-header">
+                    <n:span id="v2ModalTitle" class="ver-modal-title">Verify Cheque — Level II</n:span>
+                    <button id="btnCloseModal" sclass="ver-modal-close" label="✕"/>
+                </n:div>
+
+                <n:div class="ver-modal-body">
+
+                    <!--
+                        Refer note panel — shown only when cheque was referred from V1.
+                        Hidden for direct high-value cheques.
+                        Visibility toggled by VerificationTwoComposer via Clients.evalJavaScript.
+                    -->
+                    <n:div id="v2ReferNote" class="ver-refer-note" style="display:none;">
+                        &#x21AA; Referred from V1 by
+                        <n:span id="spnReferBy" style="font-weight:700;"></n:span>
+                        — Reason:
+                        <n:span id="spnReferRemarks" style="font-style:italic;"></n:span>
+                    </n:div>
+
+                    <!-- Cheque info summary -->
+                    <n:div class="ver-info-grid">
+                        <n:div class="ver-info-row">
+                            <n:span class="ver-info-lbl">Batch ID</n:span>
+                            <label id="lblModalBatch" sclass="ver-info-val ver-mono" value="—"/>
+                        </n:div>
+                        <n:div class="ver-info-row">
+                            <n:span class="ver-info-lbl">Cheque No</n:span>
+                            <label id="lblModalChequeNo" sclass="ver-info-val ver-mono" value="—"/>
+                        </n:div>
+                        <n:div class="ver-info-row">
+                            <n:span class="ver-info-lbl">Account No</n:span>
+                            <label id="lblModalAccount" sclass="ver-info-val ver-mono" value="—"/>
+                        </n:div>
+                        <n:div class="ver-info-row">
+                            <n:span class="ver-info-lbl">Drawer</n:span>
+                            <label id="lblModalDrawer" sclass="ver-info-val" value="—"/>
+                        </n:div>
+                        <n:div class="ver-info-row">
+                            <n:span class="ver-info-lbl">Amount</n:span>
+                            <label id="lblModalAmount" sclass="ver-info-val ver-mono ver-amount" value="—"/>
+                        </n:div>
+                        <n:div class="ver-info-row">
+                            <n:span class="ver-info-lbl">Cheque Date</n:span>
+                            <label id="lblModalDate" sclass="ver-info-val" value="—"/>
+                        </n:div>
+                        <n:div class="ver-info-row">
+                            <n:span class="ver-info-lbl">IQA Status</n:span>
+                            <label id="lblModalIqa" sclass="ver-info-val" value="—"/>
+                        </n:div>
+                        <n:div class="ver-info-row">
+                            <n:span class="ver-info-lbl">Origin</n:span>
+                            <label id="lblModalOrigin" sclass="ver-info-val" value="—"/>
+                        </n:div>
+                    </n:div>
+
+                    <!-- Remarks -->
+                    <n:div class="ver-field-group">
+                        <n:label class="ver-field-lbl">
+                            Remarks <n:span class="ver-required">*</n:span>
+                        </n:label>
+                        <textbox id="txtRemarks"
+                                 sclass="ver-remarks-box"
+                                 multiline="true"
+                                 rows="3"
+                                 placeholder="Enter remarks (mandatory for Reject)"/>
+                    </n:div>
+
+                </n:div>
+
+                <!-- Action buttons: V2 has Accept + Reject only — no Refer -->
+                <n:div class="ver-modal-footer">
+                    <button id="btnAccept" sclass="btn ver-btn-v2-accept" label="✔ Accept"/>
+                    <button id="btnReject" sclass="btn ver-btn-v2-reject" label="✘ Reject"/>
+                </n:div>
+
+            </n:div>
+        </n:div>
+
+    </div>
 </zk>

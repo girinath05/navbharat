@@ -41,6 +41,7 @@ public class ChequeModel {
 
 	// ── Instrument Data ──────────────────────────────────────
 	private BigDecimal amount;
+	private String amountInWords;
 	private String drawerBank;
 	private String drawerBranch;
 	private String chequeDate;
@@ -56,6 +57,7 @@ public class ChequeModel {
 	private boolean highValue; // amount >= 10,00,000 (1 million)
 	private boolean duplicate;
 	private boolean hni;
+	private boolean amountWordsMismatch;
 
 	// ── Status ───────────────────────────────────────────────
 	// Ready | MICR_Repair | Verified | Rejected | CXF | Exported
@@ -136,6 +138,14 @@ public class ChequeModel {
 	public void setAccountNo(String v) {
 		this.accountNo = v;
 		this.updatedAt = LocalDateTime.now();
+	}
+
+	public String getAmountInWords() {
+		return amountInWords;
+	}
+
+	public void setAmountInWords(String v) {
+		this.amountInWords = v;
 	}
 
 	public String getSortCode() {
@@ -270,6 +280,14 @@ public class ChequeModel {
 
 	public void setHni(boolean v) {
 		this.hni = v;
+	}
+
+	public boolean isAmountWordsMismatch() {
+		return amountWordsMismatch;
+	}
+
+	public void setAmountWordsMismatch(boolean v) {
+		this.amountWordsMismatch = v;
 	}
 
 	public String getStatus() {

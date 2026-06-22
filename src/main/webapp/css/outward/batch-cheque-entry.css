@@ -65,15 +65,26 @@ html, body {
     min-height: 100vh;
     background: #eef2f7;
 }
-.content-pad { padding: 18px 20px; }
+.content-pad { padding: 14px 20px; }
+
+/* FIX: bceRoot top padding removed — .cts-content (dashboard.css) already
+   gives every loaded page 25px top padding. The 20px here was stacking on
+   top of that, creating a ~45px empty gap above the page title.
+   Bottom padding also trimmed 48px → 16px: page was taller than viewport,
+   forcing a vertical scrollbar. This is a density pass — see note at end
+   of file for what's still outside this file's control (my-batches.css). */
+#bceRoot {
+    padding: 0 20px 16px !important;
+    box-sizing: border-box !important;
+}
 
 /* ── PAGE HEADER ────────────────────────────────────────────── */
 .pg-head {
     display: flex; align-items: flex-start;
-    justify-content: space-between; margin-bottom: 14px;
+    justify-content: space-between; margin-bottom: 6px;
 }
-.pg-title    { font-size: 20px; font-weight: 700; color: var(--text-main); }
-.pg-subtitle { margin-top: 3px; color: var(--text-sub); font-size: 13px; }
+.pg-title    { font-size: 18px; font-weight: 700; color: var(--text-main); }
+.pg-subtitle { margin-top: 2px; color: var(--text-sub); font-size: 12px; }
 .pg-actions  { display: flex; align-items: center; gap: 9px; }
 
 /* ── BUTTONS ─────────────────────────────────────────────────── */
@@ -127,23 +138,23 @@ html, body {
 /* ── ALERT ──────────────────────────────────────────────────── */
 .alert {
     display: flex; align-items: center; gap: 10px;
-    padding: 12px 16px; border-radius: 8px; margin-bottom: 14px;
+    padding: 6px 14px; border-radius: 8px; margin-bottom: 8px;
 }
 .alert-info {
     background: #eff6ff; border: 1px solid #bfdcff;
-    color: #0b74d1; font-size: 13px;
+    color: #0b74d1; font-size: 12px;
 }
-.alert-icon { font-size: 16px; }
+.alert-icon { font-size: 14px; }
 
 /* ── STAT CARDS ─────────────────────────────────────────────── */
 .stats-row {
     display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 12px; margin-bottom: 18px;
+    gap: 10px; margin-bottom: 8px;
 }
 .stat-card {
     background: #fff; border-radius: 10px;
     border: 1px solid var(--border); border-left: 4px solid transparent;
-    padding: 14px 16px; display: flex; align-items: center; gap: 14px;
+    padding: 7px 14px; display: flex; align-items: center; gap: 12px;
     box-shadow: 0 1px 4px rgba(15,35,71,.07);
 }
 .stat-blue  { border-left-color: var(--cyan); }
@@ -151,17 +162,17 @@ html, body {
 .stat-amber { border-left-color: var(--amber); }
 
 .stat-icon-wrap {
-    width: 40px; height: 40px; border-radius: 8px;
+    width: 26px; height: 26px; border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px; flex-shrink: 0;
+    font-size: 13px; flex-shrink: 0;
 }
 .stat-icon-blue  { background: #dbeafe; }
 .stat-icon-green { background: #dcfce7; }
 .stat-icon-amber { background: #fef3c7; }
 
-.stat-text  { display: flex; flex-direction: column; gap: 2px; }
-.stat-lbl   { font-size: 11px; font-weight: 700; color: var(--text-sub); letter-spacing: .8px; text-transform: uppercase; }
-.stat-val   { font-size: 28px; font-weight: 700; font-family: 'Roboto Mono', monospace; line-height: 1.1; display: block; }
+.stat-text  { display: flex; flex-direction: column; gap: 1px; }
+.stat-lbl   { font-size: 10px; font-weight: 700; color: var(--text-sub); letter-spacing: .8px; text-transform: uppercase; }
+.stat-val   { font-size: 22px; font-weight: 700; font-family: 'Roboto Mono', monospace; line-height: 1.1; display: block; }
 .sv-blue  { color: var(--cyan); }
 .sv-green { color: var(--green); }
 .sv-amber { color: var(--amber); }
@@ -349,33 +360,44 @@ html, body {
 .cheque-pagination-bar.z-div {
     display: flex !important;
     align-items: center !important;
-    gap: 4px !important;
-    padding: 9px 14px !important;
-    background: #f7faff !important;
-    border-top: 1px solid var(--border-light) !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 14px 18px !important;
+    background: #f8f9fb !important;
+    border-top: 1px solid #e2e8f0 !important;
     flex-wrap: wrap !important;
 }
 
 /* ZK buttons inside the pagination bar */
-.cheque-pagination-bar .pg-btn.z-button {
-    min-width: 30px !important; height: 30px !important;
-    border: 1px solid #c8d5e5 !important; border-radius: 6px !important;
-    background: #fff !important; color: var(--navy) !important;
-    font-size: 12px !important; font-weight: 600 !important;
-    font-family: 'Inter', sans-serif !important;
-    cursor: pointer !important; padding: 0 8px !important;
-    transition: .15s !important;
+.cheque-pagination-bar .pg-btn.z-button,
+.cheque-pagination-bar .pg-btn.z-button .z-button-cm {
     display: inline-flex !important; align-items: center !important; justify-content: center !important;
+    height: 32px !important; padding: 0 14px !important;
+    border: 1.5px solid #d1d5db !important; border-radius: 6px !important;
+    background: #ffffff !important; background-image: none !important;
+    color: #374151 !important;
+    font-size: 13px !important; font-weight: 500 !important;
+    font-family: 'Inter', sans-serif !important;
+    cursor: pointer !important; box-shadow: none !important;
+    transition: border-color 0.15s, color 0.15s, background 0.15s !important;
+    text-shadow: none !important;
 }
-.cheque-pagination-bar .pg-btn.z-button:hover {
-    background: #eff6ff !important; border-color: var(--cyan) !important; color: var(--cyan) !important;
+.cheque-pagination-bar .pg-btn.z-button:hover:not(.z-button-disd):not([disabled]),
+.cheque-pagination-bar .pg-btn.z-button:hover:not(.z-button-disd):not([disabled]) .z-button-cm {
+    background: #eff6ff !important; border-color: #3b82f6 !important; color: #2563eb !important;
 }
-.cheque-pagination-bar .pg-btn-active.z-button {
-    background: var(--cyan) !important; border-color: var(--cyan) !important;
-    color: #fff !important; font-weight: 700 !important;
+.cheque-pagination-bar .pg-btn-active.z-button,
+.cheque-pagination-bar .pg-btn-active.z-button .z-button-cm {
+    background: #eff6ff !important; border-color: #3b82f6 !important;
+    color: #2563eb !important; font-weight: 700 !important;
 }
-.cheque-pagination-bar .pg-btn.z-button[disabled] { opacity: .4 !important; cursor: not-allowed !important; }
-.cheque-pagination-bar .pg-btn .z-button-cm { background: none !important; border: none !important; padding: 0 !important; }
+.cheque-pagination-bar .pg-btn.z-button.z-button-disd,
+.cheque-pagination-bar .pg-btn.z-button[disabled],
+.cheque-pagination-bar .pg-btn.z-button.z-button-disd .z-button-cm,
+.cheque-pagination-bar .pg-btn.z-button[disabled] .z-button-cm {
+    opacity: 0.4 !important; cursor: not-allowed !important; pointer-events: none !important;
+    background: #ffffff !important; background-image: none !important;
+}
 .cheque-pagination-bar .pg-btn .z-button-cl,
 .cheque-pagination-bar .pg-btn .z-button-cr { display: none !important; }
 
@@ -659,7 +681,7 @@ html, body {
     background: rgba(10,20,40,.55);
     backdrop-filter: blur(2px);
     display: none; align-items: center; justify-content: center;
-    z-index: 99999 !important; /* FIX: beat ZK stacking context */
+    z-index: 99999 !important;
 }
 .modal-overlay.open { display: flex; }
 
@@ -705,8 +727,9 @@ html, body {
 .mf-group:last-child { margin-bottom: 0; }
 .mf-row   { display: flex; gap: 12px; margin-bottom: 14px; }
 .mf-half  { flex: 1; margin-bottom: 0; }
-.mf-label { font-size: 11px; font-weight: 700; color: #374151; margin-bottom: 5px; letter-spacing: .3px; }
+.mf-label { font-size: 11px; font-weight: 700; color: #374151; margin-bottom: 5px; letter-spacing: .3px; display: block; }
 .mf-req   { color: #dc2626; }
+.mf-error.z-label { font-size: 11px !important; color: #dc2626 !important; margin-top: 4px !important; min-height: 16px !important; display: block !important; font-weight: 500 !important; }
 
 .mf-input.z-textbox, .mf-input.z-intbox, .mf-input.z-decimalbox {
     width: 100% !important; border: 1.5px solid #d1d5db !important;
@@ -719,6 +742,11 @@ html, body {
     border-color: var(--cyan) !important;
     box-shadow: 0 0 0 3px rgba(11,116,209,.1) !important;
     background: #fff !important;
+}
+.mf-input-error.z-intbox, .mf-input-error.z-decimalbox, .mf-input-error.z-textbox {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220,38,38,.1) !important;
+    background: #fff5f5 !important;
 }
 
 /* ── STATUS BAR ─────────────────────────────────────────────── */
@@ -827,140 +855,231 @@ html, body {
     border-right: 2px dashed #0b74d1 !important;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   BATCH SUCCESS TOAST
-   ─────────────────────────────────────────────────────────────
-   Fixed TOP-CENTER, slides DOWN from above, auto-dismisses in 5s.
-   ═══════════════════════════════════════════════════════════════ */
-
-.bce-toast {
-    position: fixed;
-    top: 24px;                          /* ← top of screen */
-    left: 50%;                          /* ← horizontally centered */
-    transform: translateX(-50%) translateY(-20px); /* ← slide in from above */
-    z-index: 99999;
-    min-width: 340px;
-    max-width: 460px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,.18), 0 0 0 1px #e2e8f0;
-    display: none;
-    align-items: stretch;
-    overflow: hidden;
-    opacity: 0;
-    transition: transform .32s cubic-bezier(.34,1.56,.64,1), opacity .28s ease;
+/* ════════════════════════════════════════════════════════════════
+   DENSITY OVERRIDE — lbBatches row height: locked to 58px
+   lbBatches uses sclass="mb-listbox" (my-batches.css owns it, not
+   this file — that file hasn't been shared yet). Anchored on
+   #bceRoot #lbBatches (double-ID) — beats any class-only rule in
+   my-batches.css on specificity, regardless of !important or
+   <link> load order. Last screenshot still showed ~61-62px rows
+   after the previous (5px) version of this block — that's the
+   pre-override height, meaning the last deploy didn't pick this
+   file up. Before judging this version: Clean → Publish → Restart
+   + hard refresh.
+   STOPGAP — replace with a clean my-batches.css edit once that
+   file is available.
+════════════════════════════════════════════════════════════════ */
+#bceRoot #lbBatches .z-listheader {
+    padding: 6px 14px !important;
+}
+#bceRoot #lbBatches .z-listcell {
+    padding: 20px 14px !important;
+    font-size: 13px !important;
+    line-height: 1.3 !important;
+}
+#bceRoot #lbBatches .z-listitem {
+    min-height: 0 !important;
+    height: auto !important;
+}
+#bceRoot #lbBatches .z-listitem-content {
+    min-height: 0 !important;
+    height: auto !important;
 }
 
-.bce-toast-show {
-    transform: translateX(-50%) translateY(0) !important; /* ← slide down to final position */
-    opacity: 1 !important;
+/* ════════════════════════════════════════════════════════════════
+   DENSITY OVERRIDE — toolbar icons (search / calendar / status arrow)
+   Same situation as the row-height block above: search icon
+   (mb-search-icon), and the datebox/combobox native icon buttons,
+   all live in my-batches.css territory, not here.
+   Search icon: targeted by class, boosted via #bceRoot anchor —
+   safe bet, it's a plain span.
+   Calendar (dtBatchFrom/dtBatchTo) and dropdown (cmbBatchStatus)
+   icons: these are ZK's own generated buttons, exact internal class
+   name not confirmed (no devtools access here) — hedging across
+   button/a/i tags plus the common ZK class names so this lands
+   whichever one ZK actually renders. If one of these doesn't shrink,
+   that's the tell on which selector missed, not that the approach
+   failed.
+   STOPGAP — replace with a clean my-batches.css edit once that file
+   is available.
+════════════════════════════════════════════════════════════════ */
+#bceRoot .mb-search-icon {
+    font-size: 13px !important;
+}
+
+#bceRoot #dtBatchFrom button,
+#bceRoot #dtBatchFrom a,
+#bceRoot #dtBatchTo button,
+#bceRoot #dtBatchTo a,
+#bceRoot #cmbBatchStatus button,
+#bceRoot #cmbBatchStatus a {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    padding: 0 !important;
+    font-size: 12px !important;
+}
+#bceRoot #dtBatchFrom i,
+#bceRoot #dtBatchFrom .z-icon-calendar,
+#bceRoot #dtBatchFrom .z-datebox-icon,
+#bceRoot #dtBatchTo i,
+#bceRoot #dtBatchTo .z-icon-calendar,
+#bceRoot #dtBatchTo .z-datebox-icon,
+#bceRoot #cmbBatchStatus i,
+#bceRoot #cmbBatchStatus .z-icon-angle-down,
+#bceRoot #cmbBatchStatus .z-combobox-icon {
+    font-size: 12px !important;
+    line-height: 1 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BATCH SUCCESS TOAST  (ZK MVC — Div w/ sclass, visibility-driven)
+   ═══════════════════════════════════════════════════════════════ */
+
+.bce-toast,
+.bce-toast.z-div {
+    position: fixed !important;
+    top: 24px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 99999 !important;
+    min-width: 340px !important;
+    max-width: 460px !important;
+    width: auto !important;
+    background: #fff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,.18), 0 0 0 1px #e2e8f0 !important;
+    display: flex;
+    align-items: stretch !important;
+    overflow: hidden !important;
 }
 
 /* Left green stripe */
-.bce-toast-stripe {
-    width: 5px;
-    background: #16a34a;
-    flex-shrink: 0;
+.bce-toast-stripe,
+.bce-toast-stripe.z-div {
+    width: 5px !important;
+    background: #16a34a !important;
+    flex-shrink: 0 !important;
 }
 
 /* Check icon */
-.bce-toast-icon {
-    font-size: 22px;
-    padding: 14px 10px 14px 14px;
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
+.bce-toast-icon,
+.bce-toast-icon.z-div {
+    font-size: 22px !important;
+    padding: 14px 10px 14px 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
 }
 
 /* Body */
-.bce-toast-body {
-    flex: 1;
-    padding: 14px 8px 14px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
+.bce-toast-body,
+.bce-toast-body.z-div {
+    flex: 1 !important;
+    padding: 14px 8px 14px 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    min-width: 0 !important;
 }
 
-.bce-toast-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: #0f172a;
-    font-family: 'Inter', sans-serif;
+.bce-toast-title,
+.bce-toast-title.z-div {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    font-family: 'Inter', sans-serif !important;
 }
 
-.bce-toast-meta {
-    font-size: 12px;
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    flex-wrap: wrap;
-    font-family: 'Inter', sans-serif;
+.bce-toast-meta,
+.bce-toast-meta.z-div {
+    font-size: 12px !important;
+    color: #64748b !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    flex-wrap: wrap !important;
+    font-family: 'Inter', sans-serif !important;
 }
 
+.bce-toast-bid.z-label,
 .bce-toast-bid {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    color: #0b74d1;
-    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 700 !important;
+    color: #0b74d1 !important;
+    font-size: 12px !important;
+    display: inline-block !important;
 }
 
 .bce-toast-dot { color: #cbd5e1; }
+.bce-toast-dot.z-label { color: #cbd5e1 !important; display: inline-block !important; }
+
+.bce-toast-meta .z-label { display: inline-block !important; font-size: 12px !important; color: #64748b !important; }
 
 /* Action buttons */
-.bce-toast-actions {
-    display: flex;
-    gap: 7px;
-    margin-top: 7px;
+.bce-toast-actions,
+.bce-toast-actions.z-div {
+    display: flex !important;
+    gap: 7px !important;
+    margin-top: 7px !important;
 }
 
-.bce-toast-btn-primary {
-    background: #0f2347;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-weight: 700;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    transition: background .15s;
-    white-space: nowrap;
+.bce-toast-btn-primary.z-button {
+    background: #0f2347 !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 6px 14px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    font-family: 'Inter', sans-serif !important;
+    cursor: pointer !important;
+    transition: background .15s !important;
+    white-space: nowrap !important;
+    display: inline-flex !important; align-items: center !important;
 }
 
-.bce-toast-btn-primary:hover { background: #1A3A6B; }
+.bce-toast-btn-primary.z-button:hover { background: #1A3A6B !important; }
 
-.bce-toast-btn-dismiss {
-    background: transparent;
-    color: #64748b;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    transition: border-color .15s;
+.bce-toast-btn-dismiss.z-button {
+    background: transparent !important;
+    color: #64748b !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    font-family: 'Inter', sans-serif !important;
+    cursor: pointer !important;
+    transition: border-color .15s !important;
+    display: inline-flex !important; align-items: center !important;
 }
 
-.bce-toast-btn-dismiss:hover { border-color: #94a3b8; color: #0f172a; }
+.bce-toast-btn-dismiss.z-button:hover { border-color: #94a3b8 !important; color: #0f172a !important; }
 
 /* Close X */
-.bce-toast-x {
-    background: none;
-    border: none;
-    color: #94a3b8;
-    font-size: 13px;
-    padding: 10px 12px;
-    cursor: pointer;
-    align-self: flex-start;
-    flex-shrink: 0;
-    line-height: 1;
-    transition: color .15s;
+.bce-toast-x.z-button {
+    background: none !important;
+    border: none !important;
+    color: #94a3b8 !important;
+    font-size: 13px !important;
+    padding: 10px 12px !important;
+    cursor: pointer !important;
+    align-self: flex-start !important;
+    flex-shrink: 0 !important;
+    line-height: 1 !important;
+    transition: color .15s !important;
 }
 
-.bce-toast-x:hover { color: #0f172a; }
+.bce-toast-x.z-button:hover { color: #0f172a !important; }
+
+/* Strip ZK button chrome on all toast buttons */
+.bce-toast-btn-primary .z-button-cm,
+.bce-toast-btn-dismiss .z-button-cm,
+.bce-toast-x .z-button-cm { background: none !important; border: none !important; padding: 0 !important; }
+.bce-toast-btn-primary .z-button-cl, .bce-toast-btn-primary .z-button-cr,
+.bce-toast-btn-dismiss .z-button-cl, .bce-toast-btn-dismiss .z-button-cr,
+.bce-toast-x .z-button-cl, .bce-toast-x .z-button-cr { display: none !important; }
 
 /* ═══════════════════════════════════════════════════════════════
    SCAN MODAL (Step 2 — Upload ZIP after batch creation)
@@ -1063,9 +1182,9 @@ html, body {
 /* ── Popup overlay + box ─────────────────────────────────────── */
 .pop-overlay {
     position: fixed !important;
-    top: 0 !important; left: 0 !important;
+    top: 60px !important; left: 0 !important;
     right: 0 !important; bottom: 0 !important;
-    width: 100vw !important; height: 100vh !important;
+    width: auto !important; height: auto !important;
     background: rgba(10,20,50,.60) !important;
     backdrop-filter: blur(3px);
     z-index: 99999 !important;
@@ -1104,7 +1223,7 @@ html, body {
 /* ── Popup body ──────────────────────────────────────────────── */
 .pop-body {
     padding: 16px 20px 10px; overflow-y: auto;
-    max-height: calc(100vh - 180px);
+    max-height: calc(100vh - 240px);
     display: flex; flex-direction: column; gap: 0;
 }
 
@@ -1212,7 +1331,7 @@ html, body {
 }
 
 /* ── Pagination info reuse ───────────────────────────────────── */
-.bd-pg-info.z-label { font-size: 12px !important; color: #64748b !important; font-weight: 600 !important; }
+.bd-pg-info.z-label { min-width: 90px !important; text-align: center !important; font-size: 13px !important; font-weight: 700 !important; color: #111827 !important; padding: 0 8px !important; font-family: 'Inter', sans-serif !important; }
 
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 900px) {
@@ -1238,3 +1357,76 @@ html, body {
     align-items: flex-start; justify-content: center;
     overflow-y: auto;
 }
+/* ══════════════════════════════════════════════════════════════
+   MISMATCH DIALOG (.bce-md-*)
+══════════════════════════════════════════════════════════════ */
+.bce-md-box{background:#fff;border-radius:14px;padding:0;max-width:480px;width:94%;
+box-shadow:0 20px 60px rgba(0,0,0,.25),0 0 0 1px #e2e8f0;overflow:hidden;text-align:left;}
+
+.bce-md-head{background:#0f2347;padding:18px 24px;display:flex;align-items:center;gap:12px;}
+.bce-md-icon{font-size:22px;}
+.bce-md-title{color:#fff;font-size:15px;font-weight:800;letter-spacing:.2px;}
+
+.bce-md-grid{padding:18px 24px 0;display:flex;flex-direction:column;gap:0;}
+.bce-md-row{display:flex;justify-content:space-between;align-items:center;
+padding:11px 0;border-bottom:1px solid #f1f5f9;}
+.bce-md-row:last-child{border-bottom:none;}
+.bce-md-lbl{font-size:12px;color:#64748b;font-weight:500;}
+.bce-md-val{font-size:13px;font-weight:700;color:#0f2347;
+display:flex;align-items:center;gap:6px;}
+.bce-md-num{font-weight:700;}
+.bce-md-sep{margin:0 6px;color:#cbd5e1;font-weight:400;}
+.bce-md-mono{font-family:'Roboto Mono',monospace;font-size:13px;}
+.bce-md-accent .bce-md-num{color:#3b82f6;}
+.bce-md-accent .bce-md-mono{color:#3b82f6;}
+.bce-md-green{color:#16a34a !important;}
+.bce-md-dup{color:#ef4444 !important;}
+.bce-md-warn{background:#fff7ed;}
+.bce-md-new{background:#f0fdf4;}
+
+.bce-md-body{padding:14px 24px 18px;font-size:12px;color:#475569;line-height:1.75;}
+.bce-md-actions{padding:16px 24px 22px;display:flex;gap:12px;justify-content:center;}
+
+.bce-md-actions .btn-primary{background:#0f2347;color:#fff;border:none;border-radius:8px;
+padding:10px 28px;font-size:13px;font-weight:700;min-width:110px;text-align:center;}
+.bce-md-actions .btn-outline{background:#fff;color:#ef4444;border:2px solid #ef4444;
+border-radius:8px;padding:10px 28px;font-size:13px;font-weight:700;min-width:110px;text-align:center;}
+
+/* ══════════════════════════════════════════════════════════════
+   ALL-DUPLICATES DIALOG (.bce-dup-*)
+══════════════════════════════════════════════════════════════ */
+.bce-dup-box{background:#fff;border-radius:14px;padding:0;max-width:440px;width:92%;
+box-shadow:0 20px 60px rgba(0,0,0,.25),0 0 0 1px #e2e8f0;overflow:hidden;text-align:left;}
+
+.bce-dup-stripe{height:5px;background:linear-gradient(90deg,#f59e0b,#ef4444);}
+
+.bce-dup-body{padding:28px 28px 24px;}
+
+.bce-dup-head{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.bce-dup-head-icon{width:44px;height:44px;border-radius:50%;background:#fef3c7;
+display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.bce-dup-title{font-size:16px;font-weight:800;color:#0f2347;line-height:1.2;}
+.bce-dup-subtitle{font-size:12px;color:#64748b;margin-top:3px;}
+
+.bce-dup-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;
+padding:16px;margin-bottom:18px;}
+.bce-dup-row{display:flex;justify-content:space-between;align-items:center;
+padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #e2e8f0;}
+.bce-dup-row:last-of-type{border-bottom:none;padding-bottom:0;margin-bottom:0;}
+.bce-dup-lbl{font-size:12px;color:#64748b;font-weight:500;}
+.bce-dup-val{font-size:15px;font-weight:800;color:#0f2347;}
+.bce-dup-val.z-label{font-size:15px !important;font-weight:800 !important;color:#0f2347 !important;display:inline-block !important;}
+.bce-dup-mono{font-family:'Roboto Mono',monospace;}
+.bce-dup-mono.z-label{font-family:'Roboto Mono',monospace !important;}
+
+.bce-dup-flag{margin-top:12px;padding-top:10px;border-top:1px solid #e2e8f0;
+display:flex;align-items:center;gap:6px;}
+.bce-dup-dot{width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;}
+.bce-dup-flag-text{font-size:11px;color:#ef4444;font-weight:600;}
+.bce-dup-flag-text.z-label{font-size:11px !important;color:#ef4444 !important;font-weight:600 !important;display:inline-block !important;}
+
+.bce-dup-help{font-size:12px;color:#64748b;line-height:1.7;margin-bottom:22px;}
+
+.bce-dup-actions{display:flex;justify-content:flex-end;}
+.bce-dup-actions .btn-primary{background:#0f2347;color:#fff;border:none;border-radius:8px;
+padding:10px 32px;font-size:13px;font-weight:700;letter-spacing:.3px;}

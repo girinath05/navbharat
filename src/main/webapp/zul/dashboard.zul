@@ -10,7 +10,7 @@
 
 		<!-- NORTH — Header bar -->
 		<!-- size="60px" is mandatory — north collapses without it -->
-		<north size="60px" border="none" splittable="false"
+		<north size="65px" border="none" splittable="false"
 			collapsible="false">
 			<include src="/component/header.zul" />
 		</north>

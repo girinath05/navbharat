@@ -1,353 +1,460 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?page title="Batch Detail" contentType="text/html;charset=UTF-8"?>
-
-
 <!--
- ============================================================
-  Project     : Navbharat CTS Outward
-  File        : batch-detail.zul
-  Package     : webapp/zul/outward
-  Author      : Umesh M.
-  Created     : June 2026
-  Description : Batch detail view. Displays cheque-level data
-                for selected batch. Bound to BatchDetailComposer.
- ============================================================
+	============================================================
+	Project     : Navbharat CTS Outward
+	File        : batch-detail.zul
+	Author      : Umesh M.  |  Updated: June 2026
+	Description : Cheque detail / processing page for a batch.
+	              Pure ZK MVC — zero JS dependency.
+	              JS files (batch-detail.js, bce.js) removed.
+	              Popup show/hide via ZK setVisible().
+	              Images via ZK <image> component.
+	              Delete confirm via ZK Messagebox.
+	              Payee state panels via ZK setVisible().
+	              Validate / Delete / Prev / Next all ZK buttons.
+	============================================================
 -->
+<zk xmlns="http://www.zkoss.org/2005/zul" xmlns:n="native">
 
+	<n:link rel="stylesheet"
+		href="/navbharat/css/outward/batch-cheque-entry.css" />
+	<n:link rel="stylesheet"
+		href="/navbharat/css/outward/my-batches.css" />
+	<n:link rel="stylesheet"
+		href="/navbharat/css/outward/batch-detail.css" />
 
-<zk xmlns="http://www.zkoss.org/2005/zul"
-    xmlns:n="native">
+	<div id="bdRoot"
+		apply="com.cts.outward.composer.BatchDetailComposer">
 
-   <n:link rel="stylesheet" href="/navbharat/css/outward/batch-cheque-entry.css"/>
-<n:link rel="stylesheet" href="/navbharat/css/outward/my-batches.css"/>
-<n:link rel="stylesheet" href="/navbharat/css/outward/batch-detail.css"/>
+		<!-- Page heading -->
+		<n:div class="pg-head">
+			<n:div>
+				<n:div class="bd-page-title">
+					Cheque Processing &#x2014;
+					<n:span class="bd-batch-id-title">
+						<label id="lblBatchIdTitle" value="&#x2014;" />
+					</n:span>
+				</n:div>
+			</n:div>
+			<n:div class="pg-actions">
+				<button id="btnBack" sclass="btn btn-outline"
+					label="&#x2190; Back" />
+				<button id="btnSaveBatch" sclass="btn btn-primary"
+					label="&#x1F4BE; Save Batch" />
+			</n:div>
+		</n:div>
 
+		<n:div class="bd-layout">
 
-    <div id="bdRoot" apply="com.cts.outward.composer.BatchDetailComposer">
+			<!-- Summary sidebar -->
+			<n:div class="bd-sidebar">
+				<n:div class="bd-summary-card">
+					<n:div class="bd-summary-title">Batch Summary</n:div>
+					<n:div class="bd-summary-row">
+						<n:span class="bd-summary-lbl">Batch ID</n:span>
+						<label id="lblBatchId"
+							sclass="bd-summary-val bd-val-mono" value="&#x2014;" />
+					</n:div>
+					<n:div class="bd-summary-row">
+						<n:span class="bd-summary-lbl">Branch</n:span>
+						<label id="lblBranchCode"
+							sclass="bd-summary-val" value="&#x2014;" />
+					</n:div>
+					<n:div class="bd-summary-row">
+						<n:span class="bd-summary-lbl">Total Cheques</n:span>
+						<label id="lblTotalCheques"
+							sclass="bd-summary-val" value="0" />
+					</n:div>
+					<n:div class="bd-summary-row">
+						<n:span class="bd-summary-lbl">Total Amount</n:span>
+						<label id="lblTotalAmount"
+							sclass="bd-summary-val bd-val-mono" value="&#x20B9;0.00" />
+					</n:div>
+					<n:div class="bd-summary-row">
+						<n:span class="bd-summary-lbl">Ready</n:span>
+						<label id="lblVerifiedCheques"
+							sclass="bd-summary-val bd-stat-green" value="0" />
+					</n:div>
+					<n:div class="bd-summary-row">
+						<n:span class="bd-summary-lbl">Pending</n:span>
+						<label id="lblPendingCheques"
+							sclass="bd-summary-val bd-stat-red" value="0" />
+					</n:div>
+				</n:div>
+			</n:div>
 
-        <!-- Page heading -->
-        <n:div class="pg-head">
-            <n:div>
-                <n:div class="bd-page-title">
-                    Cheque Processing &#x2014;
-                    <n:span class="bd-batch-id-title">
-                        <label id="lblBatchIdTitle" value="&#x2014;"/>
-                    </n:span>
-                </n:div>
-            </n:div>
-            <n:div class="pg-actions">
-                <button id="btnBack"      sclass="btn btn-outline" label="&#x2190; Back"/>
-                <button id="btnSaveBatch" sclass="btn btn-primary" label="&#x1F4BE; Save Batch"/>
-            </n:div>
-        </n:div>
+			<!-- Main cheque list -->
+			<n:div class="bd-main">
+				<n:div class="bd-cheque-card">
 
-        <n:div class="bd-layout">
+					<n:div class="bd-cheque-head">
+						<n:span class="bd-cheque-title">CHEQUES LIST</n:span>
+						<label id="lblChequeRange"
+							sclass="bd-cheque-range" value="0 cheques" />
+					</n:div>
 
-            <!-- Summary sidebar -->
-            <n:div class="bd-sidebar">
-                <n:div class="bd-summary-card">
-                    <n:div class="bd-summary-title">Batch Summary</n:div>
-                    <n:div class="bd-summary-row">
-                        <n:span class="bd-summary-lbl">Batch ID</n:span>
-                        <label id="lblBatchId" sclass="bd-summary-val bd-val-mono" value="&#x2014;"/>
-                    </n:div>
-                    <n:div class="bd-summary-row">
-                        <n:span class="bd-summary-lbl">Branch</n:span>
-                        <label id="lblBranchCode" sclass="bd-summary-val" value="&#x2014;"/>
-                    </n:div>
-                    <n:div class="bd-summary-row">
-                        <n:span class="bd-summary-lbl">Total Cheques</n:span>
-                        <label id="lblTotalCheques" sclass="bd-summary-val" value="0"/>
-                    </n:div>
-                    <n:div class="bd-summary-row">
-                        <n:span class="bd-summary-lbl">Total Amount</n:span>
-                        <label id="lblTotalAmount" sclass="bd-summary-val bd-val-mono" value="&#x20B9;0.00"/>
-                    </n:div>
-                    <n:div class="bd-summary-row">
-                        <n:span class="bd-summary-lbl">Ready</n:span>
-                        <label id="lblVerifiedCheques" sclass="bd-summary-val bd-stat-green" value="0"/>
-                    </n:div>
-                    <n:div class="bd-summary-row">
-                        <n:span class="bd-summary-lbl">MICR Repair</n:span>
-                        <label id="lblMicrCheques" sclass="bd-summary-val bd-stat-amber" value="0"/>
-                    </n:div>
-                    <n:div class="bd-summary-row">
-                        <n:span class="bd-summary-lbl">Pending</n:span>
-                        <label id="lblPendingCheques" sclass="bd-summary-val bd-stat-red" value="0"/>
-                    </n:div>
-                </n:div>
-            </n:div>
+					<!-- Filter bar -->
+					<div sclass="bd-filter-bar">
+						<!-- LEFT: search -->
+						<n:div class="bd-filter-left">
+							<n:span class="bd-filter-icon">&#x1F50D;</n:span>
+							<textbox id="txtSearch"
+								sclass="bd-search-input"
+								placeholder="Cheque no / payer&#x2026;" instant="true" />
+						</n:div>
+						<!-- RIGHT: date-range + status + count + clear -->
+						<n:div class="bd-filter-right">
+							<n:span class="bd-filter-lbl">From:</n:span>
+							<datebox id="dtDateFilter"
+								sclass="bd-datebox-filter" format="dd/MM/yyyy" width="120px" />
+							<n:span class="bd-filter-sep">&#x2192;</n:span>
+							<n:span class="bd-filter-lbl">To:</n:span>
+							<datebox id="dtDateTo"
+								sclass="bd-datebox-filter" format="dd/MM/yyyy" width="120px" />
+							<n:span class="bd-filter-divider" />
+							<n:span class="bd-filter-lbl">Status:</n:span>
+							<combobox id="cmbStatusFilter"
+								sclass="bd-status-combo" readonly="true" width="118px">
+								<comboitem label="All" value="All" />
+								<comboitem label="Ready" value="Ready" />
+								<comboitem label="Pending" value="Pending" />
+							</combobox>
+							<n:span class="bd-filter-count-wrap">
+								<label id="lblFilterCount"
+									sclass="bd-filter-count" value="" />
+							</n:span>
+							<button id="btnClearFilter" sclass="bd-clear-btn"
+								label="&#x2715; Clear" />
+						</n:div>
+					</div>
 
-            <!-- Main cheque list -->
-            <n:div class="bd-main">
-                <n:div class="bd-cheque-card">
+					<!-- Cheque list table -->
+					<div sclass="bd-tbl-wrap">
+						<listbox id="lbCheques" sclass="bd-listbox"
+							rows="5" mold="default" style="width:100%;border:none;">
+							<listhead sclass="bd-listhead">
+								<listheader label="#" sclass="bd-lh"
+									width="46px" align="center" />
+								<listheader label="CHEQUE NO."
+									sclass="bd-lh" hflex="2" align="left" />
+								<listheader label="PAYEE NAME"
+									sclass="bd-lh" hflex="4" align="left" />
+								<listheader label="AMOUNT"
+									sclass="bd-lh" hflex="2" align="right" />
+								<listheader label="DATE" sclass="bd-lh"
+									hflex="2" align="center" />
+								<listheader label="STATUS"
+									sclass="bd-lh" hflex="2" align="center" />
+							</listhead>
+						</listbox>
+					</div>
 
-                    <n:div class="bd-cheque-head">
-                        <n:span class="bd-cheque-title">CHEQUES LIST</n:span>
-                        <label id="lblChequeRange" sclass="bd-cheque-range" value="0 cheques"/>
-                    </n:div>
+					<!-- Pagination -->
+					<div id="paginationBar" sclass="bd-pagination-bar">
+						<button id="btnFirst" sclass="bd-pg-btn"
+							label="&#x00AB; First" disabled="true" />
+						<button id="btnPrev" sclass="bd-pg-btn"
+							label="&#x2039; Prev" disabled="true" />
+						<label id="lblPageInfo" sclass="bd-pg-info"
+							value="Page 1 of 1" />
+						<button id="btnNext" sclass="bd-pg-btn"
+							label="Next &#x203A;" />
+						<button id="btnLast" sclass="bd-pg-btn"
+							label="Last &#x00BB;" />
+					</div>
 
-                    <div sclass="bd-filter-bar">
-                        <n:div class="bd-filter-left">
-                            <n:span class="bd-filter-icon">&#x1F50D;</n:span>
-                            <textbox id="txtSearch" sclass="bd-search-input"
-                                     placeholder="Search cheque no, payer&#x2026;"
-                                     instant="true"/>
-                        </n:div>
-                        <n:div class="bd-filter-right">
-                            <n:span class="bd-filter-lbl">Status:</n:span>
-                            <combobox id="cmbStatusFilter" sclass="bd-status-combo"
-                                      readonly="true" width="160px">
-                                <comboitem label="All"         value="All"/>
-                                <comboitem label="Ready"       value="Ready"/>
-                                <comboitem label="MICR Repair" value="MICR_Repair"/>
-                                <comboitem label="Pending"     value="Pending"/>
-                                <comboitem label="Exception"   value="Exception"/>
-                                <comboitem label="Rejected"    value="Rejected"/>
-                            </combobox>
-                            <n:span class="bd-filter-count-wrap">
-                                <label id="lblFilterCount" sclass="bd-filter-count" value=""/>
-                            </n:span>
-                        </n:div>
-                    </div>
+				</n:div>
+			</n:div>
 
-                    <div sclass="bd-tbl-wrap">
-                        <listbox id="lbCheques" sclass="bd-listbox" mold="default"
-                                 style="width:100%;border:none;">
-                            <listhead sclass="bd-listhead">
-                                <listheader label="#"           sclass="bd-lh" width="52px"/>
-                                <listheader label="CHEQUE NO."  sclass="bd-lh" width="130px"/>
-                                <listheader label="PAYER NAME"  sclass="bd-lh"/>
-                                <listheader label="AMOUNT"      sclass="bd-lh" width="140px" align="right"/>
-                                <listheader label="DATE"        sclass="bd-lh" width="100px"/>
-                                <listheader label="STATUS"      sclass="bd-lh" width="130px"/>
-                            </listhead>
-                        </listbox>
-                    </div>
+		</n:div>
 
-                    <div id="paginationBar" sclass="bd-pagination-bar">
-                        <div sclass="bd-pg-left">
-                            <button id="btnFirst" sclass="bd-pg-btn" label="&#x00AB; First" disabled="true"/>
-                            <button id="btnPrev"  sclass="bd-pg-btn" label="&#x2039; Prev"  disabled="true"/>
-                        </div>
-                        <label id="lblPageInfo" sclass="bd-pg-info" value="Page 1 of 1"/>
-                        <div sclass="bd-pg-right">
-                            <button id="btnNext" sclass="bd-pg-btn" label="Next &#x203A;"/>
-                            <button id="btnLast" sclass="bd-pg-btn" label="Last &#x00BB;"/>
-                        </div>
-                    </div>
+		<!-- ═══ CHEQUE DETAIL POPUP (ZK Div — show/hide via setVisible) ═════ -->
+		<div id="chequePopup" sclass="pop-overlay" visible="false">
+			<n:div class="pop-box">
 
-                </n:div>
-            </n:div>
+				<!-- Header -->
+				<n:div class="pop-head">
+					<label id="popChequeNo" sclass="pop-title"
+						value="Cheque #&#x2014;" />
+					<button id="btnPopClose" sclass="pop-close-btn"
+						label="&#x2715; Close" />
+				</n:div>
 
-        </n:div>
+				<n:div class="pop-body">
 
-        <!-- ═══ CHEQUE DETAIL POPUP ════════════════════════════════ -->
-        <n:div id="chequePopup" class="pop-overlay" style="display:none;">
-            <n:div class="pop-box">
+					<!-- ═══ IMAGE VIEWER — single image + F/R/G tab strip ══ -->
+					<n:div class="img-viewer-wrap">
 
-                <!-- Header -->
-                <n:div class="pop-head">
-                    <label id="popChequeNo" sclass="pop-title" value="Cheque #&#x2014;"/>
-                    <button id="btnPopClose" sclass="pop-close-btn" label="&#x2715; Close"/>
-                </n:div>
+						<!-- Left: single image frame -->
+						<n:div class="img-viewer-frame">
+							<div id="imgEmptyState" sclass="img-viewer-empty">
+								<n:div class="img-empty-icon">&#x1F5BC;</n:div>
+								<n:div class="img-empty-text">Select a cheque to view image</n:div>
+							</div>
+								<n:img id="popSingleImg" class="img-viewer-img" style="display:none;width:100%;height:100%;object-fit:contain;" />
+						</n:div>
 
-                <n:div class="pop-body">
+						<!-- Right: F / FG / R / RG vertical toggle buttons -->
+						<n:div class="img-tab-bar">
+							<n:button id="imgBtnFront"
+								class="img-tab-btn img-tab-active"
+								onclick="bdSwitchImage('front')"
+								title="Front Side">F</n:button>
+							<n:button id="imgBtnFrontGray"
+								class="img-tab-btn"
+								onclick="bdSwitchImage('frontgray')"
+								title="Front Grayscale">FG</n:button>
+							<n:button id="imgBtnRear"
+								class="img-tab-btn"
+								onclick="bdSwitchImage('rear')"
+								title="Rear Side">R</n:button>
+							<n:button id="imgBtnRearGray"
+								class="img-tab-btn"
+								onclick="bdSwitchImage('reargray')"
+								title="Rear Grayscale">RG</n:button>
+						</n:div>
 
-                    <!-- Images -->
-                    <n:div class="pop-images-row">
-                        <n:div class="pop-img-panel">
-                            <n:div class="pop-img-label">
-                                <n:span class="pop-img-icon">&#x1F5BC;</n:span> FRONT SIDE
-                            </n:div>
-                            <n:div id="frontImageBox" class="pop-img-box">
-                                <n:div class="img-empty">
-                                    <n:div class="img-empty-icon">&#x1F5BC;</n:div>
-                                    <n:div class="img-empty-text">Select a cheque to view</n:div>
-                                </n:div>
-                            </n:div>
-                        </n:div>
-                        <n:div class="pop-img-panel">
-                            <n:div class="pop-img-label">
-                                <n:span class="pop-img-icon">&#x1F5BC;</n:span> REAR SIDE
-                            </n:div>
-                            <n:div id="rearImageBox" class="pop-img-box">
-                                <n:div class="img-empty">
-                                    <n:div class="img-empty-icon">&#x1F5BC;</n:div>
-                                    <n:div class="img-empty-text">Select a cheque to view</n:div>
-                                </n:div>
-                            </n:div>
-                        </n:div>
-                    </n:div>
+					</n:div>
+					<!-- END IMAGE VIEWER -->
 
-                    <!-- Cheque Data Entry -->
-                    <n:div class="pop-section-label">Cheque Data Entry</n:div>
+					<!-- Cheque Data Entry -->
+					<n:div class="pop-section-label">Cheque Data Entry</n:div>
 
-                    <!-- MICR row -->
-                    <n:div class="pop-micr-row">
-                        <n:div class="pop-field pop-field-micr">
-                            <n:label class="pop-field-lbl">
-                                Cheque No. <n:span class="req-star">*</n:span>
-                                <n:span class="field-hint">6 digits</n:span>
-                            </n:label>
-                            <textbox id="popCheckNo" sclass="pop-input pop-input-mono"
-                                     placeholder="000000" maxlength="6"/>
-                            <label id="errCheckNo" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field pop-field-micr">
-                            <n:label class="pop-field-lbl">
-                                City <n:span class="req-star">*</n:span>
-                                <n:span class="field-hint">3 digits</n:span>
-                            </n:label>
-                            <textbox id="popCity" sclass="pop-input pop-input-mono"
-                                     placeholder="110" maxlength="3"/>
-                            <label id="errCity" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field pop-field-micr">
-                            <n:label class="pop-field-lbl">
-                                Bank <n:span class="req-star">*</n:span>
-                                <n:span class="field-hint">3 digits</n:span>
-                            </n:label>
-                            <textbox id="popBank" sclass="pop-input pop-input-mono"
-                                     placeholder="532" maxlength="3"/>
-                            <label id="errBank" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field pop-field-micr">
-                            <n:label class="pop-field-lbl">
-                                Branch <n:span class="req-star">*</n:span>
-                                <n:span class="field-hint">3 digits</n:span>
-                            </n:label>
-                            <textbox id="popBranch" sclass="pop-input pop-input-mono"
-                                     placeholder="119" maxlength="3"/>
-                            <label id="errBranch" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field pop-field-micr">
-                            <n:label class="pop-field-lbl">
-                                Base No. <n:span class="field-hint">6-7 digits</n:span>
-                            </n:label>
-                            <textbox id="popBaseNo" sclass="pop-input pop-input-mono"
-                                     placeholder="000000" maxlength="7"/>
-                            <label id="errBaseNo" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field pop-field-micr">
-                            <n:label class="pop-field-lbl">
-                                TC <n:span class="req-star">*</n:span>
-                                <n:span class="field-hint">2-3 digits</n:span>
-                            </n:label>
-                            <textbox id="popTc" sclass="pop-input pop-input-mono"
-                                     placeholder="31" maxlength="3"/>
-                            <label id="errTc" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                    </n:div>
+					<!-- MICR row -->
+					<n:div class="pop-micr-row">
+						<n:div class="pop-field pop-field-micr">
+							<n:label class="pop-field-lbl">
+								Cheque No.
+								<n:span class="req-star">*</n:span>
+								<n:span class="field-hint">6 digits</n:span>
+							</n:label>
+							<textbox id="popCheckNo"
+								sclass="pop-input pop-input-mono pop-input-chqno" placeholder="000000"
+								maxlength="6" />
+							<label id="errCheckNo"
+								sclass="err-tip-hidden" value="" />
+						</n:div>
+						<n:div class="pop-field pop-field-micr">
+							<n:label class="pop-field-lbl">
+								City
+								<n:span class="req-star">*</n:span>
+								<n:span class="field-hint">3 digits</n:span>
+							</n:label>
+							<textbox id="popCity"
+								sclass="pop-input pop-input-mono pop-input-city" placeholder="110"
+								maxlength="3" />
+							<label id="errCity" sclass="err-tip-hidden" value="" />
+						</n:div>
+						<n:div class="pop-field pop-field-micr">
+							<n:label class="pop-field-lbl">
+								Bank
+								<n:span class="req-star">*</n:span>
+								<n:span class="field-hint">3 digits</n:span>
+							</n:label>
+							<textbox id="popBank"
+								sclass="pop-input pop-input-mono pop-input-bank" placeholder="532"
+								maxlength="3" />
+							<label id="errBank" sclass="err-tip-hidden" value="" />
+						</n:div>
+						<n:div class="pop-field pop-field-micr">
+							<n:label class="pop-field-lbl">
+								Branch
+								<n:span class="req-star">*</n:span>
+								<n:span class="field-hint">3 digits</n:span>
+							</n:label>
+							<textbox id="popBranch"
+								sclass="pop-input pop-input-mono pop-input-branch" placeholder="119"
+								maxlength="3" />
+							<label id="errBranch"
+								sclass="err-tip-hidden" value="" />
+						</n:div>
 
-                    <!-- Face row -->
-                    <n:div class="pop-face-row">
-                        <n:div class="pop-field">
-                            <n:label class="pop-field-lbl">
-                                Acc No (Drawee) <n:span class="req-star">*</n:span>
-                            </n:label>
-                            <textbox id="popAccountNo" sclass="pop-input pop-input-mono"
-                                     placeholder="Account printed on cheque" maxlength="20"/>
-                            <label id="errAccountNo" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field">
-                            <n:label class="pop-field-lbl">
-                                Date <n:span class="req-star">*</n:span>
-                                <n:span class="field-hint">DD/MM/YYYY</n:span>
-                            </n:label>
-                            <textbox id="popChequeDate" sclass="pop-input"
-                                     placeholder="05/05/2026" maxlength="10"/>
-                            <label id="errChequeDate" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field">
-                            <n:label class="pop-field-lbl">
-                                Amt in Digits (&#x20B9;) <n:span class="req-star">*</n:span>
-                            </n:label>
-                            <textbox id="popAmount" sclass="pop-input pop-input-mono"
-                                     placeholder="2000000.00"/>
-                            <label id="errAmount" sclass="err-tip-hidden" value=""/>
-                        </n:div>
-                        <n:div class="pop-field pop-field-wide">
-                            <n:label class="pop-field-lbl">Amt in Words</n:label>
-                            <textbox id="popAmountWords" sclass="pop-input"
-                                     placeholder="Twenty Lakh Rupees Only"/>
-                        </n:div>
-                    </n:div>
+						<n:div class="pop-field pop-field-micr">
+							<n:label class="pop-field-lbl">
+								TC
+								<n:span class="req-star">*</n:span>
+								<n:span class="field-hint">2-3 digits</n:span>
+							</n:label>
+							<textbox id="popTc"
+								sclass="pop-input pop-input-mono pop-input-tc" placeholder="31"
+								maxlength="3" />
+							<label id="errTc" sclass="err-tip-hidden" value="" />
+						</n:div>
+					</n:div>
 
-                    <!-- IQA flags -->
-                    <n:div class="pop-iqa-row">
-                        <n:div class="pop-iqa-item">
-                            <n:span class="pop-iqa-lbl">IQA RESULT</n:span>
-                            <label id="popIqa" sclass="pop-iqa-val" value="&#x2014;"/>
-                        </n:div>
-                        <n:div class="pop-iqa-item">
-                            <n:span class="pop-iqa-lbl">DUPLICATE</n:span>
-                            <label id="popDuplicate" sclass="pop-iqa-val" value="&#x2014;"/>
-                        </n:div>
-                        <n:div class="pop-iqa-item">
-                            <n:span class="pop-iqa-lbl">NO MICR</n:span>
-                            <label id="popNoMicr" sclass="pop-iqa-val" value="&#x2014;"/>
-                        </n:div>
-                        <n:div class="pop-iqa-item">
-                            <n:span class="pop-iqa-lbl">MICR MISMATCH</n:span>
-                            <label id="popMicrMismatch" sclass="pop-iqa-val" value="&#x2014;"/>
-                        </n:div>
-                    </n:div>
+					<!-- Face row -->
+					<n:div class="pop-face-row">
+						<n:div class="pop-field">
+							<n:label class="pop-field-lbl">
+								Acc No (Drawee)
+								<n:span class="req-star">*</n:span>
+							</n:label>
+							<textbox id="popAccountNo"
+								sclass="pop-input pop-input-mono pop-input-acctno"
+								placeholder="Account printed on cheque" maxlength="20" />
+							<label id="errAccountNo"
+								sclass="err-tip-hidden" value="" />
+						</n:div>
+						<n:div class="pop-field">
+							<n:label class="pop-field-lbl">
+								Date
+								<n:span class="req-star">*</n:span>
+								<n:span class="field-hint">DD/MM/YYYY</n:span>
+							</n:label>
+							<textbox id="popChequeDate"
+								sclass="pop-input" placeholder="05/05/2026" maxlength="10" />
+							<label id="errChequeDate"
+								sclass="err-tip-hidden" value="" />
+						</n:div>
+						<n:div class="pop-field">
+							<n:label class="pop-field-lbl">
+								Amt in Digits (&#x20B9;)
+								<n:span class="req-star">*</n:span>
+							</n:label>
+							<textbox id="popAmount"
+								sclass="pop-input pop-input-mono" placeholder="2000000.00" />
+							<label id="errAmount"
+								sclass="err-tip-hidden" value="" />
+						</n:div>
+						<n:div class="pop-field pop-field-wide">
+							<n:label class="pop-field-lbl">Amt in Words</n:label>
+							<textbox id="popAmountWords"
+								sclass="pop-input" placeholder="Twenty Lakh Rupees Only" />
+						</n:div>
+					</n:div>
 
-                    <!-- Payee account lookup -->
-                    <n:div class="acct-lookup-panel">
-                        <n:div class="acct-lookup-header">
-                            <n:span class="acct-lookup-icon">&#x1F50D;</n:span>
-                            Payee Account Lookup
-                        </n:div>
-                        <n:div class="acct-lookup-row">
-                            <n:label class="acct-lbl">Account Number:</n:label>
-                            <textbox id="popCreditAccNo" sclass="pop-input acct-no-input"
-                                     placeholder="Enter payee account number&#x2026;"/>
-                            <button id="btnAcctLookup" sclass="acct-lookup-btn" label="Save"/>
-                        </n:div>
-                        <n:div class="acct-result-grid">
-                            <n:div class="acct-result-row">
-                                <n:span class="acct-result-lbl">Account Holder's Name:</n:span>
-                                <label id="lblAcctHolderName" sclass="acct-result-val" value="&#x2014;"/>
-                            </n:div>
-                            <n:div class="acct-result-row">
-                                <n:span class="acct-result-lbl">Account Status:</n:span>
-                                <label id="lblAcctStatus" sclass="acct-result-val" value="&#x2014;"/>
-                            </n:div>
-                            <n:div class="acct-result-row">
-                                <n:span class="acct-result-lbl">Account Subcategory:</n:span>
-                                <label id="lblAcctSubcategory" sclass="acct-result-val" value="&#x2014;"/>
-                            </n:div>
-                        </n:div>
-                    </n:div>
+					<!-- ═══ PAYEE ACCOUNT LOOKUP ═════════════════════════════ -->
+					<n:div style="background:#f0f4ff;border:1px solid #c5cfe8;border-radius:8px;padding:2px 6px;margin-top:0;">
 
-                </n:div>
+						<n:div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+							<n:span style="font-size:16px;">&#x1F50D;</n:span>
+							<n:span style="font-weight:700;font-size:13px;color:#1a3a6b;letter-spacing:0.5px;">
+								PAYEE ACCOUNT LOOKUP
+							</n:span>
+						</n:div>
 
-                <!-- Footer -->
-                <n:div class="pop-footer">
-                    <n:div class="pop-footer-left">
-                        <button id="btnPopPrev2" sclass="pop-nav-btn"
-                                label="&#x2039; Prev" disabled="true"/>
-                        <label  id="popNavInfo2" sclass="bd-pg-info" value=""/>
-                        <button id="btnPopNext2" sclass="pop-nav-btn"
-                                label="Next &#x203A;" disabled="true"/>
-                    </n:div>
-                    <n:div class="pop-footer-right">
-                        <button id="btnPopSave" sclass="btn btn-primary"
-                                label="&#x1F4BE; Save &amp; Next"/>
-                    </n:div>
-                </n:div>
+						<n:div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+							<n:label style="font-size:12px;font-weight:600;color:#444;white-space:nowrap;">
+								Account Number: <n:span style="color:#c0392b;">*</n:span>
+							</n:label>
+							<textbox id="txtPayeeAcct"
+								sclass="pop-input"
+								style="width:220px;flex:0 0 220px;"
+								placeholder="Enter payee account number"
+								maxlength="30" />
+							<button id="btnValidateAcct" sclass="btn btn-primary btn-sm validate-btn"
+								label="Validate" />
+						</n:div>
 
-            </n:div>
-        </n:div>
+						<!-- PENDING state -->
+						<div id="divAcctPending" visible="true"
+							style="color:#888;font-size:10px;font-style:italic;line-height:1.2;padding:0;">
+							<label value="Enter account number and click Validate." />
+						</div>
 
-    </div>
+						<!-- ACCOUNT FOUND block -->
+						<div id="divAcctFound" visible="false" style="min-height:0;">
+							<n:div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;">
 
+								<n:div style="background:#fff;border:1px solid #d1e7dd;border-radius:6px;padding:5px 10px;">
+									<n:div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">
+										Account Holder's Name
+									</n:div>
+									<label id="lblAcctHolderName"
+										style="font-size:13px;font-weight:600;color:#1a3a6b;"
+										value="&#x2014;" />
+								</n:div>
 
-<n:script src="/navbharat/js/bce.js"/>
-<n:script src="/navbharat/js/batch-detail.js"/>
+								<n:div style="background:#fff;border:1px solid #d1e7dd;border-radius:6px;padding:2px 6px;">
+									<n:div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">
+										Account Status
+									</n:div>
+									<label id="lblAcctStatus"
+										style="font-size:13px;font-weight:600;color:#1a3a6b;"
+										value="&#x2014;" />
+								</n:div>
 
-   
+								<n:div style="background:#fff;border:1px solid #d1e7dd;border-radius:6px;padding:2px 6px;">
+									<n:div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">
+										Account Is New
+									</n:div>
+									<label id="lblAcctSubcategory"
+										style="font-size:13px;font-weight:600;color:#1a3a6b;"
+										value="&#x2014;" />
+								</n:div>
+
+							</n:div>
+						</div>
+
+						<!-- ACCOUNT NOT FOUND block -->
+						<div id="divAcctNotFound" visible="false"
+							style="padding:3px 8px;background:#fff5f5;border:1px solid #fcc;border-radius:6px;min-height:0;">
+							<label sclass="pop-acct-notfound-lbl"
+								value="&#x26A0; Payee Account Not Found"
+								style="color:#c0392b;font-weight:700;font-size:13px;" />
+						</div>
+
+					</n:div>
+					<!-- END PAYEE ACCOUNT LOOKUP -->
+
+				</n:div>
+				<!-- END pop-body (scrollable middle section only — footer below is OUTSIDE
+				     this div now, so it's pinned and never gets clipped/scrolled away,
+				     regardless of zoom level or content height) -->
+
+				<!-- ═══ POPUP FOOTER — sibling of pop-body, pinned via flex-shrink:0 ═══ -->
+				<n:div class="pop-footer">
+					<n:div class="pop-footer-left">
+						<button id="btnPopPrev" sclass="pop-nav-btn" label="&#x2039; Prev" />
+						<label id="popNavInfo" sclass="bd-pg-info" value="" />
+						<button id="btnPopNext" sclass="pop-nav-btn" label="Next &#x203A;" />
+					</n:div>
+					<n:div class="pop-footer-right">
+						<button id="btnDeleteCheque" sclass="btn btn-danger"
+							label="&#x1F5D1; Delete Cheque" />
+						<button id="btnPopSave" sclass="btn btn-primary"
+							label="&#x1F4BE; Save &amp; Next" />
+					</n:div>
+				</n:div>
+				<!-- END POPUP FOOTER -->
+
+			</n:div>
+			<!-- END pop-box -->
+		</div>
+		<!-- END chequePopup -->
+
+		<!--
+		  bdSwitchImage(side) — pure client-side image toggle.
+		  Reads data-front/frontgray/rear/reargray from native <n:img> DOM node,
+		  swaps src, updates active button style.
+		  MUST be inside bdRoot div — NOT a sibling of bdRoot under <zk>.
+		-->
+		<n:script><![CDATA[
+		function bdSwitchImage(side) {
+		    var imgEl = document.getElementById('popSingleImg')
+		             || document.querySelector('[id$="popSingleImg"]');
+		    if (!imgEl) return;
+		    var url = imgEl.getAttribute('data-' + side);
+		    if (!url) return;
+		    imgEl.src = url;
+		    imgEl.style.display = 'block';
+		    document.querySelectorAll('.img-tab-btn').forEach(function(b) {
+		        b.classList.remove('img-tab-active');
+		    });
+		    var idMap = {
+		        front:     'imgBtnFront',
+		        frontgray: 'imgBtnFrontGray',
+		        rear:      'imgBtnRear',
+		        reargray:  'imgBtnRearGray'
+		    };
+		    var btn = document.getElementById(idMap[side])
+		           || document.querySelector('[id$="' + idMap[side] + '"]');
+		    if (btn) btn.classList.add('img-tab-active');
+		}
+		]]></n:script>
+
+	</div>
+	<!-- END bdRoot -->
 
 </zk>
