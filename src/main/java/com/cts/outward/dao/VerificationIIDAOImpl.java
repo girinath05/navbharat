@@ -100,7 +100,7 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
      */
     private static final String SQL_HV_CHEQUES_FOR_BATCH =
         "SELECT " +
-        "    id, batch_id, cheque_no, account_no, payee_name, " +
+        "    id, batch_id, cheque_no, account_no, payee_account_no, payee_name, " +
         "    sort_code, transaction_code, " +
         "    amount, amount_in_words, cheque_date, " +
         "    ver_action, is_referred, " +
@@ -115,7 +115,7 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
 
     private static final String SQL_CHEQUE_BY_ID =
         "SELECT " +
-        "    id, batch_id, cheque_no, account_no, payee_name, " +
+        "    id, batch_id, cheque_no, account_no, payee_account_no, payee_name, " +
         "    sort_code, transaction_code, " +
         "    amount, amount_in_words, cheque_date, " +
         "    ver_action, is_referred, " +
@@ -332,19 +332,23 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
         ChequeModel m = new ChequeModel();
 
         m.setId(Long.toString(rs.getLong("id")));
-        m.setBatchId(rs.getString("batch_id"));
-        m.setChequeNo(rs.getString("cheque_no"));
-        m.setAccountNo(rs.getString("account_no"));
-        m.setPayeeName(rs.getString("payee_name"));
-        m.setSortCode(rs.getString("sort_code"));
-        m.setTransactionCode(rs.getString("transaction_code"));
+        m.setBatchId(trim(rs.getString("batch_id")));
+        m.setChequeNo(trim(rs.getString("cheque_no")));
+        m.setAccountNo(trim(rs.getString("account_no")));        // MICR account_no — displayed in UI
+        // KEY FIX: payee_account_no is the CBS lookup key — same column V1 uses via getPayeeAccountNo().
+        // V2 was calling getAccountNo() which reads account_no — a DIFFERENT DB column that does NOT
+        // match Firestore document IDs → every CBS lookup returned HTTP 404 "Not found".
+        m.setPayeeAccountNo(trim(rs.getString("payee_account_no")));
+        m.setPayeeName(trim(rs.getString("payee_name")));        // used in CBS name match
+        m.setSortCode(trim(rs.getString("sort_code")));
+        m.setTransactionCode(trim(rs.getString("transaction_code")));
         m.setAmount(rs.getBigDecimal("amount"));
-        m.setAmountInWords(rs.getString("amount_in_words"));
-        m.setChequeDate(rs.getString("cheque_date"));
+        m.setAmountInWords(trim(rs.getString("amount_in_words")));
+        m.setChequeDate(trim(rs.getString("cheque_date")));
 
         // Encode ver_action into iqa_status using "VACTION:" prefix
         // (kept as-is — other modules may still rely on this encoding)
-        String verAction = rs.getString("ver_action");
+        String verAction = trim(rs.getString("ver_action"));
         m.setIqaStatus("VACTION:" + (verAction != null ? verAction : ""));
 
         // Permanent referred flag — set once by V1, does NOT change when
@@ -352,8 +356,8 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
         // for the REF flag/count on this screen.
         m.setReferred(rs.getBoolean("is_referred"));
 
-        m.setStatus(rs.getString("status"));
-        m.setVerStatus(rs.getString("ver_status"));
+        m.setStatus(trim(rs.getString("status")));
+        m.setVerStatus(trim(rs.getString("ver_status")));
         m.setDuplicate(rs.getBoolean("duplicate_flag"));
 
         Timestamp ca = rs.getTimestamp("created_at");
@@ -393,5 +397,9 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
                 }
             });
         }
+    }
+    
+    private static String trim(String s) {
+        return s != null ? s.trim() : null;
     }
 }

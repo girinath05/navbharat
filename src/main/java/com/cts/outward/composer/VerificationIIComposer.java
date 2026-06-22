@@ -5,6 +5,9 @@ import com.cts.outward.model.ChequeModel;
 import com.cts.outward.enums.ChequeStatus;
 import com.cts.outward.service.VerificationIIService;
 import com.cts.outward.service.VerificationIIServiceImpl;
+import com.cts.outward.service.CBSService;
+import com.cts.outward.service.CBSServiceImpl;
+import com.cts.outward.dao.CBSDAOImpl;
 import org.zkoss.zk.ui.Component;
 import org.zkoss.zk.ui.Sessions;
 import org.zkoss.zk.ui.select.SelectorComposer;
@@ -58,6 +61,7 @@ import java.util.Locale;
 public class VerificationIIComposer extends SelectorComposer<Component> {
 
     private final VerificationIIService service = new VerificationIIServiceImpl();
+    private final CBSService cbsService = new CBSServiceImpl(new CBSDAOImpl());
 
     private static final int BATCH_PAGE_SIZE  = 5;
     private static final int CHEQUE_PAGE_SIZE = 5;
@@ -1023,14 +1027,47 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
 
         fPayeeName.setValue(safe(c.getPayeeName()));
         fAmount.setValue(formatAmount(c.getAmount()));
-        fAccountNo.setValue(safe(c.getAccountNo()));
+        fAccountNo.setValue(safe(c.getPayeeAccountNo()));  // use payee_account_no — same as V1
         fChequeDate.setValue(safe(c.getChequeDate()));
         fAmountWords.setValue(safe(c.getAmountInWords()));
 
-        fCbsPayeeName.setValue("—");
-        fCbsAccStatus.setValue("—");
-        fCbsPayeeMatch.setValue("—");
-        fCbsNewAccount.setValue("—");
+        // CBS live lookup — MUST use getPayeeAccountNo(), same as VerificationOneComposer.
+        // getAccountNo() reads account_no (MICR field) which does NOT match Firestore document IDs.
+        // getPayeeAccountNo() reads payee_account_no — the correct CBS key.
+        String accNo = c.getPayeeAccountNo() != null ? c.getPayeeAccountNo().trim() : null;
+        if (accNo != null && !accNo.isBlank()) {
+            com.fasterxml.jackson.databind.JsonNode fields = cbsService.lookupAccountFields(accNo);
+            if (fields != null && !fields.isMissingNode()) {
+                String cbsName = fields.path("accountHolderName").path("stringValue").asText(null);
+                boolean active = fields.path("active").path("booleanValue").asBoolean(false);
+
+                fCbsPayeeName.setValue(cbsName != null ? cbsName : "—");
+                fCbsAccStatus.setValue(active ? "Active" : "Inactive");
+                fCbsNewAccount.setValue(cbsService.getIsNewAccount(accNo));
+
+                String payee = c.getPayeeName();
+                if (cbsName != null && payee != null) {
+                    boolean match = cbsName.trim().equalsIgnoreCase(payee.trim());
+                    fCbsPayeeMatch.setValue(match ? "Match" : "Mismatch");
+                    fCbsPayeeMatch.setSclass(match ? "cbs-match-ok" : "cbs-match-fail");
+                } else {
+                    fCbsPayeeMatch.setValue("—");
+                    fCbsPayeeMatch.setSclass("");
+                }
+            } else {
+                fCbsPayeeName.setValue("—");
+                fCbsAccStatus.setValue("Not found");
+                fCbsNewAccount.setValue("—");
+                fCbsPayeeMatch.setValue("—");
+                fCbsPayeeMatch.setSclass("");
+            }
+        } else {
+            fCbsPayeeName.setValue("—");
+            fCbsAccStatus.setValue("—");
+            fCbsNewAccount.setValue("—");
+            fCbsPayeeMatch.setValue("—");
+            fCbsPayeeMatch.setSclass("");
+        }
 
         ChequeStatus currentVs    = ChequeStatus.fromDb(c.getVerStatus());
         boolean alreadyActioned = currentVs == ChequeStatus.VERIFIED
