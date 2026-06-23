@@ -903,7 +903,7 @@ public class MyBatchesComposer extends SelectorComposer<Component> {
             case READY_FOR_VERIFICATION,
                  VERIFICATION_IN_PROGRESS,
                  VERIFIED,
-                 CXF_GENERATED,
+                 CXF_CIBF_GENERATED,
                  DISPATCHED              -> "Submitted";
             case PENDING                 -> "Pending";
             default                      -> "Draft";

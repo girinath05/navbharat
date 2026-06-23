@@ -409,7 +409,7 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
      */
     private boolean isPostVerified(String s) {
         BatchStatus bs = BatchStatus.fromDb(s);
-        return bs == BatchStatus.CXF_GENERATED || bs == BatchStatus.DISPATCHED;
+        return bs == BatchStatus.CXF_CIBF_GENERATED || bs == BatchStatus.DISPATCHED;
     }
 
     /** Date range filter — matches if batch's created date falls within [from, to] (inclusive) */
@@ -439,7 +439,7 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
                 verificationStage++;
             } else if (bs == BatchStatus.VERIFIED) {
                 verified++;
-            } else if (bs == BatchStatus.CXF_GENERATED || bs == BatchStatus.DISPATCHED) {
+            } else if (bs == BatchStatus.CXF_CIBF_GENERATED || bs == BatchStatus.DISPATCHED) {
                 // CxfGenerated, Dispatched — both count toward the "Dispatched" card
                 dispatched++;
             }
@@ -713,7 +713,7 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
             case READY_FOR_VERIFICATION   -> "chip ch-verification";
             case VERIFICATION_IN_PROGRESS -> "chip ch-in-progress";
             case VERIFIED                 -> "chip ch-verified";
-            case CXF_GENERATED, DISPATCHED -> "chip ch-dispatched";
+            case CXF_CIBF_GENERATED, DISPATCHED -> "chip ch-dispatched";
             case DRAFT, PENDING            -> "chip ch-draft";
         };
     }

@@ -262,7 +262,7 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
             batchSubmitted = (bs == BatchStatus.READY_FOR_VERIFICATION
                     || bs == BatchStatus.VERIFICATION_IN_PROGRESS
                     || bs == BatchStatus.VERIFIED
-                    || bs == BatchStatus.CXF_GENERATED
+                    || bs == BatchStatus.CXF_CIBF_GENERATED
                     || bs == BatchStatus.DISPATCHED);
             if (batchSubmitted && btnSaveBatch != null) btnSaveBatch.setDisabled(true);
         }
@@ -938,7 +938,7 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
                 if (bs == BatchStatus.READY_FOR_VERIFICATION
                         || bs == BatchStatus.VERIFICATION_IN_PROGRESS
                         || bs == BatchStatus.VERIFIED
-                        || bs == BatchStatus.CXF_GENERATED
+                        || bs == BatchStatus.CXF_CIBF_GENERATED
                         || bs == BatchStatus.DISPATCHED) {
                     batchSubmitted = true; // sync flag in case it drifted
                     return;

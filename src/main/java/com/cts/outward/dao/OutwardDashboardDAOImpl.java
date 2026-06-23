@@ -99,7 +99,7 @@ public class OutwardDashboardDAOImpl implements OutwardDashboardDAO {
                 // Card 4 : Dispatched Batches
                 // BatchStatus.CXF_GENERATED.db() = "CxfGenerated"
                 // BatchStatus.DISPATCHED.db()     = "Dispatched"
-                else if (bs == BatchStatus.CXF_GENERATED
+                else if (bs == BatchStatus.CXF_CIBF_GENERATED
                       || bs == BatchStatus.DISPATCHED) {
 
                     stats.setDispatchedBatches(

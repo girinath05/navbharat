@@ -1,17 +1,135 @@
-<?page title="CXF CXBF Submission"?>
-<!--
- ============================================================
-  Project     : Navbharat CTS Outward
-  File        : cxf-cxbf.zul
-  Package     : webapp/zul/outward
-  Author      : Pavan C.
-  Created     : June 2026
-  Description : CXF/CXBF format submission screen. Generates
-                outward clearing file for RBI/clearing house.
- ============================================================
--->
+<?xml version="1.0" encoding="UTF-8"?>
+<?page title="CXF-CIBF Generation"?>
+<zk xmlns="http://www.zkoss.org/2005/zul"
+    xmlns:n="native">
 
+    <style src="/css/outward/verification.css"/>
+    <style src="/css/outward/cxf-cxbf.css?v=14"/>
 
-<zk>
-	<label value="CXF-CXBF Page" />
+<div id="v1Root" apply="com.cts.outward.composer.CxfCibfComposer"
+     style="padding:0px;">
+
+    <!-- ══════════════════════════════════════════
+         PAGE HEADER  (matches pg-head team pattern)
+    ══════════════════════════════════════════ -->
+    <n:div class="pg-head">
+        <n:div>
+            <n:div class="pg-title">CXF-CIBF Generation</n:div>
+            <n:div class="pg-subtitle">Generate CXF &amp; CIBF files for all VERIFIED batches</n:div>
+        </n:div>
+        <n:div class="pg-actions">
+            <button id="btnGenerateCxf" sclass="btn btn-primary"
+                    style="white-space:nowrap;" disabled="true">
+                ⚡ Generate CXF &amp; CIBF
+            </button>
+        </n:div>
+    </n:div>
+
+    <!-- Info / Stats Banner -->
+    <div sclass="od-stats-banner">
+        <div sclass="od-banner-left">
+            <span sclass="od-banner-icon">⚠️</span>
+            <label sclass="od-banner-text" value="Generate CXF &amp; CIBF files for all VERIFIED batches"/>
+        </div>
+        <div sclass="od-banner-right">
+            <div sclass="od-pill od-pill-batches">
+                <label id="lblPending" value="0"/><label value="Pending"/>
+            </div>
+            <div sclass="od-pill od-pill-cheques">
+                <label id="lblCompleted" value="0"/><label value="Completed"/>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         DYNAMIC BATCHES TABLE WITH INTEGRATED FILTER BAR
+         ══════════════════════════════════════════ -->
+    <n:div class="mb-card">
+        <n:div class="mb-card-head">
+            <n:div>
+                <label id="lblTableTitle" sclass="mb-card-title" value="PENDING BATCHES FOR FILE GENERATION"/>
+                <label id="lblTableSubtitle" style="font-size:11px;color:#9CA3AF;font-style:italic;display:block;" value="Verified batches awaiting CXF &amp; CIBF file generation"/>
+            </n:div>
+        </n:div>
+
+        <!-- Integrated Search + Filter Bar -->
+        <div sclass="cxf-filter-bar">
+            <div sclass="cxf-filter-group">
+                <label sclass="cxf-filter-label" value="Search Batch ID"/>
+                <textbox id="txtSearchBatchId" placeholder="e.g. BATCH0101" width="160px"/>
+            </div>
+            <div sclass="cxf-filter-group">
+                <label sclass="cxf-filter-label" value="Status"/>
+                <combobox id="cmbStatus" readonly="true" width="180px">
+                    <comboitem label="Pending" value="PENDING"/>
+                    <comboitem label="Completed" value="COMPLETED"/>
+                    <comboitem label="All" value="ALL"/>
+                </combobox>
+            </div>
+            <div sclass="cxf-filter-group">
+                <label sclass="cxf-filter-label" value="From Date"/>
+                <datebox id="dbFromDate" format="dd-MM-yyyy" placeholder="dd-mm-yyyy" width="120px"/>
+            </div>
+            <div sclass="cxf-filter-group">
+                <label sclass="cxf-filter-label" value="To Date"/>
+                <datebox id="dbToDate" format="dd-MM-yyyy" placeholder="dd-mm-yyyy" width="120px"/>
+            </div>
+            <div sclass="cxf-filter-actions">
+                <button id="btnReset" label="✕ Clear" sclass="cxf-btn-clear"/>
+            </div>
+        </div>
+
+        <paging id="pgDynamic" pageSize="10" visible="false"/>
+        <listbox id="lbDynamic" sclass="v1-listbox v1-batch-lb"
+                 mold="paging" paginal="${pgDynamic}" pageSize="10" multiple="true"
+                 emptyMessage="No batches found">
+            <listhead id="lhDynamic" sclass="v1-lh-row">
+                <!-- Programmatically populated in Composer -->
+            </listhead>
+        </listbox>
+        <div sclass="cxf-pagination-container">
+            <label id="lblRecordCount" value="Showing 0-0 of 0 records" sclass="cxf-paging-records"/>
+            <div sclass="cxf-paging-controls">
+                <button id="btnPrev" label="Prev" sclass="cxf-btn-paging" disabled="true"/>
+                <label id="lblPage" value="Page 1 of 1" sclass="cxf-paging-info"/>
+                <button id="btnNext" label="Next" sclass="cxf-btn-paging" disabled="true"/>
+            </div>
+        </div>
+    </n:div>
+
+    <!-- Modal Success Dialog (inline to avoid extra files) -->
+    <window id="winSuccessDialog" sclass="cxf-success-window" border="none" shadow="false" mode="modal" visible="false"
+            style="background: transparent !important; border: none !important; padding: 0 !important; box-shadow: none !important;"
+            contentStyle="background: transparent !important; border: none !important; padding: 0 !important; box-shadow: none !important;">
+        <div sclass="cxf-modal-container">
+            <!-- Green circle icon -->
+            <div sclass="cxf-modal-icon-circle">
+                <label sclass="cxf-modal-icon-check" value="✔"/>
+            </div>
+
+            <!-- Headers -->
+            <label sclass="cxf-modal-title" value="CXF &amp; CIBF files generated"/>
+            <label sclass="cxf-modal-subtitle" value="Sent to NPCI for batch processing"/>
+
+            <!-- Checklist card -->
+            <div sclass="cxf-modal-checklist">
+                <div sclass="cxf-modal-checklist-item">
+                    <label sclass="cxf-modal-item-icon" value="✔"/>
+                    <label id="lblBatchCount" sclass="cxf-modal-item-text" value="1 batch processed successfully"/>
+                </div>
+                <div sclass="cxf-modal-checklist-item">
+                    <label sclass="cxf-modal-item-icon" value="✔"/>
+                    <label sclass="cxf-modal-item-text" value="CXF &amp; CIBF file sent to NPCI"/>
+                </div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div sclass="cxf-modal-actions">
+                <button id="btnViewFile" sclass="cxf-modal-btn-view" label="📂 View file"/>
+                <button id="btnDone" sclass="cxf-modal-btn-done" label="Done"/>
+            </div>
+        </div>
+    </window>
+
+</div>
 </zk>
