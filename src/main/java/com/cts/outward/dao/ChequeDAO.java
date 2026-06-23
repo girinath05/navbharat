@@ -122,4 +122,6 @@ public interface ChequeDAO {
 	List<ChequeEntity> loadAcceptedInstrumentsForCxf();
 
 	void updateVerRouting(Long chequeId, String status, String verLevel, String verStatus);
+
+	long countV1ProcessedForBatch(String batchId);
 }
