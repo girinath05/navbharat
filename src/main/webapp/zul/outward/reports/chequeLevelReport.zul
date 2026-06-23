@@ -3,7 +3,7 @@
 
 <zk>
     <zscript>
-        org.zkoss.zk.ui.Sessions.getCurrent().setAttribute("sidebar_report_tab", "CXF_REPORT");
+        org.zkoss.zk.ui.Sessions.getCurrent().setAttribute("sidebar_report_tab", "CHEQUE_REPORT");
     </zscript>
     <window id="outwardReportsRoot" apply="com.cts.outward.composer.OutwardReportComposer"
             border="none" width="100%" sclass="od-page-bg outward-reports-root" style="padding:0;margin:0;">
@@ -37,7 +37,7 @@
         <!-- List Card Wrapper (Single content area with dynamic display) -->
         <div sclass="od-list-card">
             <div sclass="od-list-card-header" style="padding: 10px 16px;">
-                <label id="lblListCardTitle" sclass="od-list-card-title" value="CXF-CIBF Reports"/>
+                <label id="lblListCardTitle" sclass="od-list-card-title" value="Cheque-level Report"/>
                 
                 <!-- Integrated Filter Bar inside Header -->
                 <div sclass="od-filter-bar-header">
@@ -57,21 +57,19 @@
                 </div>
             </div>
 
-            <!-- Grid 1: CXF Report -->
-            <listbox id="gridCxf" visible="false"
+            <!-- Grid 4: Cheque-level Report -->
+            <listbox id="gridCheque" visible="false"
                      multiple="true"
-                     emptyMessage="No CXF records found.">
+                     emptyMessage="No cheque records found.">
                 <listhead sizable="true">
                     <listheader width="50px" align="center">
-                        <checkbox id="chkSelectAllCxf" />
+                        <checkbox id="chkSelectAllCheque" />
                     </listheader>
-                    <listheader label="BATCH ID"      width="100px" align="center"/>
-                    <listheader label="TOTAL CHEQUES" width="90px" align="center"/>
-                    <listheader label="TOTAL AMOUNT"  width="110px" align="center"/>
-                    <listheader label="CXF FILE NAME" hflex="2" align="center"/>
-                    <listheader label="CIBF FILE NAME" hflex="2" align="center"/>
-                    <listheader label="GENERATED AT"  hflex="1.5" align="center"/>
-                    <listheader label="STATUS"        hflex="1" align="center"/>
+                    <listheader label="CHEQUE NO"       hflex="1" align="center"/>
+                    <listheader label="BATCH ID"        hflex="1" align="center"/>
+                    <listheader label="CHEQUE DATE"     hflex="1" align="center"/>
+                    <listheader label="AMOUNT"          hflex="1" align="center"/>
+                    <listheader label="STATUS"          hflex="1" align="center"/>
                 </listhead>
             </listbox>
 

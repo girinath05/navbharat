@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="cxf_cibf_report" pageWidth="842" pageHeight="595"
+              orientation="Landscape" columnWidth="782" leftMargin="30"
+              rightMargin="30" topMargin="20" bottomMargin="20">
+
+    <parameter name="adminName" class="java.lang.String"/>
+    <parameter name="loginTime" class="java.lang.String"/>
+    <parameter name="dateRange" class="java.lang.String"/>
+    <parameter name="generatedAt" class="java.lang.String"/>
+    <parameter name="totalCountLabel" class="java.lang.String"/>
+    <parameter name="totalCountValue" class="java.lang.String"/>
+    <parameter name="totalAmount" class="java.lang.String"/>
+
+    <field name="fileId"        class="java.lang.String"/>
+    <field name="fileName"      class="java.lang.String"/>
+    <field name="fileType"      class="java.lang.String"/>
+    <field name="totalRecords"  class="java.lang.Integer"/>
+    <field name="totalAmount"   class="java.math.BigDecimal"/>
+    <field name="status"        class="java.lang.String"/>
+    <field name="generatedDate" class="java.time.LocalDateTime"/>
+
+    <variable name="grandTotalAmount" class="java.math.BigDecimal" calculation="Sum">
+        <variableExpression><![CDATA[$F{totalAmount}]]></variableExpression>
+    </variable>
+
+    <title>
+        <band height="85">
+            <textField>
+                <reportElement x="0" y="0" width="782" height="25"/>
+                <textElement textAlignment="Center">
+                    <font size="16" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA["ExpressClear CTS — Generated Files Report"]]></textFieldExpression>
+            </textField>
+            
+            <!-- Left Column -->
+            <textField>
+                <reportElement x="0" y="30" width="300" height="15"/>
+                <textElement><font size="9" isBold="false"/></textElement>
+                <textFieldExpression><![CDATA["Admin : " + ($P{adminName} != null ? $P{adminName} : "")]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="0" y="45" width="300" height="15"/>
+                <textElement><font size="9" isBold="false"/></textElement>
+                <textFieldExpression><![CDATA["Login Time : " + ($P{loginTime} != null ? $P{loginTime} : "")]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="0" y="60" width="300" height="15"/>
+                <textElement><font size="9" isBold="false"/></textElement>
+                <textFieldExpression><![CDATA["Date Range : " + ($P{dateRange} != null ? $P{dateRange} : "")]]></textFieldExpression>
+            </textField>
+
+            <!-- Right Column -->
+            <textField>
+                <reportElement x="482" y="30" width="300" height="15"/>
+                <textElement textAlignment="Right"><font size="9" isBold="false"/></textElement>
+                <textFieldExpression><![CDATA[($P{totalCountLabel} != null ? $P{totalCountLabel} : "Total Records") + " : " + ($P{totalCountValue} != null ? $P{totalCountValue} : "0")]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="482" y="45" width="300" height="15"/>
+                <textElement textAlignment="Right"><font size="9" isBold="false"/></textElement>
+                <textFieldExpression><![CDATA["Total Amount : " + ($P{totalAmount} != null ? $P{totalAmount} : "₹0")]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="482" y="60" width="300" height="15"/>
+                <textElement textAlignment="Right"><font size="9" isBold="false"/></textElement>
+                <textFieldExpression><![CDATA["Generated : " + ($P{generatedAt} != null ? $P{generatedAt} : "")]]></textFieldExpression>
+            </textField>
+            
+            <line>
+                <reportElement x="0" y="80" width="782" height="1"/>
+                <graphicElement><pen lineWidth="1.0" lineColor="#9CA3AF"/></graphicElement>
+            </line>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="24">
+            <staticText>
+                <reportElement x="0" y="0" width="80" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[File ID]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="80" y="0" width="240" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[File Name]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="320" y="0" width="60" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[Type]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="380" y="0" width="80" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[Records]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="460" y="0" width="120" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[Amount]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="580" y="0" width="100" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[Status]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="680" y="0" width="102" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[Generated Date]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="20">
+            <textField>
+                <reportElement x="0" y="0" width="80" height="20"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{fileId}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="80" y="0" width="240" height="20"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{fileName}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="320" y="0" width="60" height="20"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{fileType}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="380" y="0" width="80" height="20"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{totalRecords}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0.00">
+                <reportElement x="460" y="0" width="120" height="20"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{totalAmount}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="580" y="0" width="100" height="20"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{status}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="680" y="0" width="102" height="20"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{generatedDate} != null ? $F{generatedDate}.toString() : ""]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+
+    <pageFooter>
+        <band height="20">
+            <textField>
+                <reportElement x="682" y="0" width="100" height="20"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="8"/></textElement>
+                <textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageFooter>
+
+    <summary>
+        <band height="20">
+            <staticText>
+                <reportElement x="0" y="0" width="460" height="20" backcolor="#F3F4F6" mode="Opaque"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Grand Total :   ]]></text>
+            </staticText>
+            <textField pattern="#,##0.00">
+                <reportElement x="460" y="0" width="120" height="20" backcolor="#F3F4F6" mode="Opaque"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$V{grandTotalAmount}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="580" y="0" width="100" height="20" backcolor="#F3F4F6" mode="Opaque"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
+                <text><![CDATA[]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="680" y="0" width="102" height="20" backcolor="#F3F4F6" mode="Opaque"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
+                <text><![CDATA[]]></text>
+            </staticText>
+        </band>
+    </summary>
+</jasperReport>

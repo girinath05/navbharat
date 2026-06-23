@@ -1,0 +1,1063 @@
+/* ============================================================
+   ClearPay CTS — Outward Reports Premium Styles
+   Adaptation of css/outward/outwardDashboard.css styles
+   for #outwardReportsRoot
+   ============================================================ */
+
+/* Override content area padding to save vertical space and fit the screen */
+.cts-content {
+    padding: 12px 16px !important;
+}
+
+/* ── Page Background ── */
+.od-page-bg {
+    background: #f0f2f5;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+.od-page-bg.z-window,
+.od-page-bg.z-window-noborder {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+}
+
+.od-page-bg.z-window>.z-window-content,
+.od-page-bg.z-window-noborder>.z-window-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+}
+
+/* ── Breadcrumb ── */
+.od-breadcrumb {
+    background: #1a2a4a;
+    color: #cdd6e8;
+    padding: 0 16px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    gap: 0;
+    margin: 4px 0px 8px 0px;
+}
+
+.od-bc-home {
+    color: #94a3b8 !important;
+    cursor: pointer;
+}
+
+.od-bc-sep {
+    color: #475569 !important;
+    margin: 0 8px;
+}
+
+.od-bc-cur {
+    color: #ffffff !important;
+    font-weight: 600;
+}
+
+/* ── Page Header ── */
+.od-page-header {
+    padding: 24px 20px 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.od-page-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a2a4a;
+    line-height: 1.2;
+}
+
+/* ── Info / Stats Banner ── */
+.od-stats-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 6px 16px;
+    margin: 0 20px 10px 20px;
+}
+
+.od-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.od-banner-icon {
+    font-size: 14px;
+}
+
+.od-banner-text {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #92400e !important;
+}
+
+.od-banner-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.od-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 2px 8px !important;
+    border-radius: 16px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    border: 1.5px solid !important;
+    line-height: 1 !important;
+    box-sizing: border-box !important;
+}
+
+.od-pill .z-label {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+}
+
+.od-pill-batches {
+    background: #fffbeb !important;
+    border-color: #fcd34d !important;
+    color: #92400e !important;
+}
+
+.od-pill-cheques {
+    background: #f0fdf4 !important;
+    border-color: #bbf7d0 !important;
+    color: #166534 !important;
+}
+
+.od-pill-amount {
+    background: #eff6ff !important;
+    border-color: #bfdbfe !important;
+    color: #1e40af !important;
+}
+
+.od-pill-ack {
+    background: #fdf2f8 !important;
+    border-color: #fbcfe8 !important;
+    color: #9d174d !important;
+}
+
+/* ── Batch List Card ── */
+.od-list-card {
+    background: #ffffff;
+    border-radius: 10px;
+    margin: 0 20px 10px 20px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.09);
+    overflow: visible;
+}
+
+.od-list-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 16px;
+    border-bottom: 1px solid #e8edf4;
+}
+
+.od-list-card-title,
+.outward-reports-root .z-div.od-list-card-title {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    color: #1a2a4a !important;
+}
+
+.od-btn-hdr {
+    background: #1a3a6e !important;
+    color: #ffffff !important;
+    border: 1.5px solid #1a3a6e !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 4px 12px !important;
+    cursor: pointer !important;
+    transition: background 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+.od-btn-hdr:hover:not([disabled]) {
+    background: #142d58 !important;
+    border-color: #142d58 !important;
+}
+
+.od-btn-hdr[disabled],
+.od-btn-hdr.z-button-disd {
+    background: #e2e8f0 !important;
+    color: #94a3b8 !important;
+    border-color: #cbd5e1 !important;
+    cursor: not-allowed !important;
+    opacity: 0.65 !important;
+}
+
+/* ── Filter Bar ── */
+.od-filter-bar {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-end !important;
+    gap: 12px !important;
+    padding: 6px 16px !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #e8edf4 !important;
+}
+
+.od-list-card .od-filter-bar,
+.od-list-card .od-filter-bar.z-div {
+    border: none !important;
+    border-radius: 0 !important;
+    border-bottom: 1px solid #e8edf4 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    padding: 6px 16px !important;
+}
+
+.od-filter-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    flex: 0 0 auto !important;
+}
+
+.od-filter-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #8a9bb8;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.od-btn-search {
+    background: #1a3a6e !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 5px !important;
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    padding: 4px 14px !important;
+    cursor: pointer !important;
+    align-self: flex-end;
+    height: 30px !important;
+}
+
+.od-btn-search:hover {
+    background: #142d58 !important;
+}
+
+.od-btn-clear {
+    background: #ffffff !important;
+    color: #374151 !important;
+    border: 1.5px solid #d0d7e3 !important;
+    border-radius: 5px !important;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    padding: 4px 12px !important;
+    cursor: pointer !important;
+    align-self: auto !important;
+    margin-bottom: 0 !important;
+    height: 30px !important;
+}
+
+.od-btn-clear:hover {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    border-color: #dc2626 !important;
+}
+
+.od-filter-actions {
+    margin-left: auto !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    flex: 0 0 auto !important;
+}
+
+/* ── Inputs ── */
+.outward-reports-root .z-datebox-input,
+.outward-reports-root .z-textbox,
+.outward-reports-root .z-combobox-input {
+    border: 1.5px solid #d0d7e3 !important;
+    border-radius: 5px !important;
+    font-size: 12.5px !important;
+    color: #374151 !important;
+    background: #ffffff !important;
+    height: 30px !important;
+    max-width: 100% !important;
+    padding-right: 36px !important;
+    box-sizing: border-box !important;
+}
+
+.outward-reports-root .z-datebox-btn,
+.outward-reports-root .z-combobox-btn {
+    background: #ffffff !important;
+    border: 1.5px solid #d0d7e3 !important;
+    border-left: none !important;
+    color: #6b7a99 !important;
+    height: 30px !important;
+}
+
+/* ===== Fix Calendar Icon Inside DateBox ===== */
+
+.outward-reports-root .z-datebox {
+    position: relative !important;
+    display: inline-block !important;
+    width: 140px !important;
+    overflow: hidden !important;
+}
+
+.outward-reports-root .z-datebox-button {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+
+    width: 34px !important;
+    height: 30px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    background: #ffffff !important;
+    border-left: 1px solid #d0d7e3 !important;
+    z-index: 2 !important;
+}
+
+.outward-reports-root .z-datebox-input {
+    width: 100% !important;
+    padding-right: 34px !important;
+    box-sizing: border-box !important;
+}
+
+/* ── ZK Listbox ── */
+.outward-reports-root .z-listbox {
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+}
+
+.outward-reports-root .z-listbox-body {
+    overflow: hidden !important;
+    height: auto !important;
+}
+
+/* ── Listbox Header ── */
+.outward-reports-root .z-listbox-header,
+.outward-reports-root .z-listhead {
+    background: #1a2a4a !important;
+    border-bottom: 1.5px solid #0d1b2e !important;
+}
+
+.outward-reports-root .z-listhead .z-listheader,
+.outward-reports-root .z-listhead .z-listheader-body {
+    background: #1a2a4a !important;
+    background-image: none !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    letter-spacing: 0.07em !important;
+    text-transform: uppercase !important;
+    padding: 6px 10px !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+.outward-reports-root .z-listhead .z-listheader:last-child {
+    border-right: none !important;
+}
+
+.outward-reports-root .z-listheader-shadow {
+    display: none !important;
+}
+
+/* ── Listbox Rows ── */
+.outward-reports-root .z-listitem .z-listcell {
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    color: #1a2a4a !important;
+    padding: 6px 10px !important;
+    border-bottom: 1px solid #edf0f7 !important;
+    border-right: none !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+}
+
+.outward-reports-root .z-listitem .z-listcell-content {
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    color: #1a2a4a !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+}
+
+.outward-reports-root .z-listitem:hover .z-listcell {
+    background: #f9fbff !important;
+}
+
+/* ── Paging bar ── */
+.od-page-bg .z-paging,
+.od-list-card .z-paging,
+.outward-reports-root .z-paging,
+.z-paging {
+    border-top: 1px solid #e8edf4 !important;
+    padding: 4px 16px !important;
+    background: #fafbfd !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    position: relative !important;
+}
+
+.od-page-bg .z-paging>*,
+.od-list-card .z-paging>*,
+.outward-reports-root .z-paging>*,
+.z-paging>* {
+    float: none !important;
+    position: static !important;
+}
+
+.od-page-bg .z-paging-info,
+.outward-reports-root .z-paging-info,
+.z-paging-info {
+    order: -1 !important;
+    margin-right: auto !important;
+    position: static !important;
+    transform: none !important;
+    font-size: 13px !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+}
+
+/* Hide first/last arrows */
+.od-page-bg .z-paging-first,
+.od-page-bg .z-paging-last,
+.z-paging-first,
+.z-paging-last {
+    display: none !important;
+}
+
+/* Style Previous & Next buttons as wider buttons with text */
+.od-page-bg .z-paging-prev,
+.od-page-bg .z-paging-previous,
+.od-page-bg .z-paging-next,
+.z-paging-prev,
+.z-paging-previous,
+.z-paging-next {
+    min-width: 90px !important;
+    height: 30px !important;
+    padding: 0 14px !important;
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #1a3a6e !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 18px !important;
+    cursor: pointer !important;
+    margin: 0 4px !important;
+    transition: all 0.2s ease !important;
+    opacity: 1 !important;
+}
+
+.od-page-bg .z-paging-prev .z-paging-icon,
+.od-page-bg .z-paging-next .z-paging-icon,
+.z-paging-prev .z-paging-icon,
+.z-paging-next .z-paging-icon {
+    color: inherit !important;
+}
+
+.od-page-bg .z-paging-prev:hover,
+.od-page-bg .z-paging-previous:hover,
+.od-page-bg .z-paging-next:hover,
+.z-paging-prev:hover,
+.z-paging-previous:hover,
+.z-paging-next:hover {
+    background: #f0f4fa !important;
+    color: #1a3a6e !important;
+    border-color: #1a3a6e !important;
+}
+
+/* Disabled state styling override for ZK paging buttons */
+.od-page-bg .z-paging-prev[disabled],
+.od-page-bg .z-paging-previous[disabled],
+.od-page-bg .z-paging-next[disabled],
+.z-paging-prev[disabled],
+.z-paging-previous[disabled],
+.z-paging-next[disabled],
+.od-page-bg .z-paging-prev[disabled]:hover,
+.od-page-bg .z-paging-previous[disabled]:hover,
+.od-page-bg .z-paging-next[disabled]:hover,
+.z-paging-prev[disabled]:hover,
+.z-paging-previous[disabled]:hover,
+.z-paging-next[disabled]:hover {
+    background: #f8fafc !important;
+    color: #94a3b8 !important;
+    border: 1px solid #e2e8f0 !important;
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+}
+
+.od-page-bg .z-paging-prev[disabled] .z-paging-icon,
+.od-page-bg .z-paging-next[disabled] .z-paging-icon,
+.z-paging-prev[disabled] .z-paging-icon,
+.z-paging-next[disabled] .z-paging-icon {
+    color: inherit !important;
+}
+
+.od-page-bg .z-paging-prev::after,
+.od-page-bg .z-paging-previous::after,
+.z-paging-prev::after,
+.z-paging-previous::after {
+    content: " Prev" !important;
+    display: inline !important;
+}
+
+.od-page-bg .z-paging-next::before,
+.z-paging-next::before {
+    content: "Next " !important;
+    display: inline !important;
+}
+
+.outward-reports-root .z-paging .z-paging-button:hover {
+    background: #f0f4fa !important;
+}
+
+.outward-reports-root .z-paging .z-paging-button.z-paging-button-selected {
+    background: #1a3a6e !important;
+    color: #ffffff !important;
+    border-color: #1a3a6e !important;
+}
+
+/* ── Status Chips ── */
+.chip {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap !important;
+    line-height: 1.4;
+    text-align: center;
+    border: 1px solid transparent;
+}
+
+.ch-submitted {
+    background: #dcfce7;
+    color: #15803d;
+    border-color: #86efac;
+}
+
+.ch-pending {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+}
+
+.ch-rejected {
+    background: #ffe4e6;
+    color: #be123c;
+    border-color: #fda4af;
+}
+
+.ch-approved {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border-color: #93c5fd;
+}
+
+.ch-draft {
+    background: #f1f5f9;
+    color: #475569;
+    border-color: #cbd5e1;
+}
+
+.ch-verification {
+    background: #ede9fe;
+    color: #5b21b6;
+    border-color: #c4b5fd;
+}
+
+.ch-verified {
+    background: #dcfce7;
+    color: #15803d;
+    border-color: #86efac;
+}
+
+.ch-dispatched {
+    background: #fff7ed;
+    color: #c2410c;
+    border-color: #fdba74;
+}
+
+.ch-cxf-gen {
+    background: #fff7ed;
+    color: #c2410c;
+    border-color: #fdba74;
+}
+
+.ch-sent-npci {
+    background: #dcfce7;
+    color: #15803d;
+    border-color: #86efac;
+}
+
+/* ── Amount cell ── */
+.outward-reports-root .z-listcell[style*="align:right"] .z-listcell-content,
+.outward-reports-root .z-listcell[style*="text-align:right"] .z-listcell-content,
+.outward-reports-root .z-listcell[style*="align: right"] .z-listcell-content,
+.outward-reports-root .z-listcell[style*="text-align: right"] .z-listcell-content {
+    font-family: 'Roboto Mono', monospace, 'Courier New';
+    font-weight: 600;
+    color: #1a2a4a !important;
+    text-align: right !important;
+}
+
+/* Alignments mapping from cell style to content */
+.outward-reports-root .z-listcell[style*="text-align:center"] .z-listcell-content,
+.outward-reports-root .z-listcell[style*="text-align: center"] .z-listcell-content,
+.outward-reports-root .z-listcell[style*="align:center"] .z-listcell-content,
+.outward-reports-root .z-listcell[style*="align: center"] .z-listcell-content {
+    text-align: center !important;
+}
+
+.outward-reports-root .z-listcell[style*="text-align:left"] .z-listcell-content,
+.outward-reports-root .z-listcell[style*="text-align: left"] .z-listcell-content,
+.outward-reports-root .z-listcell[style*="align:left"] .z-listcell-content,
+.outward-reports-root .z-listcell[style*="align: left"] .z-listcell-content {
+    text-align: left !important;
+}
+
+/* Header alignments matching */
+.outward-reports-root .z-listheader[style*="text-align:center"] .z-listheader-content,
+.outward-reports-root .z-listheader[style*="text-align:center"] .z-listheader-cnt,
+.outward-reports-root .z-listheader[style*="text-align: center"] .z-listheader-content,
+.outward-reports-root .z-listheader[style*="text-align: center"] .z-listheader-cnt,
+.outward-reports-root .z-listheader[style*="align:center"] .z-listheader-content,
+.outward-reports-root .z-listheader[style*="align:center"] .z-listheader-cnt,
+.outward-reports-root .z-listheader[style*="align: center"] .z-listheader-content,
+.outward-reports-root .z-listheader[style*="align: center"] .z-listheader-cnt {
+    text-align: center !important;
+    display: block !important;
+}
+
+.outward-reports-root .z-listheader[style*="text-align:right"] .z-listheader-content,
+.outward-reports-root .z-listheader[style*="text-align:right"] .z-listheader-cnt,
+.outward-reports-root .z-listheader[style*="text-align: right"] .z-listheader-content,
+.outward-reports-root .z-listheader[style*="text-align: right"] .z-listheader-cnt,
+.outward-reports-root .z-listheader[style*="align:right"] .z-listheader-content,
+.outward-reports-root .z-listheader[style*="align:right"] .z-listheader-cnt,
+.outward-reports-root .z-listheader[style*="align: right"] .z-listheader-content,
+.outward-reports-root .z-listheader[style*="align: right"] .z-listheader-cnt {
+    text-align: right !important;
+    display: block !important;
+}
+
+.outward-reports-root .z-listheader[style*="text-align:left"] .z-listheader-content,
+.outward-reports-root .z-listheader[style*="text-align:left"] .z-listheader-cnt,
+.outward-reports-root .z-listheader[style*="text-align: left"] .z-listheader-content,
+.outward-reports-root .z-listheader[style*="text-align: left"] .z-listheader-cnt,
+.outward-reports-root .z-listheader[style*="align:left"] .z-listheader-content,
+.outward-reports-root .z-listheader[style*="align:left"] .z-listheader-cnt,
+.outward-reports-root .z-listheader[style*="align: left"] .z-listheader-content,
+.outward-reports-root .z-listheader[style*="align: left"] .z-listheader-cnt {
+    text-align: left !important;
+    display: block !important;
+}
+
+/* ── Responsive: narrow screens ── */
+@media (max-width: 900px) {
+    .od-filter-bar {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: end !important;
+    }
+}
+
+.od-banner-right {
+    flex-wrap: wrap;
+}
+
+.od-filter-bar {
+    display: flex;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: end !important;
+    gap: 12px !important;
+}
+
+.outward-reports-root .z-textbox,
+.outward-reports-root .z-datebox,
+.outward-reports-root .z-combobox {
+    position: relative !important;
+    display: inline-block !important;
+    overflow: hidden !important;
+}
+
+.od-btn-search,
+.od-btn-clear {
+    width: auto !important;
+    align-self: auto;
+}
+
+.od-filter-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: end !important;
+    margin-left: auto !important;
+    white-space: nowrap !important;
+}
+
+.od-list-card {
+    margin: 0 16px 16px 16px;
+}
+
+
+/* ── Checkbox overlap prevention & centered alignment ── */
+.od-checkbox-header-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    gap: 8px !important;
+}
+
+.od-checkbox-header-wrapper .z-checkbox {
+    margin: 0 !important;
+}
+
+.od-checkbox-header-label-container {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+}
+
+/* ── CXF-CIBF Reports Table (#gridCxf) ── */
+#gridCxf .z-listheader-content,
+#gridCxf .z-listheader-cnt {
+    padding: 0 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    letter-spacing: 0.07em !important;
+    text-transform: uppercase !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    word-break: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    text-align: center !important;
+}
+#gridCxf .z-listitem .z-listcell,
+#gridCxf .z-listcell-content {
+    white-space: normal !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    word-break: break-all !important;
+}
+
+/* ── Batch Summary Table (#gridBatch) ── */
+#gridBatch .z-listheader-content,
+#gridBatch .z-listheader-cnt {
+    padding: 0 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    letter-spacing: 0.07em !important;
+    text-transform: uppercase !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    word-break: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    text-align: center !important;
+}
+#gridBatch .z-listitem .z-listcell,
+#gridBatch .z-listcell-content {
+    white-space: normal !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    word-break: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+}
+
+/* ── Cheque-level Report Table (#gridCheque) ── */
+#gridCheque .z-listheader-content,
+#gridCheque .z-listheader-cnt {
+    padding: 0 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    letter-spacing: 0.07em !important;
+    text-transform: uppercase !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    word-break: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    text-align: center !important;
+}
+#gridCheque .z-listitem .z-listcell,
+#gridCheque .z-listcell-content {
+    white-space: normal !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    word-break: break-all !important;
+}
+
+.outward-reports-root .z-listhead .z-listheader:first-child {
+    padding: 0 !important;
+}
+
+.outward-reports-root .z-listitem .z-listcell:first-child,
+.outward-reports-root .z-listitem .z-listcell:first-child .z-listcell-content {
+    padding: 6px 0 !important;
+    text-align: center !important;
+}
+
+.outward-reports-root .z-listitem.z-listitem-selected .z-listcell,
+.outward-reports-root .z-listitem-selected .z-listcell,
+.outward-reports-root .z-listitem-selected:hover .z-listcell {
+    background: #ffffff !important;
+}
+
+/* ── Customize Paging Input & Text ── */
+.outward-reports-root .z-paging-inp,
+.outward-reports-root .z-paging-input {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    width: auto !important;
+    min-width: 10px !important;
+    max-width: 24px !important;
+    text-align: center !important;
+    padding: 0 !important;
+    font-size: 13px !important;
+    font-family: inherit !important;
+    color: #1a3a6e !important;
+    font-weight: 700 !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+}
+
+.outward-reports-root .custom-paging-page-label {
+    font-size: 13px !important;
+    font-family: inherit !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+    margin-right: 5px !important;
+}
+
+.outward-reports-root .z-paging-text {
+    font-size: 13px !important;
+    font-family: inherit !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+    margin-left: 5px !important;
+}
+
+.od-page-bg .z-paging-prev,
+.z-paging-prev {
+    margin: 0 8px 0 4px !important;
+}
+
+.od-page-bg .z-paging-next,
+.z-paging-next {
+    margin: 0 4px 0 8px !important;
+}
+
+
+/* Force ZK listbox to auto-height — removes internal scroll */
+.outward-reports-root .z-listbox,
+.outward-reports-root .z-listbox-outer {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+.outward-reports-root .z-listbox-body {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* Remove the browser scrollbar from the page itself */
+.od-page-bg.z-window,
+.od-page-bg.z-window-noborder {
+    overflow: visible !important;
+    height: auto !important;
+}
+
+.od-page-bg.z-window>.z-window-content,
+.od-page-bg.z-window-noborder>.z-window-content {
+    overflow: visible !important;
+    height: auto !important;
+    box-sizing: border-box !important;
+}
+
+/* ── Header Integrated Filter Bar ── */
+.od-filter-bar-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-left: auto !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+}
+
+/* ── Search Input Wrap ── */
+.od-search-wrap {
+    position: relative;
+    display: inline-block;
+    width: 140px;
+}
+
+.od-search-icon {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.od-search-input.z-textbox {
+    width: 100% !important;
+    padding: 3px 10px 3px 24px !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    font-size: 11.5px !important;
+    height: 28px !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+.od-search-input.z-textbox:focus {
+    border-color: #1a3a6e !important;
+    outline: none !important;
+}
+
+/* ── Inline Datebox & Combobox Styling inside Header Filter Bar ── */
+.od-filter-bar-header .z-datebox,
+.od-filter-bar-header .z-combobox {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 28px !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    background: #ffffff !important;
+}
+
+.od-filter-bar-header .z-datebox-inp,
+.od-filter-bar-header .z-combobox-inp {
+    height: 26px !important;
+    font-size: 11.5px !important;
+    font-family: 'Inter', sans-serif !important;
+    border: none !important;
+    padding: 0 6px !important;
+    background: transparent !important;
+}
+
+.od-filter-bar-header .z-datebox-button,
+.od-filter-bar-header .z-datebox-btn,
+.od-filter-bar-header .z-combobox-btn {
+    height: 100% !important;
+    border: none !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.od-filter-bar-header .z-datebox-inp:focus,
+.od-filter-bar-header .z-combobox-inp:focus {
+    outline: none !important;
+}
+
+/* ── Button heights inside Header Filter Bar ── */
+.od-filter-bar-header .od-btn-clear {
+    height: 28px !important;
+    padding: 0 10px !important;
+    font-size: 11.5px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.od-filter-bar-header .od-btn-hdr {
+    height: 28px !important;
+    padding: 0 10px !important;
+    font-size: 11.5px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    vertical-align: middle !important;
+}
+
+/* ==========================================
+   FINAL TABLE OVERRIDES - KEEP AT FILE END
+   ========================================== */
+
+#gridCxf .z-listheader-content,
+#gridBatch .z-listheader-content,
+#gridCheque .z-listheader-content,
+#gridCxf .z-listheader-cnt,
+#gridBatch .z-listheader-cnt,
+#gridCheque .z-listheader-cnt {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+}
+
+#gridCxf .z-listcell-content,
+#gridBatch .z-listcell-content,
+#gridCheque .z-listcell-content {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+}
+
+#gridCxf .z-listbox-body,
+#gridBatch .z-listbox-body,
+#gridCheque .z-listbox-body {
+    overflow-x: hidden !important;
+}

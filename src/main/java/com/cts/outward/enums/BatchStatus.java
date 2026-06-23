@@ -214,7 +214,7 @@ public enum BatchStatus {
      *
      * <p><b>DB value:</b> {@code "CxfGenerated"}
      */
-    CXF_GENERATED("CxfGenerated", "CXF Generated"),
+    CXF_CIBF_GENERATED("CXF_CIBF_GENERATED", "CXF Generated"),
 
     /**
      * CXF file has been submitted to the ClearPay clearing network.

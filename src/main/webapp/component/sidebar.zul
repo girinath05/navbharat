@@ -150,14 +150,21 @@
 			<custom-attributes perm=""
 				pagePath="/zul/outward/reports/cxfReport.zul" />
 			<div sclass="cts-sub-row">
-				<label sclass="cts-sub-label" value="CXF Report" />
+				<label sclass="cts-sub-label" value="CXF-CIBF Report" />
 			</div>
 		</div>
-		<div id="menuCxbfReport" sclass="cts-menu-item">
+		<div id="menuBatchSummaryReport" sclass="cts-menu-item">
 			<custom-attributes perm=""
-				pagePath="/zul/outward/reports/cxbfReport.zul" />
+				pagePath="/zul/outward/reports/batchSummaryReport.zul" />
 			<div sclass="cts-sub-row">
-				<label sclass="cts-sub-label" value="CXBF Report" />
+				<label sclass="cts-sub-label" value="Batch Summary" />
+			</div>
+		</div>
+		<div id="menuChequeLevelReport" sclass="cts-menu-item">
+			<custom-attributes perm=""
+				pagePath="/zul/outward/reports/chequeLevelReport.zul" />
+			<div sclass="cts-sub-row">
+				<label sclass="cts-sub-label" value="Cheque Level Report" />
 			</div>
 		</div>
 	</div>

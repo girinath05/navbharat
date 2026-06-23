@@ -97,6 +97,17 @@ public class HibernateUtil {
     public static Session getSession() {
         return Holder.INSTANCE.openSession();
     }
+    
+    public static SessionFactory getSessionFactory() {
+        return Holder.INSTANCE;
+    }
+    
+    public static String getCxfArchivePath() {
+        return getSessionFactory().getProperties()
+            .getOrDefault("file.cxf.archive",
+                    "C:/cts/navbharat/cxf-archive")
+            .toString();
+    }
 
     /**
      * Returns true if the SessionFactory was created successfully.
