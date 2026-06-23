@@ -517,10 +517,10 @@
 
 /* MICR grid — 5 columns, 1 row → 52px */
 .vw-data-grid-micr {
-    grid-template-columns: repeat(5, 1fr) !important;
-    height: 52px !important;
-    min-height: 52px !important;
-    max-height: 52px !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    gap: 0 !important;
 }
 
 /* CBS grid — 3 cols × 2 rows → 108px */
@@ -849,4 +849,76 @@
         min-height: 530px !important;
         top: calc(var(--topbar-h) + 8px) !important;
     }
+}
+/* ═══════════════════════════════════════════════════════════════
+   PATCH — append these rules to the bottom of verification-one.css
+   Changes:
+     1. vw-data-grid-micr: 5 columns instead of 4
+     2. Account Status colored labels  (Active=green, Inactive=red)
+     3. New Account colored labels     (Yes=amber, No=green, —=gray)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. MICR grid → 5 equal columns ── */
+.vw-data-grid-micr {
+    grid-template-columns: repeat(5, 1fr) !important;
+}
+
+/* ── 2. Account Status chip colors ── */
+/* Apply one of these sclasses dynamically from the composer:
+      ch-active    → Active  (green)
+      ch-inactive  → red
+      ch-cbs-unknown → gray dash (already exists, kept here for reference) */
+
+.ch-active.z-label, .ch-active {
+    color: #166534 !important;          /* green-800 */
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.ch-inactive.z-label, .ch-inactive {
+    color: #991B1B !important;          /* red-800 */
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* ── 3. New Account chip colors ── */
+/* Apply one of these sclasses dynamically from the composer:
+      ch-new-acc  → Yes  (amber / warning)
+      ch-not-new  → No   (green)
+      ch-cbs-unknown → gray dash */
+
+.ch-new-acc.z-label, .ch-new-acc {
+    color: #92400E !important;          /* amber-800 */
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.ch-not-new.z-label, .ch-not-new {
+    color: #166534 !important;          /* green-800 */
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.vw-field {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    padding: 0 12px !important;
+    border-right: 1px solid #EDF1F7 !important;
+}
+
+.vw-field:last-child {
+    border-right: none !important;
 }

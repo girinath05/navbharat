@@ -694,6 +694,24 @@ public class ChequeDAOImpl implements ChequeDAO {
 			throw new RuntimeException("Failed to refer cheque to V2: " + ex.getMessage(), ex);
 		}
 	}
+	
+	@Override
+	public long countV1ProcessedForBatch(String batchId) {
+	    try (Session session = HibernateUtil.getSession()) {
+	        Number result = (Number) session.createNativeQuery(
+	                "SELECT COUNT(*) FROM cts_cheques"
+	                + " WHERE batch_id = :batchId"
+	                + "   AND ver_level = 'V1'"
+	                + "   AND status IN ('VERIFIED', 'REJECTED', 'V2_PENDING')",
+	                Object.class)
+	                .setParameter("batchId", batchId)
+	                .uniqueResult();
+	        return result != null ? result.longValue() : 0L;
+	    } catch (Exception ex) {
+	        LOG.severe("countV1ProcessedForBatch error: " + ex.getMessage());
+	        return 0L;
+	    }
+	}
 
 	@Override
 	public void updateVerRouting(Long chequeId, String status, String verLevel, String verStatus) {
