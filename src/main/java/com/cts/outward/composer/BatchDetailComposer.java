@@ -284,7 +284,7 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
                 ? back.toString()
                 : "/zul/outward/batchManagement.zul";
         Sessions.getCurrent().removeAttribute("batchDetailBackPage");
-        DashboardComposer.getInstance().loadPage(backPage);
+        DashboardComposer.navigateTo(backPage);
     }
 
     /** Submit all cheques in the batch for Verification I. */
@@ -312,7 +312,7 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
             Clients.showNotification(
                     "✅ Batch " + batchId + " submitted for Verification.",
                     "info", null, "middle_center", 3000);
-            DashboardComposer.getInstance().loadPage("/zul/outward/batchManagement.zul");
+            DashboardComposer.navigateTo("/zul/outward/batchManagement.zul");
         } catch (Exception ex) {
             Clients.showNotification(
                     "❌ Submit failed: " + ex.getMessage(),
@@ -1164,8 +1164,8 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
     // ══════════════════════════════════════════════════════════════════
 
     private void guardSession() {
-        if (Sessions.getCurrent().getAttribute(SESS_LOGGED_USER) == null)
-            Executions.sendRedirect("index.zul");
+        if (!com.cts.util.SecurityUtil.isLoggedIn())
+            Executions.sendRedirect("/zul/login.zul");
     }
 
     /** Converts YYYY-MM-DD database format to DD/MM/YYYY display format. */

@@ -303,3 +303,18 @@ html, body {
     background: #22C55E;
     display: inline-block;
 }
+/* ZK <image> tag overrides for header */
+.hdr-logo.z-image,
+.hdr-logo.z-image img {
+    height: 46px !important;
+    width: auto !important;
+    object-fit: contain !important;
+    display: block !important;
+}
+.hdr-cp-logo.z-image,
+.hdr-cp-logo.z-image img {
+    height: 38px !important;
+    width: auto !important;
+    object-fit: contain !important;
+    display: block !important;
+}

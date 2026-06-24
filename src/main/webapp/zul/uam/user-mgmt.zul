@@ -1,0 +1,228 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<zk xmlns:n="native">
+
+    <style src="/css/uam/user-mgmt.css"/>
+    <style src="/css/uam/user-mgmt-chpw.css"/>
+    <vlayout sclass="uam-page" hflex="1" vflex="1"
+             apply="com.cts.uam.composer.UserManagementComposer">
+
+        <div sclass="uam-surface">
+
+            <div sclass="uam-body">
+
+                <!-- Page header -->
+                <div sclass="page-header-row">
+                    <div>
+                        <label value="User Management" sclass="page-title"/>
+                        <div sclass="page-subtitle">
+                            Status changes need checker approval; edits &amp; password changes apply immediately.
+                        </div>
+                    </div>
+                    <button id="btnAddUser" sclass="btn btn-primary" label="+ Add User"/>
+                </div>
+
+                <!-- Main card: flex column, fills remaining space -->
+                <div sclass="user-list-card">
+
+                    <!-- Card title row -->
+                    <div sclass="table-header-row">
+                        <label sclass="table-title" value="ALL USERS"/>
+                        <label id="lblUserCount" sclass="count-badge" value="0 Users"/>
+                    </div>
+
+                    <!-- Filter bar -->
+                    <div sclass="filter-bar">
+                        <div sclass="filter-group">
+                            <n:div class="field-label">User ID</n:div>
+                            <div sclass="search-input-wrap">
+                                <n:span class="search-icon">&#128269;</n:span>
+                                <textbox id="txtFilterUserId" sclass="field-input search-input"
+                                         placeholder="Search user ID..." instant="true"/>
+                            </div>
+                        </div>
+                        <div sclass="filter-group">
+                            <n:div class="field-label">Full Name</n:div>
+                            <div sclass="search-input-wrap">
+                                <n:span class="search-icon">&#128269;</n:span>
+                                <textbox id="txtFilterName" sclass="field-input search-input"
+                                         placeholder="Search name..." instant="true"/>
+                            </div>
+                        </div>
+                        <div sclass="filter-group">
+                            <n:div class="field-label">Status</n:div>
+                            <div sclass="status-combo-wrap">
+                                <combobox id="cmbFilterStatus" hflex="1" readonly="true">
+                                    <comboitem label="All Status"       value=""/>
+                                    <comboitem label="Active"           value="ACTIVE"/>
+                                    <comboitem label="Disabled"         value="DISABLED"/>
+                                    <comboitem label="Locked"           value="LOCKED"/>
+                                    <comboitem label="Terminated"       value="TERMINATED"/>
+                                    <comboitem label="Pending Approval" value="PENDING_APPROVAL"/>
+                                </combobox>
+                            </div>
+                        </div>
+                        <div sclass="filter-actions">
+                            <button id="btnSearch" sclass="btn btn-primary btn-sm" label="Search"/>
+                            <button id="btnReset"  sclass="btn btn-outline btn-sm" label="Reset"/>
+                        </div>
+                    </div>
+
+                    <!--
+                        KEY FIX:
+                        .table-scroll-area  → flex:1; min-height:0; overflow:auto
+                            (takes all remaining space, scrolls internally)
+                        .pagination-bar     → flex-shrink:0
+                            (always rendered below, never pushed off-screen)
+                    -->
+                    <div sclass="table-scroll-area">
+                        <listbox id="lstUsers" sclass="cts-table"
+                                 mold="default" autopaging="false" nonselectableTags="">
+                            <listhead>
+                                <listheader label="User ID"    width="15%"/>
+                                <listheader label="Full Name"  width="21%"/>
+                                <listheader label="Role"       width="17%"/>
+                                <listheader label="Status"     width="14%"/>
+                                <listheader label="Last Login" width="18%"/>
+                                <listheader label="Actions"    width="15%"/>
+                            </listhead>
+                            <!-- rows built by UserManagementComposer -->
+                        </listbox>
+                    </div>
+
+                    <!-- Pagination — flex-shrink:0, always visible -->
+                    <div sclass="pagination-bar">
+                        <label id="lblPaginationInfo" sclass="pagination-info" value=""/>
+                        <div sclass="pagination-controls">
+                            <button id="btnFirstPage" sclass="btn btn-outline btn-xs"
+                                    label="&#171; First" disabled="true"/>
+                            <button id="btnPrevPage"  sclass="btn btn-outline btn-xs"
+                                    label="&#8249; Prev" disabled="true"/>
+                            <label  id="lblPageNum"   sclass="page-num" value="Page 1 of 1"/>
+                            <button id="btnNextPage"  sclass="btn btn-outline btn-xs"
+                                    label="Next &#8250;"/>
+                            <button id="btnLastPage"  sclass="btn btn-outline btn-xs"
+                                    label="Last &#187;"/>
+                        </div>
+                    </div>
+
+                </div><!-- /user-list-card -->
+
+            </div><!-- /uam-body -->
+        </div><!-- /uam-surface -->
+
+        <!-- Slide-in drawer -->
+        <div id="userDrawer" sclass="user-drawer">
+
+            <div sclass="drawer-header">
+                <label id="lblDrawerTitle" sclass="drawer-title" value="Add New User"/>
+                <button id="btnDrawerClose" sclass="btn btn-drawer-close btn-sm" label="&#10005;"/>
+            </div>
+
+            <div sclass="drawer-body">
+
+                <!-- Identity -->
+                <div sclass="drawer-section">
+                    <div sclass="drawer-section-title">Identity</div>
+                    <div sclass="form-cols-2">
+                        <div sclass="field-group">
+                            <n:div class="field-label">User ID <n:span class="req">*</n:span></n:div>
+                            <textbox id="txtUserId" sclass="field-input"
+                                     placeholder="e.g. john.doe" maxlength="50"/>
+                            <label sclass="field-hint"
+                                   value="Lowercase, dots/hyphens allowed. Cannot change after creation."/>
+                        </div>
+                        <div sclass="field-group">
+                            <n:div class="field-label">Full Name <n:span class="req">*</n:span></n:div>
+                            <textbox id="txtFullName" sclass="field-input"
+                                     placeholder="e.g. John Doe" maxlength="100"/>
+                        </div>
+                    </div>
+                    <div sclass="form-cols-2">
+                        <div sclass="field-group">
+                            <n:div class="field-label">Email</n:div>
+                            <textbox id="txtEmail" sclass="field-input"
+                                     placeholder="user@csb.co.in" maxlength="100"/>
+                        </div>
+                        <div sclass="field-group">
+                            <n:div class="field-label">Mobile</n:div>
+                            <textbox id="txtMobile" sclass="field-input"
+                                     placeholder="10-digit mobile" maxlength="15"/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Role -->
+                <div sclass="drawer-section">
+                    <div sclass="drawer-section-title">Access Role</div>
+                    <div sclass="field-group">
+                        <n:div class="field-label">Role <n:span class="req">*</n:span></n:div>
+                        <combobox id="cmbRole" sclass="field-input"
+                                  placeholder="Select role..." readonly="true"/>
+                        <label sclass="field-hint"
+                               value="Only active roles are listed. Role controls all menu access."/>
+                    </div>
+                </div>
+
+                <div sclass="info-note">
+                    <n:span>&#8505;&#65039;</n:span>
+                    <n:span>
+                        New user creation requires checker approval.
+                        A temporary password will be auto-generated and shown to the checker on approval.
+                        Edits to existing users are saved immediately.
+                    </n:span>
+                </div>
+
+            </div>
+
+            <div sclass="drawer-footer">
+                <button id="btnSaveUser"    sclass="btn btn-primary" label="Save"/>
+                <button id="btnDrawerCancel" sclass="btn btn-outline" label="Cancel"/>
+            </div>
+
+        </div><!-- /userDrawer -->
+
+        <div id="drawerOverlay" sclass="drawer-overlay"/>
+
+        <!-- Change password modal -->
+        <div id="changePwModal" sclass="chpw-modal-overlay" visible="false">
+            <div sclass="chpw-modal-card">
+
+                <div sclass="chpw-modal-header">
+                    <label sclass="chpw-modal-title" value="Change User Password"/>
+                    <button id="btnCancelChangePw" sclass="btn btn-ghost btn-sm chpw-close"
+                            label="&#10005;"/>
+                </div>
+
+                <div sclass="chpw-modal-body">
+                    <div sclass="chpw-target-info">
+                        <n:span class="chpw-target-label">Target User: </n:span>
+                        <label id="lblChangePwUser" sclass="chpw-target-value" value="—"/>
+                    </div>
+                    <div sclass="chpw-note">
+                        <n:span>&#8505;&#65039;</n:span>
+                        <n:span>Password change is applied immediately — no checker approval required.</n:span>
+                    </div>
+                    <div sclass="field-group">
+                        <n:div class="field-label">New Password <n:span class="req">*</n:span></n:div>
+                        <textbox id="txtAdminNewPw" sclass="field-input" type="password"
+                                 placeholder="Min 8 chars, 1 upper, 1 digit, 1 special"/>
+                    </div>
+                    <div sclass="field-group">
+                        <n:div class="field-label">Confirm Password <n:span class="req">*</n:span></n:div>
+                        <textbox id="txtAdminConfirmPw" sclass="field-input" type="password"
+                                 placeholder="Repeat new password"/>
+                    </div>
+                    <label id="lblChangePwError" sclass="chpw-error" value=""/>
+                </div>
+
+                <div sclass="chpw-modal-footer">
+                    <button id="btnSubmitChangePw" sclass="btn btn-primary" label="Change Password"/>
+                    <button id="btnCloseChangePw"  sclass="btn btn-outline" label="Cancel"/>
+                </div>
+
+            </div>
+        </div>
+
+    </vlayout>
+
+</zk>

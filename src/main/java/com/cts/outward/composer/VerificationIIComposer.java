@@ -8,6 +8,7 @@ import com.cts.outward.service.VerificationIIServiceImpl;
 import com.cts.outward.service.CBSService;
 import com.cts.outward.service.CBSServiceImpl;
 import com.cts.outward.dao.CBSDAOImpl;
+import com.cts.util.SecurityUtil;
 import org.zkoss.zk.ui.Component;
 import org.zkoss.zk.ui.Sessions;
 import org.zkoss.zk.ui.select.SelectorComposer;
@@ -1231,9 +1232,8 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
     // ════════════════════════════════════════════════════════════════════
 
     private String getVerifierUsername() {
-        String u = (String) Sessions.getCurrent()
-            .getAttribute(com.cts.composer.LoginComposer.SESS_USER_NAME);
-        return (u == null || u.isBlank()) ? "Unknown" : u;
+        String username = SecurityUtil.getCurrentUserId();
+        return (username == null || username.isBlank()) ? "Unknown" : username;
     }
 
     /**

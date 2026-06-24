@@ -1,0 +1,233 @@
+/* ============================================================
+   pending-role-approval-modal.css  —  ExpressClear CTS
+   Modal + permission-specific styles for pending-role-approval.zul
+   Base page layout comes from pending-approval.css
+   ============================================================ */
+
+/* ── Modal overlay ───────────────────────────────────────── */
+.modal-overlay {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 1200;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+  width: 600px;
+  max-width: 96vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 18px;
+  background: #163154;
+  border-bottom: 2px solid #0e2540;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e8f0fb;
+}
+
+.modal-close-btn {
+  background: transparent !important;
+  color: #a8c8f0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  height: 26px !important;
+  padding: 0 8px !important;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+}
+
+.modal-body::-webkit-scrollbar { width: 5px; }
+.modal-body::-webkit-scrollbar-thumb { background: #c0cfe4; border-radius: 3px; }
+
+.modal-footer {
+  padding: 11px 18px;
+  border-top: 1px solid #e2e8f2;
+  background: #f7f9fc;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Detail rows ─────────────────────────────────────────── */
+.detail-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 7px;
+  align-items: flex-start;
+}
+
+.detail-key {
+  font-size: 11px;
+  font-weight: 700;
+  color: #536781;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 130px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.detail-val {
+  font-size: 13px;
+  color: #1f2f45;
+  word-break: break-word;
+}
+
+/* ── Section title (permissions heading) ─────────────────── */
+.drawer-section-title {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #7f90aa;
+  margin-bottom: 10px;
+}
+
+/* ── Permission tag cloud ────────────────────────────────── */
+.perm-tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.perm-tag {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.perm-tag-added   { background: #d1fae5; color: #065f46; }
+.perm-tag-removed { background: #fee2e2; color: #991b1b; }
+.perm-tag-current { background: #ede9fe; color: #5b21b6; }
+
+/* ── Permission diff columns ─────────────────────────────── */
+.perm-diff-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.perm-diff-panel {
+  border: 1px solid #e2e8f2;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.perm-diff-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 6px 12px;
+  background: #f4f8ff;
+  border-bottom: 1px solid #e2e8f2;
+  color: #536781;
+}
+
+.perm-diff-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* ── Self-warning banner ─────────────────────────────────── */
+.self-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 7px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #9a3412;
+  margin-bottom: 12px;
+}
+
+/* ── Reject section ──────────────────────────────────────── */
+.reject-section { margin-top: 4px; }
+
+.reject-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #536781;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.reject-input {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid #d0dcea;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-family: inherit;
+  min-height: 70px;
+  resize: vertical;
+  outline: none;
+}
+
+.reject-input:focus {
+  border-color: #e05252;
+  box-shadow: 0 0 0 2px rgba(224, 82, 82, 0.12);
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .modal-card     { width: 98vw; max-height: 94vh; }
+  .perm-diff-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .modal-body     { padding: 14px; }
+  .modal-footer   { padding: 10px 14px; flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1; justify-content: center; }
+  .detail-key     { min-width: 100px; }
+}
+
+/* ── Description cell — allow text wrap, no truncation ──── */
+.z-listbox.cts-table .z-listcell.desc-cell {
+  white-space: normal !important;
+  overflow: visible !important;
+  max-width: none !important;
+  text-align: left !important;
+  word-break: break-word !important;
+}
+
+.z-listbox.cts-table .z-listcell.desc-cell .z-listcell-content {
+  justify-content: flex-start !important;
+  white-space: normal !important;
+  text-align: left !important;
+}

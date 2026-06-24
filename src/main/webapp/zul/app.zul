@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zk>
+
+    <style src="/css/theme.css" />
+    <style src="/css/app.css" />
+    <style src="/css/sidebar.css" />
+    <style src="/css/header.css" />
+
+    <!-- FIX: UAM CSS files added -->
+    <style src="/css/uam/user-mgmt.css"/>
+    <style src="/css/uam/role-mgmt.css"/>
+    <style src="/css/uam/pending-approval.css"/>
+    <style src="/css/uam/pending-approval-modal.css"/>
+    <style src="/css/uam/pending-role-approval-modal.css"/>
+
+    <html>
+        <head>
+            <link rel="stylesheet"
+                href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+        </head>
+    </html>
+
+    <!--
+        DashboardComposer picks the first dashboard page the role can access
+        and loads it into #mainContent.
+    -->
+    <div sclass="app-shell" apply="com.cts.composer.DashboardComposer">
+
+        <!-- HEADER -->
+        <div sclass="app-header">
+            <include src="/component/header.zul" />
+        </div>
+
+        <!-- BODY -->
+        <div sclass="app-body">
+
+            <!-- SIDEBAR -->
+            <div id="sidebarPanel" sclass="app-sidebar">
+                <include src="/component/sidebar.zul" />
+            </div>
+
+            <!-- CONTENT -->
+            <div sclass="app-content">
+                <include id="mainContent"
+                    mode="defer" />
+            </div>
+
+        </div>
+
+    </div>
+
+</zk>

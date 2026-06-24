@@ -57,11 +57,13 @@ import org.zkoss.zul.Listcell;
 import org.zkoss.zul.Listitem;
 import org.zkoss.zul.Textbox;
 
+import com.cts.composer.DashboardComposer;
 import com.cts.outward.dao.OutwardDashboardDAOImpl;
 import com.cts.outward.enums.BatchStatus;
 import com.cts.outward.model.BatchModel;
 import com.cts.outward.service.OutwardDashboardService;
 import com.cts.outward.service.OutwardDashboardServiceImpl;
+import com.cts.util.SecurityUtil;
 
 public class OutwardDashboardComposer extends SelectorComposer<Component> {
 
@@ -562,11 +564,9 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
     private void openBatch(String batchId) {
         if (batchId == null) return;
         Sessions.getCurrent().setAttribute("selectedBatchId", batchId);
-        Sessions.getCurrent().setAttribute(
-            com.cts.composer.DashboardComposer.SESS_LAST_SUB_PAGE,
+        Sessions.getCurrent().setAttribute(DashboardComposer.LAST_VISITED_PAGE_KEY,
             "/zul/outward/batch-detail.zul");
-        com.cts.composer.DashboardComposer.getInstance()
-            .loadPage("/zul/outward/batch-detail.zul");
+        DashboardComposer.navigateTo("/zul/outward/batch-detail.zul");
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -574,9 +574,9 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
     // ════════════════════════════════════════════════════════════════════
 
     private void guardSession() {
-        Object u = Sessions.getCurrent().getAttribute("loggedUser");
-        if (u == null || u.toString().trim().isEmpty())
-            Executions.sendRedirect("/zul/index.zul");
+        if (!SecurityUtil.isLoggedIn()) {
+            Executions.sendRedirect("/zul/login.zul");
+        }
     }
 
     // ════════════════════════════════════════════════════════════════════

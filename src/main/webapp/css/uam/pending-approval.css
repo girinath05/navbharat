@@ -1,0 +1,485 @@
+/* ============================================================
+   pending-approval.css  —  ExpressClear CTS
+   Mirrors user-mgmt.css structure exactly.
+   ============================================================ */
+
+/* ── Page shell ─────────────────────────────────────────── */
+.uam-page {
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.uam-surface {
+  background: var(--cts-surface, #fff);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(22, 49, 84, 0.06);
+  margin: 14px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.uam-body {
+  padding: 12px 18px 10px;
+  background: #f5f7fa;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Page header ────────────────────────────────────────── */
+.page-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.page-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1d2c42;
+  display: block;
+  line-height: 1;
+}
+
+.page-subtitle {
+  margin-top: 2px;
+  color: #7e8fab;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* ── Main card ──────────────────────────────────────────── */
+.user-list-card {
+  background: #fff;
+  border: 1px solid #e2e8f2;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(15, 35, 71, 0.05);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Card header row ────────────────────────────────────── */
+.table-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 16px;
+  border-bottom: 1px solid #e2e8f2;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.table-title {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #536781;
+}
+
+.count-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #5d7290;
+  background: #eef3fa;
+  border: 1px solid #d8e3f2;
+  border-radius: 99px;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+/* ── Table scroll area — KEY: flex:1, min-height:0 ─────── */
+.table-scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ── Listbox ─────────────────────────────────────────────── */
+.z-listbox.cts-table {
+  width: 100% !important;
+  border: none !important;
+  font-size: 12.5px;
+  table-layout: fixed !important;
+}
+
+.z-listbox.cts-table .z-listbox-content,
+.z-listbox.cts-table table,
+.z-listbox.cts-table > table {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+/* Navy header */
+.z-listbox.cts-table .z-listhead {
+  background: #163154 !important;
+  background-image: none !important;
+}
+
+.z-listbox.cts-table .z-listheader {
+  background: #163154 !important;
+  background-image: none !important;
+  background-color: #163154 !important;
+  color: #e8f0fb !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.6px !important;
+  text-transform: uppercase !important;
+  padding: 8px 12px !important;
+  border-bottom: 2px solid #0e2540 !important;
+  border-right: 1px solid #1e3f6a !important;
+  text-align: center !important;
+}
+
+.z-listbox.cts-table .z-listheader:last-child {
+  border-right: none !important;
+}
+
+.z-listbox.cts-table .z-listheader-content,
+.z-listbox.cts-table .z-listheader-text {
+  color: #e8f0fb !important;
+  font-size: 10.5px !important;
+}
+
+/* Rows */
+.z-listbox.cts-table .z-listitem {
+  border-bottom: 1px solid #f0f4fa !important;
+  transition: background 0.1s !important;
+}
+
+.z-listbox.cts-table .z-listitem:hover {
+  background: #f7faff !important;
+}
+
+.z-listbox.cts-table .z-listitem.z-listitem-selected {
+  background: #eef4ff !important;
+}
+
+/* Data cells — compact, single row height */
+.z-listbox.cts-table .z-listcell {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 0 !important;
+  padding: 7px 10px !important;
+  font-size: 12.5px !important;
+  vertical-align: middle !important;
+  color: #2a3d5e !important;
+  text-align: center !important;
+}
+
+.z-listbox.cts-table .z-listcell-content {
+  text-align: center !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Actions cell — no truncation, inline flex */
+.z-listbox.cts-table .z-listcell:last-child {
+  white-space: normal !important;
+  overflow: visible !important;
+  max-width: none !important;
+  padding: 5px 8px !important;
+  vertical-align: middle !important;
+  text-align: center !important;
+}
+
+.z-listbox.cts-table .z-listcell:last-child .z-listcell-content {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  flex-wrap: nowrap !important;
+}
+
+/* ── Action cell div (built in composer) ─────────────────── */
+.action-cell {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  flex-wrap: nowrap !important;
+}
+
+/* ── Monospace ───────────────────────────────────────────── */
+.mono {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+  color: #163154;
+  font-weight: 600;
+}
+
+/* ── PAGINATION — flex-shrink:0, always visible ─────────── */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-top: 1px solid #e2e8f2;
+  background: #f8fafc;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 38px;
+}
+
+.pagination-info {
+  font-size: 12px;
+  color: #7f90aa;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1d2c42;
+  background: #fff;
+  padding: 3px 12px;
+  border-radius: 6px;
+  border: 1px solid #d0dcea;
+  white-space: nowrap;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.13s;
+  white-space: nowrap;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+.btn-primary   { background: #163154; color: #fff; }
+.btn-primary:hover { background: #1e4a7a; }
+
+.btn-success   { background: #059669; color: #fff; }
+.btn-success:hover { background: #047857; }
+
+.btn-danger    { background: #e05252; color: #fff; }
+.btn-danger:hover { background: #c73e3e; }
+
+.btn-outline {
+  background: #fff;
+  color: #536781;
+  border: 1px solid #d0dcea;
+}
+.btn-outline:hover { background: #f0f4fa; border-color: #a8bed8; }
+.btn-outline:disabled,
+.btn-outline.z-button-disd { opacity: 0.4; cursor: default; }
+
+.btn-ghost {
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+.btn-ghost:hover { background: #f3f4f6; }
+
+.btn-sm  { height: 26px; padding: 0 10px; font-size: 11.5px; }
+.btn-xs  { height: 24px; padding: 0 8px;  font-size: 11px; }
+
+/* ── Status badges ───────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge-pending  { background: #fff8e7; color: #8a5f00; border: 1px solid #f0d080; }
+.badge-active   { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+.badge-rejected { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+/* ── Modal overlay (fixed positioning is fine for ZK modals) */
+.modal-overlay {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 1200;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+  width: 580px;
+  max-width: 96vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 18px;
+  background: #163154;
+  border-bottom: 2px solid #0e2540;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e8f0fb;
+}
+
+.modal-close-btn {
+  background: transparent !important;
+  color: #a8c8f0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  height: 26px !important;
+  padding: 0 8px !important;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+}
+
+.modal-body::-webkit-scrollbar { width: 5px; }
+.modal-body::-webkit-scrollbar-thumb { background: #c0cfe4; border-radius: 3px; }
+
+.modal-footer {
+  padding: 11px 18px;
+  border-top: 1px solid #e2e8f2;
+  background: #f7f9fc;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Self-warning banner ─────────────────────────────────── */
+.self-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 7px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #9a3412;
+  margin-bottom: 12px;
+}
+
+/* ── Detail rows ─────────────────────────────────────────── */
+.detail-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 7px;
+  align-items: flex-start;
+}
+
+.detail-key {
+  font-size: 11px;
+  font-weight: 700;
+  color: #536781;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 136px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.detail-val {
+  font-size: 13px;
+  color: #1f2f45;
+  word-break: break-word;
+}
+
+/* ── Reject section ──────────────────────────────────────── */
+.reject-section { margin-top: 4px; }
+
+.reject-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #536781;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.reject-input {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid #d0dcea;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-family: inherit;
+  min-height: 70px;
+  resize: vertical;
+  outline: none;
+}
+
+.reject-input:focus {
+  border-color: #e05252;
+  box-shadow: 0 0 0 2px rgba(224, 82, 82, 0.12);
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .uam-body { padding: 10px; }
+  .page-header-row { flex-direction: column; align-items: flex-start; }
+  .modal-card { width: 98vw; max-height: 94vh; }
+  .action-cell { gap: 4px !important; }
+}
+
+@media (max-width: 600px) {
+  .uam-surface { margin: 6px; border-radius: 7px; }
+  .uam-body { padding: 9px; }
+  .page-title { font-size: 15px; }
+  .z-listbox.cts-table .z-listcell { font-size: 11px !important; padding: 6px 5px !important; }
+  .z-listbox.cts-table .z-listheader { font-size: 10px !important; padding: 7px 5px !important; }
+  .action-cell { flex-wrap: wrap !important; }
+  .modal-footer { flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1; justify-content: center; }
+  .detail-key { min-width: 100px; }
+}

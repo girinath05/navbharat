@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?page title="ClearPay CTS — Login | Nav Bharat Bank" contentType="text/html;charset=UTF-8"?>
+<zk xmlns="http://www.zkoss.org/2005/zul"
+    xmlns:n="native">
+
+    <style src="/css/login.css"/>
+
+    <!-- HEADER -->
+    <n:div class="cts-header">
+        <n:div class="hdr-left">
+            <image src="/images/navbharat.jpg" sclass="hdr-logo"/>
+        </n:div>
+        <n:div class="hdr-right">
+            <image src="/images/clearpay.jpg" sclass="hdr-cp-logo"/>
+        </n:div>
+    </n:div>
+
+    <!-- LOGIN BODY -->
+    <n:div class="login-page">
+
+        <div id="loginContainer" class="login-container"
+             apply="com.cts.composer.LoginComposer">
+
+            <n:div class="login-top-bar"></n:div>
+
+            <!-- Card header -->
+            <n:div class="login-card-header">
+                <n:div class="login-title">Welcome to CTS Operations</n:div>
+                <n:div class="login-sub-bank">Nav Bharat Bank</n:div>
+                <n:div class="login-sub-system">Cheque Truncation System</n:div>
+            </n:div>
+
+            <!-- Form -->
+            <n:div class="login-form">
+
+                <n:div class="field-block">
+                    <n:label class="field-lbl">User ID</n:label>
+                    <n:div class="input-wrap icon-user">
+                        <textbox id="txtUsername"
+                                 placeholder="Enter your User ID"
+                                 width="100%"/>
+                    </n:div>
+                </n:div>
+
+                <n:div class="field-block">
+                    <n:label class="field-lbl">Password</n:label>
+                    <n:div class="input-wrap icon-lock">
+                        <textbox id="txtPassword"
+                                 type="password"
+                                 placeholder="Enter your Password"
+                                 width="100%"/>
+                    </n:div>
+                </n:div>
+
+                <!-- Caps Lock warning — wired as #lblCapsLock -->
+                <label id="lblCapsLock"
+                       value="⚠ Caps Lock is ON"
+                       sclass="caps-warn"
+                       visible="false"/>
+
+                <!-- Error block — wired as #divError and #lblError -->
+                <div id="divError" sclass="error-msg" visible="false">
+                    <label id="lblError" value=""/>
+                </div>
+
+                <n:div class="cts-btn-login">
+                    <button id="btnLogin" label="LOGIN"/>
+                </n:div>
+
+            </n:div>
+
+            <!-- Card footer -->
+            <n:div class="login-footer-row">
+                <n:span class="lf-rbi">RBI CTS-2010 Compliant</n:span>
+            </n:div>
+
+        </div>
+    </n:div>
+
+    <!-- STATUS BAR -->
+    <n:div class="status-bar">
+        <n:span class="sb-item"><n:span class="sb-dot"></n:span>System Online</n:span>
+        <n:span class="sb-item">ClearPay CTS v3.1.2</n:span>
+        <n:span class="sb-item">&#169; 2026 Nav Bharat Bank</n:span>
+    </n:div>
+
+</zk>

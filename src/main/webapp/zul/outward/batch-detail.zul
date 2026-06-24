@@ -17,12 +17,9 @@
 -->
 <zk xmlns="http://www.zkoss.org/2005/zul" xmlns:n="native">
 
-	<n:link rel="stylesheet"
-		href="/navbharat/css/outward/batch-cheque-entry.css" />
-	<n:link rel="stylesheet"
-		href="/navbharat/css/outward/my-batches.css" />
-	<n:link rel="stylesheet"
-		href="/navbharat/css/outward/batch-detail.css" />
+	<style src="/css/outward/batch-cheque-entry.css" />
+	<style src="/css/outward/my-batches.css" />
+	<style src="/css/outward/batch-detail.css" />
 
 	<div id="bdRoot"
 		apply="com.cts.outward.composer.BatchDetailComposer">

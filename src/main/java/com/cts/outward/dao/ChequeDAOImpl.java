@@ -45,7 +45,7 @@ import org.hibernate.query.NativeQuery;
 
 import com.cts.outward.entity.BatchEntity;
 import com.cts.outward.entity.ChequeEntity;
-import com.cts.outward.util.HibernateUtil;
+import com.cts.util.HibernateUtil;
 
 public class ChequeDAOImpl implements ChequeDAO {
 

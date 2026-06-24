@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zk xmlns:n="native">
+
+    <!--<style src="/css/uam/role-mgmt.css"/>-->
+    <vlayout sclass="uam-page" hflex="1" vflex="1"
+             apply="com.cts.uam.composer.RoleManagementComposer">
+
+        <div sclass="uam-surface">
+            <div sclass="uam-body">
+
+                <!-- ── Page header ───────────────────────────────── -->
+                <div sclass="page-header-row">
+                    <div>
+                        <label value="Role Management" sclass="page-title"/>
+                        <div sclass="page-subtitle">
+                            Define roles and assign module-level permissions.
+                            Create, update and status changes require checker approval before taking effect.
+                        </div>
+                    </div>
+                    <button id="btnAddRole" sclass="btn btn-primary" label="+ Add Role"/>
+                </div>
+
+                <!-- ── Two-column layout (fills remaining space) ─── -->
+                <div sclass="role-layout">
+
+                    <!-- ════ LEFT: Role list panel ════════════════════ -->
+                    <div sclass="role-list-panel">
+
+                        <!-- Header -->
+                        <div sclass="role-list-header">
+                            <label sclass="role-list-title" value="ALL ROLES"/>
+                            <label id="lblRoleCount" sclass="role-count-badge" value="0 Roles"/>
+                        </div>
+
+                        <!-- Search -->
+                        <div sclass="role-search-wrap">
+                            <textbox id="txtRoleSearch"
+                                     sclass="role-search"
+                                     placeholder="Search roles..."
+                                     instant="true"/>
+                        </div>
+
+                        <!-- Scrollable items — built by composer -->
+                        <div id="roleListContainer"/>
+
+                        <!-- Pagination bar — flex-shrink:0, always visible -->
+                        <div sclass="role-pagination-bar">
+                            <label id="lblRolePaginationInfo"
+                                   sclass="role-pagination-info"
+                                   value=""/>
+                            <div sclass="role-pagination-controls">
+                                <button id="btnRoleFirstPage" sclass="btn btn-outline btn-xs"
+                                        label="«" disabled="true"/>
+                                <button id="btnRolePrevPage"  sclass="btn btn-outline btn-xs"
+                                        label="‹" disabled="true"/>
+                                <label  id="lblRolePageNum"   sclass="role-page-num" value="1 / 1"/>
+                                <button id="btnRoleNextPage"  sclass="btn btn-outline btn-xs"
+                                        label="›"/>
+                                <button id="btnRoleLastPage"  sclass="btn btn-outline btn-xs"
+                                        label="»"/>
+                            </div>
+                        </div>
+
+                    </div><!-- /role-list-panel -->
+
+                    <!-- ════ RIGHT: Role editor card ═══════════════════ -->
+                    <div sclass="role-editor-card">
+
+                        <!-- Card header -->
+                        <div sclass="card-header">
+                            <label id="lblEditorTitle"
+                                   sclass="card-title"
+                                   value="SELECT A ROLE TO MODIFY"/>
+                            <button id="btnToggleActive"
+                                    sclass="btn btn-outline btn-sm"
+                                    label="Deactivate"
+                                    visible="false"/>
+                        </div>
+
+                        <!-- card-body: flex:1 + overflow-y:auto — tree scrolls here -->
+                        <div sclass="card-body">
+
+                            <!-- Empty state -->
+                            <div id="editorEmptyState" sclass="empty-state">
+                                <n:div class="empty-state-icon">&#127917;</n:div>
+                                <div sclass="empty-state-text">No role selected</div>
+                                <div sclass="empty-state-sub">
+                                    Choose a role from the left panel,
+                                    or click "+ Add Role" to create a new one.
+                                </div>
+                            </div>
+
+                            <!-- Editor form — shown when role selected or adding new -->
+                            <div id="editorForm" visible="false">
+
+                                <!-- Role name + description -->
+                                <div sclass="form-row cols-2">
+                                    <div sclass="field-group">
+                                        <n:div class="field-label">
+                                            ROLE NAME <n:span class="req">*</n:span>
+                                        </n:div>
+                                        <textbox id="txtRoleName"
+                                                 sclass="field-input"
+                                                 placeholder="e.g. CHECKER_OUTWARD"
+                                                 maxlength="50"/>
+                                        <label id="lblRoleNameHint"
+                                               sclass="field-hint"
+                                               value="Uppercase, underscores only. Cannot be changed after creation."/>
+                                    </div>
+                                    <div sclass="field-group">
+                                        <n:div class="field-label">DESCRIPTION</n:div>
+                                        <textbox id="txtRoleDesc"
+                                                 sclass="field-input"
+                                                 placeholder="e.g. Outward Clearing Checker"
+                                                 maxlength="200"/>
+                                    </div>
+                                </div>
+
+                                <n:hr class="section-divider"/>
+
+                                <!-- Permission tree header -->
+                                <div sclass="perm-section-label">Module Permissions</div>
+
+                                <!-- Tree — built by RoleManagementComposer.buildPermissionTree()
+                                     NO overflow:hidden here — expands inside scrolling card-body -->
+                                <div id="permTreeContainer" sclass="perm-tree"/>
+
+                                <!-- Info note -->
+                                <div sclass="info-note">
+                                    <n:span>&#8505;</n:span>
+                                    <n:span>
+                                        Changes are queued for checker approval before taking effect.
+                                    </n:span>
+                                </div>
+
+                                <!-- Action buttons -->
+                                <div sclass="btn-row">
+                                    <button id="btnSaveRole"
+                                            sclass="btn btn-primary"
+                                            label="Save"/>
+                                    <button id="btnDeleteRole"
+                                            sclass="btn btn-danger"
+                                            label="Delete"
+                                            visible="false"/>
+                                    <button id="btnCancelRole"
+                                            sclass="btn btn-outline"
+                                            label="Cancel"/>
+                                </div>
+
+                            </div><!-- /editorForm -->
+
+                        </div><!-- /card-body -->
+
+                    </div><!-- /role-editor-card -->
+
+                </div><!-- /role-layout -->
+
+            </div><!-- /uam-body -->
+        </div><!-- /uam-surface -->
+
+    </vlayout>
+</zk>

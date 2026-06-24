@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zk xmlns:n="native">
+
+    <style src="/css/uam/pending-approval.css" />
+    <style src="/css/uam/pending-role-approval-modal.css" />
+
+    <vlayout sclass="uam-page" hflex="1" vflex="1"
+        apply="com.cts.uam.composer.PendingRoleApprovalComposer">
+
+        <div sclass="uam-surface">
+            <div sclass="uam-body">
+
+                <!-- Page header -->
+                <div sclass="page-header-row">
+                    <div>
+                        <label value="Pending Role Approval" sclass="page-title" />
+                        <div sclass="page-subtitle">
+                            Review and approve or reject pending role creation requests.
+                        </div>
+                    </div>
+                    <button id="btnRefreshRole" sclass="btn btn-outline btn-sm"
+                        label="&#8635; Refresh" />
+                </div>
+
+                <!-- Main card — same structure as user-mgmt & pending-approval -->
+                <div sclass="user-list-card">
+
+                    <div sclass="table-header-row">
+                        <label sclass="table-title" value="ROLE REQUESTS" />
+                        <label id="lblRoleApprovalCount" sclass="count-badge" value="0 Requests" />
+                    </div>
+
+                    <!-- Scrollable table area — takes all remaining space -->
+                    <div sclass="table-scroll-area">
+                        <listbox id="lstRoleApprovals" sclass="cts-table"
+                            mold="default" autopaging="false" nonselectableTags="">
+                            <listhead>
+                                <listheader label="#"            width="50px"/>
+                                <listheader label="Role Name"    width="200px"/>
+                                <listheader label="Description" width="240px"/>
+                                <listheader label="Maker"        width="130px"/>
+                                <listheader label="Submitted At" width="160px"/>
+                                <listheader label="Actions"      width="230px"/>
+                            </listhead>
+                            <!-- rows built by PendingRoleApprovalComposer -->
+                        </listbox>
+                    </div>
+
+                    <!-- Pagination — flex-shrink:0, always visible -->
+                    <div sclass="pagination-bar">
+                        <label id="lblPaginationInfo" sclass="pagination-info" value="" />
+                        <div sclass="pagination-controls">
+                            <button id="btnFirstPage" sclass="btn btn-outline btn-xs"
+                                label="&#171; First" disabled="true" />
+                            <button id="btnPrevPage" sclass="btn btn-outline btn-xs"
+                                label="&#8249; Prev" disabled="true" />
+                            <label id="lblPageNum" sclass="page-num" value="Page 1 of 1" />
+                            <button id="btnNextPage" sclass="btn btn-outline btn-xs"
+                                label="Next &#8250;" />
+                            <button id="btnLastPage" sclass="btn btn-outline btn-xs"
+                                label="Last &#187;" />
+                        </div>
+                    </div>
+
+                </div><!-- /user-list-card -->
+
+            </div><!-- /uam-body -->
+        </div><!-- /uam-surface -->
+
+        <!-- Role Detail Modal -->
+        <div id="roleDetailOverlay" sclass="modal-overlay" visible="false">
+            <div sclass="modal-card">
+
+                <div sclass="modal-header">
+                    <label sclass="modal-title" value="Role Approval Details" />
+                    <button id="btnRoleDetailClose" sclass="btn btn-ghost btn-sm modal-close-btn"
+                        label="&#10005;" />
+                </div>
+
+                <div sclass="modal-body">
+
+                    <!-- Four-eyes self-warning -->
+                    <div id="rdSelfWarning" sclass="self-warning" visible="false">
+                        <n:span>&#9888;&#65039;</n:span>
+                        <n:span>
+                            This request was submitted by you.
+                            A different user must approve or reject it.
+                        </n:span>
+                    </div>
+
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Role Name:" />
+                        <label id="rdRoleName" sclass="detail-val" value="" />
+                    </div>
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Action:" />
+                        <label id="rdActionType" sclass="detail-val" value="" />
+                    </div>
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Description:" />
+                        <label id="rdCurrentDesc" sclass="detail-val" value="" />
+                    </div>
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Requested By:" />
+                        <label id="rdMakerId" sclass="detail-val" value="" />
+                    </div>
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Submitted At:" />
+                        <label id="rdSubmittedAt" sclass="detail-val" value="" />
+                    </div>
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Status:" />
+                        <label id="rdCurrentStatus" sclass="detail-val" value="" />
+                    </div>
+
+                    <!-- Permissions list -->
+                    <div id="rdPermListSection" visible="false">
+                        <n:hr style="margin:14px 0" />
+                        <div sclass="drawer-section-title">Permissions Assigned</div>
+                        <div id="rdPermList" sclass="perm-tag-cloud" />
+                    </div>
+
+                    <!-- Rejection reason input -->
+                    <div id="rdRejectSection" sclass="reject-section" visible="false">
+                        <n:hr style="margin:14px 0" />
+                        <div sclass="reject-label">
+                            Rejection Reason <n:span style="color:#e05252">*</n:span>
+                        </div>
+                        <textbox id="txtRoleRejectRemarks" sclass="reject-input"
+                            multiline="true" placeholder="Enter reason for rejection..." />
+                    </div>
+
+                </div><!-- /modal-body -->
+
+                <div sclass="modal-footer">
+                    <button id="btnRoleModalApprove" sclass="btn btn-success" label="&#10003; Approve" />
+                    <button id="btnRoleModalReject"  sclass="btn btn-danger"  label="&#10005; Reject" />
+                    <button id="btnRoleModalClose"   sclass="btn btn-outline" label="Close" />
+                </div>
+
+            </div>
+        </div><!-- /roleDetailOverlay -->
+
+    </vlayout>
+
+</zk>

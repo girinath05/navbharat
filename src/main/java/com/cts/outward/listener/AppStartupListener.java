@@ -42,7 +42,7 @@ import java.util.logging.Logger;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 
-import com.cts.outward.util.HibernateUtil;
+import com.cts.util.HibernateUtil;
 
 public class AppStartupListener implements ServletContextListener {
 

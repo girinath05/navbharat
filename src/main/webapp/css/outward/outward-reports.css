@@ -17,24 +17,7 @@
     overflow: visible;
 }
 
-.od-page-bg.z-window,
-.od-page-bg.z-window-noborder {
-    padding: 0 !important;
-    margin: 0 !important;
-    border: none !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-}
-
-.od-page-bg.z-window>.z-window-content,
-.od-page-bg.z-window-noborder>.z-window-content {
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow-x: hidden !important;
-    box-sizing: border-box !important;
-}
+/* od-page-bg is now a plain <div> — no z-window overrides needed */
 
 /* ── Breadcrumb ── */
 .od-breadcrumb {
@@ -913,19 +896,7 @@
     overflow: visible !important;
 }
 
-/* Remove the browser scrollbar from the page itself */
-.od-page-bg.z-window,
-.od-page-bg.z-window-noborder {
-    overflow: visible !important;
-    height: auto !important;
-}
-
-.od-page-bg.z-window>.z-window-content,
-.od-page-bg.z-window-noborder>.z-window-content {
-    overflow: visible !important;
-    height: auto !important;
-    box-sizing: border-box !important;
-}
+/* od-page-bg is now a plain <div> — no z-window-content overrides needed */
 
 /* ── Header Integrated Filter Bar ── */
 .od-filter-bar-header {

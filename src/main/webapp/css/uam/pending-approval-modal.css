@@ -1,0 +1,158 @@
+/* ============================================================
+   pending-approval-modal.css  —  ExpressClear CTS
+   Inline styles extracted from pending-approval.zul
+   ============================================================ */
+
+/* ── Modal overlay ───────────────────────────────────────── */
+.modal-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 1200;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    width: 600px;
+    max-width: 96vw;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+    from { opacity:0; transform:translateY(-16px) scale(0.97); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--cts-border);
+    background: #163154;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.modal-title { font-size: 15px; font-weight: 600; color: #fff; }
+
+.modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 22px;
+}
+
+.modal-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--cts-border);
+    background: #f7f9fc;
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* ── Detail rows ─────────────────────────────────────────── */
+.detail-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 13.5px;
+}
+
+.detail-key {
+    font-weight: 600;
+    color: #536781;
+    min-width: 120px;
+    flex-shrink: 0;
+}
+
+.detail-val { color: var(--cts-text); }
+
+/* ── Diff section ────────────────────────────────────────── */
+.diff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 10px;
+}
+
+.diff-panel {
+    border: 1px solid var(--cts-border);
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.diff-panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 6px 12px;
+    background: #f4f8ff;
+    border-bottom: 1px solid var(--cts-border);
+    color: #536781;
+}
+
+.diff-panel-body { padding: 10px 12px; }
+
+/* ── Self-warning ────────────────────────────────────────── */
+.self-warning {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 7px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #9a3412;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+/* ── Reject section ──────────────────────────────────────── */
+.reject-section {
+    margin-top: 14px;
+    border-top: 1px dashed var(--cts-border);
+    padding-top: 14px;
+}
+
+.reject-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #536781;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+}
+
+.reject-input {
+    width: 100%;
+    padding: 8px 11px;
+    border: 1px solid var(--cts-border);
+    border-radius: 6px;
+    font-size: 13.5px;
+    font-family: inherit;
+    min-height: 70px;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .modal-card  { width: 98vw; max-height: 94vh; }
+    .diff-grid   { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+    .modal-body   { padding: 14px; }
+    .modal-footer { padding: 10px 14px; flex-wrap: wrap; }
+    .modal-footer .btn { flex: 1; justify-content: center; }
+    .detail-key   { min-width: 100px; }
+}

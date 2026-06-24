@@ -94,7 +94,7 @@ import java.util.List;
 import com.cts.outward.dao.CBSDAOImpl;
 import com.cts.outward.dao.ChequeDAO;
 import com.cts.outward.entity.ChequeEntity;
-import com.cts.outward.util.HibernateUtil;
+import com.cts.util.HibernateUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**

@@ -34,10 +34,10 @@
    ================================================================ */
 .z-north-body,
 .z-north-noborder {
-    overflow: visible !important;
-     transform: none !important;
-     will-change: auto !important;
-    isolation: auto !important;
+    overflow:   visible !important;
+    transform:  none    !important;
+    will-change: auto   !important;
+    isolation:  auto    !important;
 }
 
 /* ================================================================
@@ -57,7 +57,7 @@
     width:      100%;
 }
 
-/* ── HEADER BAR — full styles on both sclass and ID so nothing is missed ── */
+/* ── HEADER BAR ─────────────────────────────────────────────── */
 .cts-header,
 #ctsHeader,
 #ctsHeader.z-div {
@@ -70,18 +70,18 @@
     box-sizing:      border-box;
     margin:          0;
     border:          none;
-    border-bottom:   none;
     background:      var(--hdr-bg);
+    border-bottom:   1px solid var(--hdr-border);
     position:        sticky;
     top:             0;
     z-index:         1000;
     user-select:     none;
-    box-shadow:      0 2px 16px rgba(0,0,0,0.45);
+    box-shadow:      0 2px 16px rgba(0,0,0,0.45),
+                     inset 0 -1px 0 rgba(255,255,255,0.04);
 }
 
 /* ════════════════════════════════════════════════════════════
    LEFT — Nav Bharat Bank branding
-   Pure <n:div> — no ZK class interference
    ════════════════════════════════════════════════════════════ */
 .hdr-left {
     display:     flex;
@@ -97,16 +97,13 @@
     object-fit: contain;
 }
 
-
-/* ================================================================
-   CLOCK GLITCH FIX v3  —  hdrCentre is now INSIDE the flex bar.
-   No absolute positioning. flex:1 with justify-content:center
-   centres the clock between left and right sections cleanly.
-   ================================================================ */
-
+/* ════════════════════════════════════════════════════════════
+   CENTRE — Date + Clock
+   flex:1 centres the clock between left and right cleanly.
+   ════════════════════════════════════════════════════════════ */
 .hdr-centre,
 .hdr-centre.z-div {
-    flex:            1 1 auto;        /* grow to fill space between left & right */
+    flex:            1 1 auto;
     display:         flex;
     align-items:     center;
     justify-content: center;
@@ -133,7 +130,6 @@ label.hdr-clock-label {
     border:               none;
     background:           transparent;
     text-shadow:          0 0 18px rgba(200,210,255,0.3);
-    /* FIX: tabular digits + fixed box */
     font-variant-numeric: tabular-nums;
     width:                120px;
     text-align:           center;
@@ -154,16 +150,14 @@ label.hdr-date-label {
     margin:               0;
     border:               none;
     background:           transparent;
-    /* FIX: tabular digits + fixed box */
     font-variant-numeric: tabular-nums;
     width:                140px;
     text-align:           center;
     white-space:          nowrap;
 }
+
 /* ════════════════════════════════════════════════════════════
    RIGHT — ClearPay CTS + user controls
-   ZK <div sclass="hdr-right"> — ZK adds z-div class.
-   Paired selector overrides z-div display:block → flex.
    ════════════════════════════════════════════════════════════ */
 .hdr-right,
 .hdr-right.z-div {
@@ -236,7 +230,6 @@ label.hdr-avatar {
 }
 
 /* ── Avatar button wrapper ──────────────────────────────── */
-/* ZK adds z-div — paired selector keeps display:inline-flex */
 .hdr-avatar-btn,
 .hdr-avatar-btn.z-div {
     display:       inline-flex;
@@ -249,7 +242,7 @@ label.hdr-avatar {
     background:    transparent;
     border:        none;
     margin:        0;
-}	
+}
 
 .hdr-avatar-btn:hover,
 .hdr-avatar-btn.z-div:hover {
@@ -296,23 +289,15 @@ label.hdr-role-pill {
     .hdr-clock-label { font-size: 16px; }
 }
 
-
 /* ================================================================
    PROFILE POPUP
    ----------------------------------------------------------------
-   ZK <div id="profilePopup"> — ZK adds z-div class.
-   No ZK popup component used — zero z-popup-content wrapper.
-   No zk.wcs interference — CSS works directly.
-
    Hidden by default with display:none.
    Shown by composer: setSclass("profile-popup pp-visible")
    Hidden by composer: setSclass("profile-popup")
-
-   position:fixed removes it from normal document flow.
-   z-north-body overflow:visible fix above lets it render
-   outside the north region boundary correctly.
+   position:fixed + z-north-body overflow:visible fix above lets
+   it render outside the north region boundary correctly.
    ================================================================ */
-
 .profile-popup,
 .profile-popup.z-div {
     display:       none;
@@ -330,7 +315,6 @@ label.hdr-role-pill {
     margin:        0;
 }
 
-/* Composer calls setSclass("profile-popup pp-visible") to show */
 .profile-popup.pp-visible,
 .profile-popup.z-div.pp-visible {
     display: block;
@@ -436,7 +420,6 @@ label.pp-role-badge {
     background: #1e1b3a;
 }
 
-/* Menu items are ZK <div> — ZK adds z-div class */
 .pp-menu-item,
 .pp-menu-item.z-div {
     display:     flex;
@@ -472,6 +455,7 @@ label.pp-role-badge {
 .pp-icon-profile  { background: rgba(99,102,241,0.20);  color: #818cf8; }
 .pp-icon-password { background: rgba(234,179,8,0.20);   color: #facc15; }
 .pp-icon-edit     { background: rgba(249,115,22,0.20);  color: #fb923c; }
+.pp-icon-clock    { background: rgba(56,189,248,0.18);  color: #38bdf8; }
 .pp-icon-logout   { background: rgba(239,68,68,0.20);   color: #f87171; }
 
 /* ── Menu label ─────────────────────────────────────────── */
@@ -483,7 +467,6 @@ label.pp-role-badge {
     letter-spacing: 0.2px;
 }
 
-/* Logout row — red text */
 .pp-logout .pp-menu-label { color: #f87171; }
 
 /* ════════════════════════════════════════════════════════════
@@ -521,11 +504,8 @@ label.pp-session-label {
 }
 
 /* ════════════════════════════════════════════════════════════
-   CLOCK TOGGLE — pp-icon-clock + ON/OFF pill
+   CLOCK TOGGLE — ON/OFF pill
    ════════════════════════════════════════════════════════════ */
-
-.pp-icon-clock { background: rgba(56,189,248,0.18); color: #38bdf8; }
-
 .pp-toggle,
 .pp-toggle.z-div {
     display:         inline-flex;
@@ -540,7 +520,6 @@ label.pp-session-label {
     transition:      background 0.2s ease;
 }
 
-/* ON  — green pill */
 .pp-toggle-on,
 .pp-toggle-on.z-div,
 .pp-toggle.z-div.pp-toggle-on {
@@ -548,7 +527,6 @@ label.pp-session-label {
     border:     1px solid rgba(52,211,153,0.40) !important;
 }
 
-/* OFF — grey pill */
 .pp-toggle-off,
 .pp-toggle-off.z-div,
 .pp-toggle.z-div.pp-toggle-off {
@@ -556,7 +534,6 @@ label.pp-session-label {
     border:     1px solid rgba(148,144,184,0.30) !important;
 }
 
-/* Label base */
 .pp-toggle-label,
 label.pp-toggle-label {
     font-family:    var(--hdr-font-ui);
@@ -571,12 +548,84 @@ label.pp-toggle-label {
     line-height:    1;
 }
 
-/* ON  — green text (descendant selector skips any z-div ZK inserts) */
 .pp-toggle-on  .pp-toggle-label,
 .pp-toggle-on  label.pp-toggle-label,
 .pp-toggle.pp-toggle-on  label.z-label { color: #34d399 !important; }
 
-/* OFF — grey text */
 .pp-toggle-off .pp-toggle-label,
 .pp-toggle-off label.pp-toggle-label,
 .pp-toggle.pp-toggle-off label.z-label { color: #9490b8 !important; }
+
+/* ════════════════════════════════════════════════════════════
+   CHANGE PASSWORD MODAL
+   ════════════════════════════════════════════════════════════ */
+.chpw-modal-overlay {
+    position:        fixed;
+    inset:           0;
+    background:      rgba(0, 0, 0, 0.45);
+    z-index:         99999;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+}
+
+.chpw-modal-card {
+    background:    #fff;
+    border-radius: 12px;
+    width:         420px;
+    box-shadow:    0 8px 32px rgba(0,0,0,0.18);
+    overflow:      hidden;
+}
+
+.chpw-modal-header {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    padding:         16px 20px;
+    background:      #3b1f6e;
+    color:           #fff;
+}
+
+.chpw-modal-title {
+    font-size:   15px;
+    font-weight: 600;
+    color:       #fff;
+}
+
+.chpw-close-btn {
+    background: transparent !important;
+    color:      #fff        !important;
+    border:     none        !important;
+    font-size:  16px;
+    cursor:     pointer;
+}
+
+.chpw-modal-body {
+    padding:        20px 24px;
+    display:        flex;
+    flex-direction: column;
+    gap:            14px;
+}
+
+.chpw-note {
+    font-size:     12px;
+    color:         #666;
+    background:    #f5f5f5;
+    border-left:   3px solid #3b1f6e;
+    padding:       8px 12px;
+    border-radius: 4px;
+}
+
+.chpw-error-label {
+    color:      #c0392b;
+    font-size:  12px;
+    min-height: 16px;
+}
+
+.chpw-modal-footer {
+    display:         flex;
+    justify-content: flex-end;
+    gap:             10px;
+    padding:         14px 24px;
+    border-top:      1px solid #eee;
+}

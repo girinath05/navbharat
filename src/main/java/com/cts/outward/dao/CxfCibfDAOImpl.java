@@ -3,7 +3,7 @@ package com.cts.outward.dao;
 import com.cts.outward.dto.CxfBatchDTO;
 import com.cts.outward.dto.CxfChequeDTO;
 import com.cts.outward.enums.BatchStatus;
-import com.cts.outward.util.HibernateUtil;
+import com.cts.util.HibernateUtil;
 import org.hibernate.Session;
 import java.math.BigDecimal;
 import java.sql.Timestamp;

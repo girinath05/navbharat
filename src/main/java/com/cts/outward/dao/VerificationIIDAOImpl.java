@@ -14,7 +14,7 @@ import com.cts.outward.enums.BatchStatus;
 import com.cts.outward.enums.ChequeStatus;
 import com.cts.outward.model.BatchModel;
 import com.cts.outward.model.ChequeModel;
-import com.cts.outward.util.HibernateUtil;
+import com.cts.util.HibernateUtil;
 
 /**
  * VerificationIIDAOImpl

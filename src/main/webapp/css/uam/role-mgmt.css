@@ -1,0 +1,763 @@
+/* ============================================================
+   role-mgmt.css  —  ExpressClear CTS  |  Role Management
+   v4 — permission grid fixed, ZK checkbox targeted properly
+   ============================================================ */
+
+/* ── Page shell ─────────────────────────────────────────────── */
+.uam-page {
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.uam-surface {
+    background: var(--cts-surface, #fff);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 6px 18px rgba(22, 49, 84, 0.06);
+    margin: 14px;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.uam-body {
+    padding: 12px 18px 10px;
+    background: #f5f7fa;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ── Page header ─────────────────────────────────────────────── */
+.page-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.page-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1d2c42;
+    display: block;
+    line-height: 1;
+}
+
+.page-subtitle {
+    margin-top: 2px;
+    color: #7e8fab;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+/* ── Two-column layout ───────────────────────────────────────── */
+.role-layout {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ════════════════════════════════════════════════════════════
+   LEFT PANEL
+   ════════════════════════════════════════════════════════════ */
+.role-list-panel {
+    background: #fff;
+    border: 1px solid #e2e8f2;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(15,35,71,0.05);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.role-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 10px;
+    border-bottom: 1px solid #e2e8f2;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.role-list-title {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #536781;
+}
+
+.role-count-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: #5d7290;
+    background: #eef3fa;
+    border: 1px solid #d8e3f2;
+    border-radius: 99px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
+.role-search-wrap {
+    padding: 8px 10px;
+    border-bottom: 1px solid #e2e8f2;
+    background: #f8fafc;
+    flex-shrink: 0;
+}
+
+.role-search {
+    width: 100%;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid #d0dcea;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #2a3d5e;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    box-sizing: border-box;
+}
+
+.role-search:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+
+#roleListContainer {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+#roleListContainer::-webkit-scrollbar { width: 4px; }
+#roleListContainer::-webkit-scrollbar-thumb { background: #c0cfe4; border-radius: 3px; }
+
+/* ── Role list items ─────────────────────────────────────────── */
+.role-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 10px 12px;
+    min-height: 52px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f4fa;
+    border-left: 3px solid transparent;
+    transition: background 0.1s, border-left-color 0.1s;
+    gap: 8px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.role-item:last-child { border-bottom: none; }
+.role-item:hover { background: #f4f8ff; border-left-color: #b8d0f5; }
+.role-item.selected { background: #eef4ff; border-left-color: #2563eb; }
+
+.role-item-info,
+div.z-div.role-item-info {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px;
+}
+
+.role-item-name,
+span.z-label.role-item-name {
+    display: block !important;
+    font-size: 12px;
+    font-weight: 700;
+    color: #1f2f45;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.role-item-desc,
+span.z-label.role-item-desc,
+div.z-div.role-item-desc {
+    display: block !important;
+    font-size: 11px;
+    color: #7f90aa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.role-item .badge,
+.role-item span.z-label.badge {
+    flex-shrink: 0;
+    margin-top: 2px;
+    display: inline-flex !important;
+    align-items: center;
+}
+
+/* ── Role list pagination ────────────────────────────────────── */
+.role-pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-top: 1px solid #e2e8f2;
+    background: #f8fafc;
+    flex-shrink: 0;
+    gap: 6px;
+}
+
+.role-pagination-info {
+    font-size: 10.5px;
+    color: #7f90aa;
+    white-space: nowrap;
+}
+
+.role-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.role-page-num {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #1d2c42;
+    background: #fff;
+    padding: 2px 8px;
+    border-radius: 5px;
+    border: 1px solid #d0dcea;
+    white-space: nowrap;
+}
+
+/* ════════════════════════════════════════════════════════════
+   RIGHT PANEL — Editor
+   ════════════════════════════════════════════════════════════ */
+.role-editor-card {
+    background: #fff;
+    border: 1px solid #e2e8f2;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(15,35,71,0.05);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 10px;
+    border-bottom: 1px solid #e2e8f2;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.card-title {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #536781;
+}
+
+/* card-body scrolls — tree lives here */
+.card-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 6px 10px 8px;
+}
+
+.card-body::-webkit-scrollbar { width: 5px; }
+.card-body::-webkit-scrollbar-thumb { background: #c0cfe4; border-radius: 3px; }
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: #9aadbd;
+    text-align: center;
+    gap: 12px;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.empty-state-icon { font-size: 36px; opacity: 0.4; }
+.empty-state-text { font-size: 13px; font-weight: 600; color: #7f90aa; }
+.empty-state-sub  { font-size: 12px; color: #9aadbd; line-height: 1.5; max-width: 300px; }
+
+/* ── Editor form ─────────────────────────────────────────────── */
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(10px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+#editorForm { animation: slideInRight 0.18s ease; }
+
+.form-row { display: grid; gap: 6px; margin-bottom: 0; }
+.form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 2px;
+}
+
+.field-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #536781;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: 1px;
+}
+
+.field-label .req { color: #e05252; }
+
+.field-input {
+    width: 100%;
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid #d0dcea;
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    color: #2a3d5e;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
+}
+
+.field-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+
+.field-input[readonly],
+.field-input.readonly {
+    background: #f4f7fb;
+    color: #778aa8;
+    cursor: not-allowed;
+}
+
+.field-hint { font-size: 11px; color: #9aabc4; margin-top: 1px; display: block; }
+
+/* ── ZK Textbox overrides — kill red border + fix sizing ────── */
+/* ZK renders Textbox as: <span class="z-textbox"><input ...></span> */
+.field-group .z-textbox,
+.field-group span.z-textbox {
+    display: block !important;
+    width: 100% !important;
+    height: 26px !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    box-sizing: border-box;
+}
+
+/* The actual <input> inside ZK span — THIS is what shows red */
+.field-group .z-textbox input,
+.field-group .z-textbox > input[type="text"],
+.field-group .z-textbox > input[type="password"] {
+    width: 100% !important;
+    height: 26px !important;
+    padding: 0 8px !important;
+    border: 1px solid #d0dcea !important;
+    border-radius: 5px !important;
+    font-size: 12px !important;
+    font-family: "Segoe UI", Tahoma, sans-serif !important;
+    color: #2a3d5e !important;
+    background: #fff !important;
+    outline: none !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+
+.field-group .z-textbox input:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12) !important;
+}
+
+/* readonly state */
+.field-group .z-textbox-disd input,
+.field-group .z-textbox[readonly] input,
+.field-group .z-textbox input[readonly] {
+    background: #f4f7fb !important;
+    color: #778aa8 !important;
+    cursor: not-allowed !important;
+    border-color: #e2e8f2 !important;
+}
+
+/* ZK readonly class */
+.field-group .z-textbox-readonly input,
+.field-group .z-textbox.z-textbox-readonly > input {
+    background: #f4f7fb !important;
+    color: #778aa8 !important;
+    cursor: not-allowed !important;
+    border-color: #e2e8f2 !important;
+}
+
+/* Kill ZK constraint-fail red border + error tooltip completely */
+.field-group .z-textbox-wr input,
+.field-group .z-textbox.z-textbox-wr > input {
+    border-color: #d0dcea !important;
+    background: #fff !important;
+    color: #2a3d5e !important;
+    box-shadow: none !important;
+}
+
+.z-errorbox { display: none !important; }
+
+.section-divider {
+    border: none;
+    border-top: 1px solid #e2e8f2;
+    margin: 4px 0 4px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   PERMISSION TREE  —  module cards + 3-col permission grid
+   ════════════════════════════════════════════════════════════ */
+
+.perm-section-label {
+    font-size: 7.5px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: #9aabc4;
+    margin-bottom: 1px;
+    padding-bottom: 1px;
+    border-bottom: 1px solid #e2e8f2;
+}
+
+/* Tree container — vertical stack of module cards */
+.perm-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* ── Module card ─────────────────────────────────────────────── */
+.perm-module {
+    display: flex;
+    flex-direction: column;
+    background: #f8fafc;
+    border: 1px solid #e2eaf6;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    /* overflow:hidden removed — was clipping ZK checkbox popups */
+}
+
+/* Module header row: [checkbox] [icon] [name] */
+.perm-module-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    background: #fff;
+    border-bottom: 1px solid #e2eaf6;
+    border-radius: 6px 6px 0 0;
+    cursor: default;
+    user-select: none;
+}
+
+/* Module-level checkbox — slightly bigger */
+.perm-module-header .z-checkbox {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.perm-module-header .z-checkbox input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
+    accent-color: #2563eb;
+    cursor: pointer;
+    margin: 0;
+}
+
+/* Hide ZK's generated label text next to module checkbox (name shown separately) */
+.perm-module-header .z-checkbox .z-checkbox-content { display: none !important; }
+
+.perm-module-icon {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    flex-shrink: 0;
+}
+
+.perm-module-icon.icon-admin     { background: #e8f0fe; color: #3b5bdb; }
+.perm-module-icon.icon-dashboard { background: #fff0f6; color: #e64980; }
+.perm-module-icon.icon-inward    { background: #fff9db; color: #f59f00; }
+.perm-module-icon.icon-outward   { background: #e6fcf5; color: #099268; }
+.perm-module-icon.icon-reports   { background: #f3f0ff; color: #7950f2; }
+.perm-module-icon.icon-uam       { background: #fff4e6; color: #e67700; }
+
+.perm-module-name {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #1f2c42;
+}
+
+/* ── Permission children ────────────────────────────────────────────── */
+/*
+   perm-children = grid container
+   Direct children = Div.perm-child (from composer)
+   Inside each perm-child = ONE ZK Checkbox
+   Grid columns: 2 — wide enough for "Return Cheques Queue" etc.
+*/
+.perm-children {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0 3px;
+    padding: 2px 6px 4px 6px;
+    background: #f8fafc;
+    border-radius: 0 0 6px 6px;
+}
+
+/* Grid cell wrapper — perm-child Div */
+.perm-child {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+    border-radius: 5px;
+    transition: background 0.1s;
+}
+
+.perm-child:hover { background: #eef4ff; }
+
+/* ZK Checkbox inside perm-child:
+   ZK renders <span class="z-checkbox"><input/><span class="z-checkbox-content">label</span></span>
+   Force it to fill the cell and truncate */
+.perm-child .z-checkbox {
+    display: flex !important;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    padding: 1px 2px;
+    gap: 0;
+    cursor: pointer;
+}
+
+/* The native checkbox input */
+.perm-child .z-checkbox input[type="checkbox"] {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+    margin: 0 4px 0 0;
+    accent-color: #2563eb;
+    cursor: pointer;
+}
+
+/* The label text span — TRUNCATE, never wrap */
+.perm-child .z-checkbox-content {
+    font-size: 10px;
+    color: #364c66;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1;
+    line-height: 1;
+    cursor: pointer;
+}
+
+/* ── Info note ───────────────────────────────────────────────── */
+.info-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: #edf5ff;
+    border: 1px solid #b8d4f8;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #1f5fa8;
+    margin-top: 14px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+    padding-bottom: 4px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.13s;
+    white-space: nowrap;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+.btn-primary   { background: #163154; color: #fff; }
+.btn-primary:hover { background: #1e4a7a; }
+
+.btn-danger    { background: #e05252; color: #fff; }
+.btn-danger:hover { background: #c73e3e; }
+
+.btn-outline   { background: #fff; color: #536781; border: 1px solid #d0dcea; }
+.btn-outline:hover { background: #f0f4fa; border-color: #a8bed8; }
+.btn-outline:disabled,
+.btn-outline.z-button-disd { opacity: 0.4; cursor: default; }
+
+.btn-success   { background: #059669; color: #fff; }
+.btn-success:hover { background: #047857; }
+
+.btn-sm  { height: 26px; padding: 0 10px; font-size: 11.5px; }
+.btn-xs  { height: 22px; padding: 0 7px;  font-size: 11px; }
+
+/* ── Badges ──────────────────────────────────────────────────── */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.badge-active   { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+.badge-inactive { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.badge-pending  { background: #fff8e7; color: #8a5f00; border: 1px solid #f0d080; }
+
+/* ── Empty list msg ──────────────────────────────────────────── */
+.role-list-empty     { padding: 24px 12px; text-align: center; }
+.role-list-empty-lbl { color: #9aadbd; font-size: 11.5px; }
+
+/* ── Editor animation ────────────────────────────────────────── */
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(10px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+#editorForm { animation: slideInRight 0.18s ease; }
+
+/* ── ZK global theme resets for this page ────────────────────── */
+/* ZK sapphire/breeze theme injects colors — neutralize all */
+.card-body .z-textbox,
+.card-body .z-textbox-inp,
+.card-body span.z-textbox {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    width: 100% !important;
+    height: 26px !important;
+    display: block !important;
+    padding: 0 !important;
+}
+
+.card-body .z-textbox > input,
+.card-body .z-textbox input[type="text"],
+.card-body .z-textbox input[type="password"],
+.card-body .z-textbox-inp > input {
+    width: 100% !important;
+    height: 26px !important;
+    line-height: 26px !important;
+    padding: 0 8px !important;
+    font-size: 12px !important;
+    font-family: "Segoe UI", Tahoma, sans-serif !important;
+    color: #2a3d5e !important;
+    background: #fff !important;
+    border: 1px solid #d0dcea !important;
+    border-radius: 5px !important;
+    box-shadow: none !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+}
+
+/* focus */
+.card-body .z-textbox > input:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.12) !important;
+}
+
+/* readonly — ZK sets z-textbox-readonly on the span */
+.card-body .z-textbox-readonly > input,
+.card-body .z-textbox > input[readonly] {
+    background: #f4f7fb !important;
+    color: #8a9ab5 !important;
+    border-color: #e2e8f2 !important;
+    cursor: default !important;
+}
+
+/* error state — kill red */
+.card-body .z-textbox-invalid > input,
+.card-body .z-textbox-wr > input {
+    border-color: #d0dcea !important;
+    color: #2a3d5e !important;
+    background: #fff !important;
+    box-shadow: none !important;
+}
+
+/* ZK error tooltip box — hide */
+.z-errbox,
+.z-errorbox,
+div.z-errorbox { display: none !important; }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+    .perm-children {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .role-layout { grid-template-columns: 1fr; overflow-y: auto; }
+    .role-list-panel { min-height: 280px; max-height: 320px; }
+    .role-editor-card { min-height: 400px; }
+    .perm-children { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+    .uam-surface { margin: 6px; }
+    .uam-body    { padding: 9px; }
+    .form-row.cols-2 { grid-template-columns: 1fr; }
+    .btn-row .btn { flex: 1; justify-content: center; }
+    .role-pagination-info { display: none; }
+    .perm-children { grid-template-columns: repeat(2, 1fr); }
+}
