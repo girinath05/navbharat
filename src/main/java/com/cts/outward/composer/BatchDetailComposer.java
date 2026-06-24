@@ -151,7 +151,6 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
 
     // ══════════════════════════════════════════════════════════════════
     // WIRED COMPONENTS — LIST / FILTER
-    // ══════════════════════════════════════════════════════════════════
 
     @Wire private Textbox  txtSearch;
     @Wire private Datebox  dtDateFilter;
@@ -159,6 +158,7 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
     @Wire private Button   btnClearFilter;
     @Wire private Combobox cmbStatusFilter;
     @Wire private Label    lblFilterCount;
+    
     @Wire private Listbox  lbCheques;
     @Wire private Label    lblChequeRange;
     @Wire private Button   btnFirst;
@@ -167,9 +167,11 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
     @Wire private Button   btnLast;
     @Wire private Label    lblPageInfo;
 
+    
+    
+    
     // ══════════════════════════════════════════════════════════════════
     // WIRED COMPONENTS — POPUP OUTER
-    // ══════════════════════════════════════════════════════════════════
 
     /** The popup overlay Div — toggled via setVisible(). */
     @Wire private Div    chequePopup;
@@ -274,7 +276,6 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
 
     // ══════════════════════════════════════════════════════════════════
     // PAGE LISTENERS
-    // ══════════════════════════════════════════════════════════════════
 
     /** Navigate back — respects {@code batchDetailBackPage} session attr. */
     @Listen("onClick = #btnBack")
@@ -286,6 +287,10 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
         Sessions.getCurrent().removeAttribute("batchDetailBackPage");
         DashboardComposer.navigateTo(backPage);
     }
+    
+    
+    
+    
 
     /** Submit all cheques in the batch for Verification I. */
     @Listen("onClick = #btnSaveBatch")
@@ -320,6 +325,10 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
         }
     }
 
+    
+    
+    
+    
     // ── Filter listeners ───────────────────────────────────────────────
 
     /** Instant search while typing. */
@@ -1030,7 +1039,6 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
 
     // ══════════════════════════════════════════════════════════════════
     // FILTER + RENDER
-    // ══════════════════════════════════════════════════════════════════
 
     private void applyFilter() {
         String q = txt(txtSearch).toLowerCase();
@@ -1161,7 +1169,6 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
 
     // ══════════════════════════════════════════════════════════════════
     // HELPERS
-    // ══════════════════════════════════════════════════════════════════
 
     private void guardSession() {
         if (!com.cts.util.SecurityUtil.isLoggedIn())

@@ -202,8 +202,8 @@ public final class SecurityUtil {
         permissions.put("/zul/outward/outwardDashboard.zul", "OUTWARD_DASHBOARD_VIEW");
         permissions.put("/zul/inward/inwardDashboard.zul", "INWARD_DASHBOARD_VIEW");
 
-        permissions.put("/zul/outward/scanModule.zul", "OUTWARD_BATCH_SCANNING");
-        permissions.put("/zul/outward/batchManagement.zul", "OUTWARD_BATCH_MANAGEMENT");
+        permissions.put("/zul/outward/cheque-scan.zul", "OUTWARD_BATCH_SCANNING");
+        permissions.put("/zul/outward/my-batches.zul", "OUTWARD_BATCH_MANAGEMENT");
         permissions.put("/zul/outward/batch-detail.zul", "OUTWARD_BATCH_MANAGEMENT");
         permissions.put("/zul/outward/verification-I.zul", "OUTWARD_VERIFICATION_ONE");
         permissions.put("/zul/outward/verification-II.zul", "OUTWARD_VERIFICATION_TWO");

@@ -559,12 +559,11 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
 
     // ════════════════════════════════════════════════════════════════════
     //  NAVIGATION
-    // ════════════════════════════════════════════════════════════════════
-
     private void openBatch(String batchId) {
         if (batchId == null) return;
         Sessions.getCurrent().setAttribute("selectedBatchId", batchId);
-        Sessions.getCurrent().setAttribute(DashboardComposer.LAST_VISITED_PAGE_KEY,
+        Sessions.getCurrent().setAttribute(
+            DashboardComposer.LAST_VISITED_PAGE_KEY,
             "/zul/outward/batch-detail.zul");
         DashboardComposer.navigateTo("/zul/outward/batch-detail.zul");
     }

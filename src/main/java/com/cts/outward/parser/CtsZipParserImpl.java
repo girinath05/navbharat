@@ -4,7 +4,7 @@
  *  File        : CtsZipParserImpl.java
  *  Package     : com.cts.outward.parser
  *  Author      : Umesh M.
- *  Created     : June 2026
+ *  Date        : 24-06-2026
  *  Description : Parses CTS ZIP files (Structure A: folder-per-cheque,
  *                Structure B: flat batch XML). Extracts drawee account,
  *                payee account, BaseNo, TC from XML and MICR line.
@@ -39,12 +39,22 @@ import org.w3c.dom.NodeList;
 import com.cts.outward.entity.BatchEntity;
 import com.cts.outward.entity.ChequeEntity;
 
-public class CtsZipParserImpl implements CtsParser {
+public class CtsZipParserImpl implements CtsParser, CtsZipParser {
 
     private static final Logger        LOG = Logger.getLogger(CtsZipParserImpl.class.getName());
     private static final AtomicInteger SEQ = new AtomicInteger(1);
 
     @Override
+    /**
+     * Parses a CTS ZIP file into a ParseResult (BatchEntity + ChequeEntity list).
+     * Auto-detects ZIP structure: Structure A (folder-per-cheque with per-cheque XML)
+     * or Structure B (flat batch with single master XML).
+     *
+     * @param zipBytes raw bytes of the uploaded ZIP from ZK UploadEvent
+     * @param zipName  original filename e.g. MUM01_20260610.zip; used for batchId derivation
+     * @return ParseResult with BatchEntity and all parsed ChequeEntity objects
+     * @throws RuntimeException wrapping any IO or XML parse failure
+     */
     public ParseResult parse(byte[] zipBytes, String zipName) {
         LOG.info("CtsZipParserImpl.parse() — file: " + zipName + " | size: " + zipBytes.length + " bytes");
         try {
@@ -67,6 +77,14 @@ public class CtsZipParserImpl implements CtsParser {
     // STRUCTURE DETECTION
     // ══════════════════════════════════════════════════════════════════
 
+    /**
+     * Detects ZIP structure by checking for sub-directory entries.
+     * Structure A: ZIP contains folders (one per cheque, each with its own XML).
+     * Structure B: ZIP is flat (single master XML + all images at root level).
+     *
+     * @param entries map of entryName to bytes from extracted ZIP
+     * @return true if Structure A (folder-per-cheque), false if Structure B (flat)
+     */
     private boolean detectFolderPerCheque(Map<String, byte[]> entries) {
         // Structure A: BATCH0102/CHQ001/cheque.xml  → split("/").length == 3  → true
         // Structure B: BATCH0102/batch.xml          → split("/").length == 2  → false
@@ -314,6 +332,14 @@ public class CtsZipParserImpl implements CtsParser {
     //  tokens:   [0]ChequeNo [1]SortCode [2]BaseNo [3]TC
     // ══════════════════════════════════════════════════════════════════
 
+    /**
+     * Decomposes a MICR line string into city, bank, branch, and TC fields.
+     * MICR format: "<chequeNo> <cityCode><bankCode><branchCode> <accountNo> <TC>"
+     * Writes parsed values directly onto the supplied ChequeEntity.
+     *
+     * @param c        ChequeEntity to populate with parsed MICR fields
+     * @param micrLine raw MICR line string from XML
+     */
     private void parseMicrLine(ChequeEntity c, String micrLine) {
         if (micrLine == null || micrLine.isBlank()) return;
 
@@ -346,7 +372,16 @@ public class CtsZipParserImpl implements CtsParser {
     // ZIP EXTRACTION
     // ══════════════════════════════════════════════════════════════════
 
-    private Map<String, byte[]> extractZipEntries(byte[] zipBytes) throws IOException {
+    /**
+     * Extracts all file entries from ZIP bytes into an ordered name-to-bytes map.
+     * Directory entries are skipped. Preserves original ZIP entry name as key.
+     *
+     * @param zipBytes raw ZIP file bytes
+     * @return ordered map of entryName to file bytes for all file entries
+     * @throws IOException if ZIP stream is malformed or unreadable
+     */
+    @Override
+    public Map<String, byte[]> extractZipEntries(byte[] zipBytes) throws IOException {
         Map<String, byte[]> map = new LinkedHashMap<>();
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
             ZipEntry entry;

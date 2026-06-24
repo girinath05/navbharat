@@ -1,9 +1,14 @@
 /*
  * ============================================================
- *  Project     : Navbharat CTS Outward
- *  File        : ChequeImageServlet.java
- *  Package     : com.cts.outward.servlet
- *  Updated     : June 2026
+ *  Project  : Navbharat CTS Outward
+ *  File     : ChequeImageServlet.java
+ *  Package  : com.cts.outward.servlet
+ *  Purpose  : Serves cheque front/rear images (JPEG) and grayscale
+ *             variants (PNG) to the browser via HTTP GET.
+ *             Applies session-level caching, background JPEG
+ *             recompression, and ETag-based 304 responses.
+ *  Author   : [Name]
+ *  Date     : June 2026
  *
  *  Optimizations:
  *    1. One DB round-trip per cheque per session (both blobs fetched together).
@@ -46,280 +51,418 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
+/**
+ * File     : ChequeImageServlet.java
+ * Package  : com.cts.outward.servlet
+ * Purpose  : HTTP servlet that serves cheque scanned images (front, rear,
+ *            front-gray, rear-gray) from the database to the browser.
+ *            Caches compressed image bytes in the HTTP session to avoid
+ *            repeated DB round-trips. Background thread recompresses JPEG
+ *            and pre-builds grayscale PNGs so subsequent requests are faster.
+ * Author   : [Name]
+ * Date     : June 2026
+ */
 public class ChequeImageServlet extends HttpServlet {
 
     private static final long   serialVersionUID = 1L;
-    private static final Logger LOG = Logger.getLogger(ChequeImageServlet.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(ChequeImageServlet.class.getName());
 
-    private static final String SESS_IMG_CACHE   = "cts.imgCache";
-    private static final int    CACHE_MAX_ENTRIES = 80;   // 20 cheques × 4 sides
+    /** Session attribute key for the image byte-cache map. */
+    private static final String SESSION_KEY_IMAGE_CACHE = "cts.imgCache";
 
-    /** JPEG quality for served images (0.0–1.0). 0.65 = ~60-80KB from 330KB raw. */
-    private static final float  JPEG_QUALITY = 0.65f;
+    /**
+     * Maximum entries in the per-session image cache.
+     * 20 cheques × 4 sides (front, rear, frontgray, reargray) = 80.
+     */
+    private static final int CACHE_MAX_ENTRIES = 80;
 
-    private static final ExecutorService GRAY_POOL = Executors.newFixedThreadPool(2);
+    /**
+     * JPEG compression quality applied before caching (0.0–1.0).
+     * 0.65 reduces ~330KB raw cheque scan to ~60-80KB without visible quality loss.
+     */
+    private static final float JPEG_COMPRESSION_QUALITY = 0.65f;
 
+    /**
+     * Background thread pool for JPEG recompression and grayscale pre-computation.
+     * Fixed at 2 threads — enough concurrency without over-loading Tomcat.
+     */
+    private static final ExecutorService BACKGROUND_IMAGE_PROCESSOR = Executors.newFixedThreadPool(2);
+
+    /** DAO for loading cheque entities with image blobs from the database. */
     private final ChequeDAO chequeDAO = new ChequeDAOImpl();
 
+    /**
+     * Shuts down the background image-processing thread pool gracefully
+     * when the servlet is taken out of service.
+     */
     @Override
     public void destroy() {
-        GRAY_POOL.shutdownNow();
+        BACKGROUND_IMAGE_PROCESSOR.shutdownNow();
         super.destroy();
     }
 
+    /**
+     * Handles HTTP GET requests for cheque images.
+     *
+     * <p>Flow:
+     * <ol>
+     *   <li>Validate session — reject unauthenticated requests with 401.</li>
+     *   <li>Parse and validate {@code id} (chequeId) and {@code side} parameters.</li>
+     *   <li>Check session cache — return cached bytes if present (skip DB).</li>
+     *   <li>On cache miss: load both image blobs in one DB query, cache raw bytes.</li>
+     *   <li>Submit background task: recompress JPEG + pre-build grayscale PNGs.</li>
+     *   <li>Apply ETag / If-None-Match → 304 Not Modified if content unchanged.</li>
+     *   <li>Write image bytes to the HTTP response with correct MIME type.</li>
+     * </ol>
+     *
+     * @param httpRequest  incoming GET request; must carry {@code id} and {@code side} params
+     * @param httpResponse outgoing response; will receive image bytes or an error code
+     * @throws ServletException if a servlet-level error occurs
+     * @throws IOException      if writing to the response output stream fails
+     */
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest httpRequest, HttpServletResponse httpResponse)
+            throws ServletException, IOException {
 
-        // ── 1. Session guard ──────────────────────────────────────────────────
-        // MERGE FIX: LoginComposer no longer sets a raw "loggedUser" attribute;
-        // it stores a com.cts.uam.model.User under SecurityUtil.SESSION_USER_KEY
-        // on both the ZK session and the HttpSession.
-        HttpSession session = req.getSession(false);
-        if (session == null || !(session.getAttribute(com.cts.util.SecurityUtil.SESSION_USER_KEY)
-                instanceof com.cts.uam.model.User)) {
-            resp.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Not authenticated");
+        // ── 1. Session guard ──────────────────────────────────────────────────────────
+        // UAM auth: LoginComposer stores com.cts.uam.model.User under
+        // SecurityUtil.SESSION_USER_KEY on both ZK session and HttpSession.
+        HttpSession activeSession = httpRequest.getSession(false);
+        if (activeSession == null || !(activeSession.getAttribute(
+                com.cts.util.SecurityUtil.SESSION_USER_KEY) instanceof com.cts.uam.model.User)) {
+            httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Not authenticated");
             return;
         }
 
-        // ── 2. Parse params ───────────────────────────────────────────────────
-        String idParam = req.getParameter("id");
-        String side    = req.getParameter("side");
+        // ── 2. Parse and validate request parameters ─────────────────────────────────
+        String chequeIdParam = httpRequest.getParameter("id");
+        String requestedSide = httpRequest.getParameter("side");
 
-        if (idParam == null || idParam.isBlank() || side == null || side.isBlank()) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Required: id, side (front|rear|frontgray|reargray)");
+        if (chequeIdParam == null || chequeIdParam.isBlank()
+                || requestedSide == null || requestedSide.isBlank()) {
+            httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Required: id, side (front|rear|frontgray|reargray)");
             return;
         }
 
         long chequeId;
         try {
-            chequeId = Long.parseLong(idParam.trim());
-        } catch (NumberFormatException e) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid id: " + idParam);
+            chequeId = Long.parseLong(chequeIdParam.trim());
+        } catch (NumberFormatException numberFormatException) {
+            httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Invalid id: " + chequeIdParam);
             return;
         }
         if (chequeId <= 0) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "id must be > 0");
+            httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "id must be > 0");
             return;
         }
 
-        String sideNorm       = side.trim().toLowerCase();
-        boolean wantFront     = "front".equals(sideNorm);
-        boolean wantRear      = "rear".equals(sideNorm);
-        boolean wantFrontGray = "frontgray".equals(sideNorm);
-        boolean wantRearGray  = "reargray".equals(sideNorm);
+        // Normalise side value for safe comparison and cache-key construction
+        String  normalisedSide       = requestedSide.trim().toLowerCase();
+        boolean isFrontRequested     = "front".equals(normalisedSide);
+        boolean isRearRequested      = "rear".equals(normalisedSide);
+        boolean isFrontGrayRequested = "frontgray".equals(normalisedSide);
+        boolean isRearGrayRequested  = "reargray".equals(normalisedSide);
 
-        if (!wantFront && !wantRear && !wantFrontGray && !wantRearGray) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "side must be front|rear|frontgray|reargray");
+        if (!isFrontRequested && !isRearRequested && !isFrontGrayRequested && !isRearGrayRequested) {
+            httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "side must be front|rear|frontgray|reargray");
             return;
         }
 
-        // ── 3. Session cache ──────────────────────────────────────────────────
+        // ── 3. Session cache lookup ───────────────────────────────────────────────────
         @SuppressWarnings("unchecked")
-        Map<String, byte[]> imgCache = (Map<String, byte[]>) session.getAttribute(SESS_IMG_CACHE);
-        if (imgCache == null) {
-            imgCache = new ConcurrentHashMap<>(CACHE_MAX_ENTRIES);
-            session.setAttribute(SESS_IMG_CACHE, imgCache);
+        Map<String, byte[]> sessionImageCache =
+                (Map<String, byte[]>) activeSession.getAttribute(SESSION_KEY_IMAGE_CACHE);
+        if (sessionImageCache == null) {
+            sessionImageCache = new ConcurrentHashMap<>(CACHE_MAX_ENTRIES);
+            activeSession.setAttribute(SESSION_KEY_IMAGE_CACHE, sessionImageCache);
         }
 
-        String cacheKey   = chequeId + ":" + sideNorm;
-        byte[] imageBytes = imgCache.get(cacheKey);
+        String cacheKey           = chequeId + ":" + normalisedSide;
+        byte[] resolvedImageBytes = sessionImageCache.get(cacheKey);
 
-        if (imageBytes == null) {
+        if (resolvedImageBytes == null) {
 
-            // ── 4. DB fetch — one query, both blobs ───────────────────────────
-            String frontKey = chequeId + ":front";
-            String rearKey  = chequeId + ":rear";
+            // ── 4. DB fetch — one query loads both front and rear blobs ──────────────
+            String frontCacheKey = chequeId + ":front";
+            String rearCacheKey  = chequeId + ":rear";
 
-            byte[] frontRaw = imgCache.get(frontKey);
-            byte[] rearRaw  = imgCache.get(rearKey);
-            boolean freshFetch = (frontRaw == null || rearRaw == null);
+            byte[] cachedFrontBytes = sessionImageCache.get(frontCacheKey);
+            byte[] cachedRearBytes  = sessionImageCache.get(rearCacheKey);
+
+            // freshFetch = true when either blob is missing from cache
+            boolean freshFetch = (cachedFrontBytes == null || cachedRearBytes == null);
 
             if (freshFetch) {
-                ChequeEntity cheque;
+                ChequeEntity chequeEntity;
                 try {
-                    cheque = chequeDAO.loadChequeWithImages(chequeId);
-                } catch (Exception ex) {
-                    LOG.severe("ChequeImageServlet DB error id=" + chequeId + ": " + ex.getMessage());
-                    resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "DB error");
+                    chequeEntity = chequeDAO.loadChequeWithImages(chequeId);
+                } catch (Exception databaseException) {
+                    LOGGER.severe("ChequeImageServlet DB error id=" + chequeId
+                            + ": " + databaseException.getMessage());
+                    httpResponse.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "DB error");
                     return;
                 }
-                if (cheque == null) {
-                    resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Cheque not found: " + chequeId);
+                if (chequeEntity == null) {
+                    httpResponse.sendError(HttpServletResponse.SC_NOT_FOUND,
+                            "Cheque not found: " + chequeId);
                     return;
                 }
 
-                // Serve raw bytes to browser IMMEDIATELY (no recompression delay).
-                // Background thread compresses and REPLACES cache entry — subsequent
-                // requests for same cheque get the smaller compressed bytes.
-                byte[] rawFront = cheque.getFrontImage();
-                byte[] rawRear  = cheque.getRearImage();
-                frontRaw = (rawFront != null && rawFront.length > 0) ? rawFront : null;
-                rearRaw  = (rawRear  != null && rawRear.length  > 0) ? rawRear  : null;
+                /*
+                 * Store raw bytes immediately so the first request is served fast.
+                 * The background task (step 5) will replace these with compressed bytes,
+                 * so subsequent requests for the same cheque are ~5x smaller.
+                 */
+                byte[] rawFrontImageBytes = chequeEntity.getFrontImage();
+                byte[] rawRearImageBytes  = chequeEntity.getRearImage();
 
-                if (frontRaw != null) cacheIfRoom(imgCache, frontKey, frontRaw);
-                if (rearRaw  != null) cacheIfRoom(imgCache, rearKey,  rearRaw);
+                cachedFrontBytes = (rawFrontImageBytes != null && rawFrontImageBytes.length > 0)
+                        ? rawFrontImageBytes : null;
+                cachedRearBytes  = (rawRearImageBytes  != null && rawRearImageBytes.length  > 0)
+                        ? rawRearImageBytes  : null;
+
+                if (cachedFrontBytes != null) cacheIfRoom(sessionImageCache, frontCacheKey, cachedFrontBytes);
+                if (cachedRearBytes  != null) cacheIfRoom(sessionImageCache, rearCacheKey,  cachedRearBytes);
             }
 
-            // Resolve requested bytes
-            if (wantFront) {
-                imageBytes = frontRaw;
-            } else if (wantRear) {
-                imageBytes = rearRaw;
-            } else if (wantFrontGray) {
-                imageBytes = toGrayscalePng(frontRaw, chequeId);
-                if (imageBytes != null) cacheIfRoom(imgCache, cacheKey, imageBytes);
+            // Resolve the specific side requested by the caller
+            if (isFrontRequested) {
+                resolvedImageBytes = cachedFrontBytes;
+            } else if (isRearRequested) {
+                resolvedImageBytes = cachedRearBytes;
+            } else if (isFrontGrayRequested) {
+                resolvedImageBytes = toGrayscalePng(cachedFrontBytes, chequeId);
+                if (resolvedImageBytes != null) cacheIfRoom(sessionImageCache, cacheKey, resolvedImageBytes);
             } else {
-                imageBytes = toGrayscalePng(rearRaw, chequeId);
-                if (imageBytes != null) cacheIfRoom(imgCache, cacheKey, imageBytes);
+                // reargray
+                resolvedImageBytes = toGrayscalePng(cachedRearBytes, chequeId);
+                if (resolvedImageBytes != null) cacheIfRoom(sessionImageCache, cacheKey, resolvedImageBytes);
             }
 
-            if (imageBytes == null || imageBytes.length == 0) {
-                resp.sendError(HttpServletResponse.SC_NOT_FOUND, "No image for id=" + chequeId + " side=" + sideNorm);
+            if (resolvedImageBytes == null || resolvedImageBytes.length == 0) {
+                httpResponse.sendError(HttpServletResponse.SC_NOT_FOUND,
+                        "No image for id=" + chequeId + " side=" + normalisedSide);
                 return;
             }
 
-            if (wantFront || wantRear) cacheIfRoom(imgCache, cacheKey, imageBytes);
+            if (isFrontRequested || isRearRequested) {
+                cacheIfRoom(sessionImageCache, cacheKey, resolvedImageBytes);
+            }
 
-            // ── 5. Background: recompress JPEG + pre-compute grays ────────────
-            // Recompression (330KB→65KB) is CPU-heavy — run off request thread.
-            // First response gets raw bytes (fast). Subsequent requests for same
-            // cheque get compressed bytes from cache (~5x smaller, faster transfer).
+            // ── 5. Background: recompress JPEG + pre-compute grayscale PNGs ──────────
+            /*
+             * Recompression (330KB→65KB) is CPU-heavy — offload to background pool.
+             * First response uses raw bytes (no wait). Subsequent requests for the same
+             * cheque get the compressed bytes already in cache (~5x smaller payload).
+             */
             if (freshFetch) {
-                final byte[] fb = frontRaw;
-                final byte[] rb = rearRaw;
-                final Map<String, byte[]> cache = imgCache;
-                final long cid = chequeId;
-                GRAY_POOL.submit(() -> {
-                    // Recompress front
-                    if (fb != null && fb.length > 0) {
-                        byte[] cf = recompressJpeg(fb, cid, "front");
-                        if (cf != null && cf.length > 0) cacheIfRoom(cache, cid + ":front", cf);
+                final byte[]              snapshotFrontBytes = cachedFrontBytes;
+                final byte[]              snapshotRearBytes  = cachedRearBytes;
+                final Map<String, byte[]> capturedCache      = sessionImageCache;
+                final long                capturedChequeId   = chequeId;
+
+                BACKGROUND_IMAGE_PROCESSOR.submit(() -> {
+                    // Recompress front JPEG and replace raw entry in cache
+                    if (snapshotFrontBytes != null && snapshotFrontBytes.length > 0) {
+                        byte[] compressedFrontBytes = recompressJpeg(snapshotFrontBytes, capturedChequeId, "front");
+                        if (compressedFrontBytes != null && compressedFrontBytes.length > 0) {
+                            cacheIfRoom(capturedCache, capturedChequeId + ":front", compressedFrontBytes);
+                        }
                     }
-                    // Recompress rear
-                    if (rb != null && rb.length > 0) {
-                        byte[] cr = recompressJpeg(rb, cid, "rear");
-                        if (cr != null && cr.length > 0) cacheIfRoom(cache, cid + ":rear", cr);
+                    // Recompress rear JPEG and replace raw entry in cache
+                    if (snapshotRearBytes != null && snapshotRearBytes.length > 0) {
+                        byte[] compressedRearBytes = recompressJpeg(snapshotRearBytes, capturedChequeId, "rear");
+                        if (compressedRearBytes != null && compressedRearBytes.length > 0) {
+                            cacheIfRoom(capturedCache, capturedChequeId + ":rear", compressedRearBytes);
+                        }
                     }
-                    // Pre-compute grays from recompressed source (smaller → faster ImageIO)
-                    byte[] fSrc = (byte[]) cache.getOrDefault(cid + ":front", fb);
-                    byte[] rSrc = (byte[]) cache.getOrDefault(cid + ":rear",  rb);
-                    String fgKey = cid + ":frontgray";
-                    String rgKey = cid + ":reargray";
-                    if (!cache.containsKey(fgKey) && fSrc != null && fSrc.length > 0) {
-                        byte[] fg = toGrayscalePng(fSrc, cid);
-                        if (fg != null) cacheIfRoom(cache, fgKey, fg);
+                    // Pre-compute grayscale PNGs from compressed source (smaller → faster ImageIO)
+                    byte[] sourceFrontForGray = capturedCache.getOrDefault(
+                            capturedChequeId + ":front", snapshotFrontBytes);
+                    byte[] sourceRearForGray  = capturedCache.getOrDefault(
+                            capturedChequeId + ":rear",  snapshotRearBytes);
+
+                    String frontGrayCacheKey = capturedChequeId + ":frontgray";
+                    String rearGrayCacheKey  = capturedChequeId + ":reargray";
+
+                    if (!capturedCache.containsKey(frontGrayCacheKey)
+                            && sourceFrontForGray != null && sourceFrontForGray.length > 0) {
+                        byte[] frontGrayPngBytes = toGrayscalePng(sourceFrontForGray, capturedChequeId);
+                        if (frontGrayPngBytes != null) {
+                            cacheIfRoom(capturedCache, frontGrayCacheKey, frontGrayPngBytes);
+                        }
                     }
-                    if (!cache.containsKey(rgKey) && rSrc != null && rSrc.length > 0) {
-                        byte[] rg = toGrayscalePng(rSrc, cid);
-                        if (rg != null) cacheIfRoom(cache, rgKey, rg);
+                    if (!capturedCache.containsKey(rearGrayCacheKey)
+                            && sourceRearForGray != null && sourceRearForGray.length > 0) {
+                        byte[] rearGrayPngBytes = toGrayscalePng(sourceRearForGray, capturedChequeId);
+                        if (rearGrayPngBytes != null) {
+                            cacheIfRoom(capturedCache, rearGrayCacheKey, rearGrayPngBytes);
+                        }
                     }
                 });
             }
         }
 
-        // ── 6. ETag / 304 ────────────────────────────────────────────────────
-        String etag = "\"" + md5Hex(imageBytes) + "\"";
-        if (etag.equals(req.getHeader("If-None-Match"))) {
-            resp.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+        // ── 6. ETag / 304 Not Modified — skip response body on cache hit ─────────────
+        String computedEtag = "\"" + md5Hex(resolvedImageBytes) + "\"";
+        if (computedEtag.equals(httpRequest.getHeader("If-None-Match"))) {
+            httpResponse.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
             return;
         }
 
-        // ── 7. Stream ─────────────────────────────────────────────────────────
-        String mime = (wantFrontGray || wantRearGray) ? "image/png" : "image/jpeg";
-        resp.setContentType(mime);
-        resp.setContentLength(imageBytes.length);
-        resp.setHeader("Cache-Control", "private, max-age=3600");
-        resp.setHeader("ETag", etag);
-        resp.setHeader("X-Content-Type-Options", "nosniff");
-        resp.getOutputStream().write(imageBytes);
-        resp.getOutputStream().flush();
+        // ── 7. Stream image bytes to browser ─────────────────────────────────────────
+        String responseMimeType = (isFrontGrayRequested || isRearGrayRequested) ? "image/png" : "image/jpeg";
+        httpResponse.setContentType(responseMimeType);
+        httpResponse.setContentLength(resolvedImageBytes.length);
+        httpResponse.setHeader("Cache-Control", "private, max-age=3600");
+        httpResponse.setHeader("ETag", computedEtag);
+        httpResponse.setHeader("X-Content-Type-Options", "nosniff");
+        httpResponse.getOutputStream().write(resolvedImageBytes);
+        httpResponse.getOutputStream().flush();
 
-        LOG.fine("ChequeImageServlet: served " + sideNorm + " id=" + chequeId
-                + " (" + imageBytes.length + " B, " + mime + ")");
+        LOGGER.fine("ChequeImageServlet: served " + normalisedSide + " id=" + chequeId
+                + " (" + resolvedImageBytes.length + " B, " + responseMimeType + ")");
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Helper methods
+    // ─────────────────────────────────────────────────────────────────────────────
 
     /**
-     * Re-compresses image bytes as JPEG at JPEG_QUALITY.
-     * Decodes source (any format ImageIO supports), converts to RGB if needed,
-     * then encodes as JPEG. Returns original bytes if re-compression fails.
+     * Re-compresses raw image bytes as JPEG at {@link #JPEG_COMPRESSION_QUALITY}.
+     *
+     * <p>Decodes the source bytes using ImageIO (supports JPEG, PNG, BMP, etc.),
+     * converts to RGB colour space if needed (JPEG encoder rejects ARGB/GRAY),
+     * then encodes as JPEG at the configured quality. Returns the original bytes
+     * unchanged if decoding or encoding fails, so the caller always receives a
+     * non-null result when the input is non-null.
+     *
+     * @param sourceImageBytes raw image bytes from the database or cache
+     * @param chequeId         cheque ID — used only for log messages
+     * @param sideLabel        "front" or "rear" — used only for log messages
+     * @return compressed JPEG bytes, or {@code sourceImageBytes} if recompression fails
      */
-    private byte[] recompressJpeg(byte[] src, long chequeId, String label) {
+    private byte[] recompressJpeg(byte[] sourceImageBytes, long chequeId, String sideLabel) {
         try {
-            BufferedImage img = ImageIO.read(new ByteArrayInputStream(src));
-            if (img == null) {
-                LOG.warning("recompressJpeg: decode failed id=" + chequeId + " " + label + " — serving original");
-                return src;
+            BufferedImage decodedImage = ImageIO.read(new ByteArrayInputStream(sourceImageBytes));
+            if (decodedImage == null) {
+                LOGGER.warning("recompressJpeg: decode failed id=" + chequeId
+                        + " " + sideLabel + " — serving original");
+                return sourceImageBytes;
             }
 
-            // JPEG encoder requires RGB (not ARGB, not GRAY)
-            BufferedImage rgb;
-            if (img.getType() == BufferedImage.TYPE_INT_RGB) {
-                rgb = img;
+            // JPEG encoder requires TYPE_INT_RGB; convert if source is ARGB or GRAY
+            BufferedImage rgbImage;
+            if (decodedImage.getType() == BufferedImage.TYPE_INT_RGB) {
+                rgbImage = decodedImage;
             } else {
-                rgb = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_RGB);
-                rgb.getGraphics().drawImage(img, 0, 0, null);
+                rgbImage = new BufferedImage(
+                        decodedImage.getWidth(), decodedImage.getHeight(), BufferedImage.TYPE_INT_RGB);
+                rgbImage.getGraphics().drawImage(decodedImage, 0, 0, null);
             }
 
-            Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpeg");
-            if (!writers.hasNext()) return src;
-            ImageWriter writer = writers.next();
+            Iterator<ImageWriter> jpegWriters = ImageIO.getImageWritersByFormatName("jpeg");
+            if (!jpegWriters.hasNext()) return sourceImageBytes;
+            ImageWriter jpegWriter = jpegWriters.next();
 
-            ImageWriteParam param = writer.getDefaultWriteParam();
-            param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-            param.setCompressionQuality(JPEG_QUALITY);
+            ImageWriteParam compressionParam = jpegWriter.getDefaultWriteParam();
+            compressionParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            compressionParam.setCompressionQuality(JPEG_COMPRESSION_QUALITY);
 
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(src.length / 4);
-            writer.setOutput(new MemoryCacheImageOutputStream(baos));
-            writer.write(null, new IIOImage(rgb, null, null), param);
-            writer.dispose();
+            // Pre-size the output buffer at 1/4 of source — typical compression ratio
+            ByteArrayOutputStream compressedOutputStream =
+                    new ByteArrayOutputStream(sourceImageBytes.length / 4);
+            jpegWriter.setOutput(new MemoryCacheImageOutputStream(compressedOutputStream));
+            jpegWriter.write(null, new IIOImage(rgbImage, null, null), compressionParam);
+            jpegWriter.dispose();
 
-            byte[] compressed = baos.toByteArray();
-            LOG.fine("recompressJpeg id=" + chequeId + " " + label
-                    + ": " + src.length + "B → " + compressed.length + "B ("
-                    + (compressed.length * 100 / src.length) + "%)");
-            return compressed;
+            byte[] compressedJpegBytes = compressedOutputStream.toByteArray();
+            LOGGER.fine("recompressJpeg id=" + chequeId + " " + sideLabel
+                    + ": " + sourceImageBytes.length + "B → " + compressedJpegBytes.length + "B ("
+                    + (compressedJpegBytes.length * 100 / sourceImageBytes.length) + "%)");
+            return compressedJpegBytes;
 
-        } catch (Exception e) {
-            LOG.warning("recompressJpeg error id=" + chequeId + " " + label + ": " + e.getMessage() + " — serving original");
-            return src;
+        } catch (Exception compressionException) {
+            LOGGER.warning("recompressJpeg error id=" + chequeId + " " + sideLabel
+                    + ": " + compressionException.getMessage() + " — serving original");
+            return sourceImageBytes;
         }
     }
 
-    private void cacheIfRoom(Map<String, byte[]> cache, String key, byte[] value) {
-        if (cache.size() < CACHE_MAX_ENTRIES) cache.put(key, value);
+    /**
+     * Adds the given key-value pair to the cache only if the cache has not yet
+     * reached {@link #CACHE_MAX_ENTRIES}. Prevents unbounded session memory growth.
+     *
+     * @param imageCache the session-scoped image byte cache
+     * @param cacheKey   composite key in format {@code "<chequeId>:<side>"}
+     * @param imageBytes compressed or raw image bytes to store
+     */
+    private void cacheIfRoom(Map<String, byte[]> imageCache, String cacheKey, byte[] imageBytes) {
+        if (imageCache.size() < CACHE_MAX_ENTRIES) {
+            imageCache.put(cacheKey, imageBytes);
+        }
     }
 
-    private byte[] toGrayscalePng(byte[] src, long chequeId) {
-        if (src == null || src.length == 0) return null;
+    /**
+     * Converts raw image bytes (any ImageIO-supported format) to an 8-bit
+     * grayscale PNG.
+     *
+     * <p>Decodes the source, draws onto a {@code TYPE_BYTE_GRAY} BufferedImage,
+     * then encodes as PNG. Returns {@code null} if the source is empty or if
+     * decoding fails, so callers must null-check the result.
+     *
+     * @param sourceImageBytes raw or compressed image bytes (JPEG, PNG, etc.)
+     * @param chequeId         cheque ID — used only for log messages
+     * @return grayscale PNG bytes, or {@code null} on failure
+     */
+    private byte[] toGrayscalePng(byte[] sourceImageBytes, long chequeId) {
+        if (sourceImageBytes == null || sourceImageBytes.length == 0) return null;
         try {
-            BufferedImage original = ImageIO.read(new ByteArrayInputStream(src));
-            if (original == null) {
-                LOG.warning("toGrayscalePng: decode failed id=" + chequeId);
+            BufferedImage colourImage = ImageIO.read(new ByteArrayInputStream(sourceImageBytes));
+            if (colourImage == null) {
+                LOGGER.warning("toGrayscalePng: decode failed id=" + chequeId);
                 return null;
             }
-            BufferedImage gray = new BufferedImage(
-                    original.getWidth(), original.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
-            gray.getGraphics().drawImage(original, 0, 0, null);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            if (!ImageIO.write(gray, "png", baos)) return null;
-            return baos.toByteArray();
-        } catch (Exception e) {
-            LOG.severe("toGrayscalePng error id=" + chequeId + ": " + e.getMessage());
+            // Draw colour image onto a GRAY canvas — Java2D performs the colour conversion
+            BufferedImage grayscaleImage = new BufferedImage(
+                    colourImage.getWidth(), colourImage.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+            grayscaleImage.getGraphics().drawImage(colourImage, 0, 0, null);
+
+            ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
+            if (!ImageIO.write(grayscaleImage, "png", pngOutputStream)) return null;
+            return pngOutputStream.toByteArray();
+
+        } catch (Exception conversionException) {
+            LOGGER.severe("toGrayscalePng error id=" + chequeId + ": " + conversionException.getMessage());
             return null;
         }
     }
 
-    private String md5Hex(byte[] data) {
+    /**
+     * Computes the MD5 hex digest of the given byte array.
+     * Used to generate ETag values for HTTP caching (If-None-Match / 304).
+     *
+     * <p>Falls back to the byte array length as a string if MD5 is unavailable
+     * (should never happen on a standard JVM).
+     *
+     * @param imageData byte array to hash (typically the image bytes being served)
+     * @return 32-character lowercase hex MD5 string, or {@code String.valueOf(imageData.length)}
+     */
+    private String md5Hex(byte[] imageData) {
         try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] digest = md.digest(data);
-            StringBuilder sb = new StringBuilder(32);
-            for (byte b : digest) sb.append(String.format("%02x", b & 0xFF));
-            return sb.toString();
-        } catch (Exception e) {
-            return String.valueOf(data.length);
+            MessageDigest md5Digest  = MessageDigest.getInstance("MD5");
+            byte[]        digestBytes = md5Digest.digest(imageData);
+            StringBuilder hexBuilder  = new StringBuilder(32);
+            for (byte digestByte : digestBytes) {
+                hexBuilder.append(String.format("%02x", digestByte & 0xFF));
+            }
+            return hexBuilder.toString();
+        } catch (Exception digestException) {
+            // Extremely unlikely — fall back to length-based pseudo-ETag
+            return String.valueOf(imageData.length);
         }
     }
 }

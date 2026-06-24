@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?page title="Batch Management" contentType="text/html;charset=UTF-8"?>
+
+<!--
+ ============================================================
+  Project     : Navbharat CTS Outward
+  File        : my-batches.zul
+  Package     : webapp/zul/outward
+  Author      : Umesh M.
+  Created     : June 2026
+  Description : Batch management screen. Lists all outward
+                batches with search, status filter, and
+                date-range filter.
+                Pagination: 5 batches per page.
+                Columns: BATCH ID | CHEQUE COUNT | TOTAL AMOUNT
+                         | CREATED DATE | STATUS | ACTION
+
+  Layer Flow  :
+    batchManagement.zul  (View — ZUL)
+         ↓  ZK events (onClick, onChange, onSelect)
+    MyBatchesComposer.java  (UI layer — Composer)
+         ↓  service call only
+    BatchService.java / BatchServiceImpl.java  (Business layer)
+         ↓  DAO call only
+    BatchDAO.java / BatchDAOImpl.java  (Data layer)
+         ↓  Hibernate / PostgreSQL
+    outward_batches table  (Database)
+
+  Component Map:
+    btnCreateBatch  → onClick → MyBatchesComposer.onCreateBatch()
+    txtSearch       → onChanging → MyBatchesComposer.onSearch()
+    cmbStatus       → onSelect  → MyBatchesComposer.onFilter()
+    dtFrom / dtTo   → onChange  → MyBatchesComposer.onFilter()
+    btnClearDate    → onClick   → MyBatchesComposer.onClearDate()
+    lbBatches       → rows rendered by renderCurrentPage()
+    btnPgFirst/Prev/Next/Last → pagination handlers
+ ============================================================
+-->
+
+<zk xmlns="http://www.zkoss.org/2005/zul"
+    xmlns:n="native">
+
+    <!--
+      External CSS:
+        cheque-scan.css → shared button styles, form controls
+        my-batches.css  → page-specific layout: card, toolbar,
+                          listbox, pagination bar, status badges
+    -->
+    <n:link rel="stylesheet" href="/navbharat/css/outward/cheque-scan.css"/>
+    <n:link rel="stylesheet" href="/navbharat/css/outward/my-batches.css"/>
+
+    <!--
+      Root container — mbRoot
+      apply= wires MyBatchesComposer to this ZUL page.
+      All @Wire fields in the composer resolve from children of mbRoot.
+      style="padding: 20px" — page breathing room (not scoped to CSS; intentional root-level spacing).
+    -->
+    <div id="mbRoot" apply="com.cts.outward.composer.MyBatchesComposer"
+         style="padding: 20px;">
+
+        <!-- ============================================================
+             SECTION: Page Header
+             Shows page title + subtitle + primary action (Create Batch).
+             btnCreateBatch → composer onClick → opens create-batch modal.
+             ============================================================ -->
+        <n:div class="pg-head">
+            <n:div>
+                <!-- Page title visible to the user -->
+                <n:div class="pg-title">My Batches</n:div>
+                <!-- Breadcrumb-style subtitle for context -->
+                <n:div class="pg-subtitle">Outward Clearing — Batch Management</n:div>
+            </n:div>
+            <n:div class="pg-actions">
+                <!-- Primary action: triggers batch creation flow in composer -->
+                <button id="btnCreateBatch" sclass="btn btn-primary" label="+ Create Batch"/>
+            </n:div>
+        </n:div>
+
+        <!-- ============================================================
+             SECTION: Batch Listing Card
+             Card wraps the toolbar + listbox + pagination as one unit.
+             ============================================================ -->
+        <n:div class="mb-card">
+
+            <!-- NOTE: Card header block commented out in source —
+                 lblBatchCount badge was planned but deferred.
+                 Keeping comment intact as per original design intent. -->
+            <!--
+            <n:div class="mb-card-head">
+                <n:span class="mb-card-title">ALL BATCHES</n:span>
+                <label id="lblBatchCount" sclass="mb-count-badge" value="0 batches"/>
+            </n:div>
+            -->
+
+            <!-- ========================================================
+                 SECTION: Search and Filter Toolbar
+                 Provides:
+                   - Free-text search (batch ID, branch) via txtSearch
+                   - Status dropdown filter via cmbStatus
+                   - Date range filter via dtFrom + dtTo
+                   - Clear date button via btnClearDate
+                 Composer responds to onChanging (search) and onSelect/
+                 onChange (filter) to re-query and re-render lbBatches.
+                 ======================================================== -->
+            <n:div class="mb-toolbar">
+
+                <!-- Search input with magnifier icon prefix -->
+                <n:div class="mb-search-wrap">
+                    <n:span class="mb-search-icon">&#x1F50D;</n:span>
+                    <!-- Live search: onChanging fires as user types -->
+                    <textbox id="txtSearch"
+                             sclass="mb-search-input"
+                             placeholder="Search batch ID, branch..."/>
+                </n:div>
+
+                <!-- Status filter: "All Status" means no status filter applied -->
+                <n:div class="mb-filter-group">
+                    <n:span class="mb-filter-lbl">Status:</n:span>
+                    <!-- readonly=true prevents free-text entry; only fixed status values -->
+                    <combobox id="cmbStatus" sclass="mb-filter-combo" value="All Status" readonly="true">
+                        <comboitem label="All Status"/>   <!-- default — no filter -->
+                        <comboitem label="Draft"/>        <!-- batch created, not yet submitted -->
+                        <comboitem label="Pending"/>      <!-- submitted, awaiting verification -->
+                        <comboitem label="Submitted"/>    <!-- fully verified and forwarded -->
+                    </combobox>
+                </n:div>
+
+                <!-- From-date filter — inclusive lower bound for batch creation date -->
+                <n:div class="mb-filter-group">
+                    <n:span class="mb-filter-lbl">From:</n:span>
+                    <!-- lenient=false enforces strict dd/MM/yyyy format -->
+                    <datebox id="dtFrom" sclass="mb-filter-date" format="dd/MM/yyyy" lenient="false"/>
+                </n:div>
+
+                <!-- To-date filter — inclusive upper bound for batch creation date -->
+                <n:div class="mb-filter-group">
+                    <n:span class="mb-filter-lbl">To:</n:span>
+                    <datebox id="dtTo" sclass="mb-filter-date" format="dd/MM/yyyy" lenient="false"/>
+                </n:div>
+
+                <!-- Clear date: resets dtFrom and dtTo to null, re-applies filter -->
+                <n:div class="mb-filter-group">
+                    <button id="btnClearDate" sclass="btn btn-sm btn-secondary" label="Clear"/>
+                </n:div>
+
+            </n:div>
+            <!-- END: Search and Filter Toolbar -->
+
+            <!-- ========================================================
+                 SECTION: Batch Listbox
+                 Columns: BATCH ID | CHEQUE COUNT | TOTAL AMOUNT
+                          | CREATED DATE | STATUS | ACTION
+                 Rows: NOT declared in ZUL — dynamically injected by
+                       MyBatchesComposer.renderCurrentPage() using
+                       Listitem + Listcell construction in Java.
+                 rows="5" limits visible rows to match pagination size.
+                 emptyMessage shown when no batches match filter.
+                 ======================================================== -->
+            <listbox id="lbBatches"
+                     sclass="mb-listbox"
+                     hflex="1"
+                     rows="5"
+                     mold="default"
+                     emptyMessage="No batches found.">
+
+                <!-- Column headers — hflex="2" distributes equal width across 6 columns -->
+                <listhead sclass="mb-listhead" hflex="1">
+                    <listheader label="BATCH ID"     sclass="mb-th" hflex="2"/>
+                    <listheader label="CHEQUE COUNT" sclass="mb-th" hflex="2"/>
+                    <listheader label="TOTAL AMOUNT" sclass="mb-th" hflex="2"/>
+                    <listheader label="CREATED DATE" sclass="mb-th" hflex="2"/>
+                    <listheader label="STATUS"       sclass="mb-th" hflex="2"/>
+                    <listheader label="ACTION"       sclass="mb-th" hflex="2"/>  <!-- View / Edit buttons -->
+                </listhead>
+
+                <!-- Listitem rows injected here at runtime by renderCurrentPage() -->
+
+            </listbox>
+            <!-- END: Batch Listbox -->
+
+            <!-- ========================================================
+                 SECTION: Pagination Bar
+                 Controls: First | Prev | [Page X of Y] | Next | Last
+                 State managed in MyBatchesComposer:
+                   currentPage (0-based index)
+                   totalPages  (computed from filtered result size)
+                 Buttons disabled by composer when at first/last page.
+                 ======================================================== -->
+            <n:div class="mb-pg-bar">
+                <n:div class="mb-pg-inner">
+                    <!-- Jump to first page; disabled=true initially (already on page 1) -->
+                    <button id="btnPgFirst" sclass="mb-pg-btn" label="&#x00AB; First" disabled="true"/>
+                    <!-- Go to previous page; disabled=true initially -->
+                    <button id="btnPgPrev"  sclass="mb-pg-btn" label="&#x2039; Prev"  disabled="true"/>
+                    <!-- Displays current page and total pages; updated by composer -->
+                    <label  id="lblPgInfo"  sclass="mb-pg-info" value="Page 1 of 1"/>
+                    <!-- Go to next page -->
+                    <button id="btnPgNext"  sclass="mb-pg-btn" label="Next &#x203A;"/>
+                    <!-- Jump to last page -->
+                    <button id="btnPgLast"  sclass="mb-pg-btn" label="Last &#x00BB;"/>
+                </n:div>
+            </n:div>
+            <!-- END: Pagination Bar -->
+
+        </n:div>
+        <!-- END: Batch Listing Card -->
+
+    </div>
+    <!-- END: mbRoot / MyBatchesComposer scope -->
+
+</zk>

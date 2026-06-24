@@ -1,457 +1,824 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?page title="Batch Detail" contentType="text/html;charset=UTF-8"?>
+
 <!--
-	============================================================
-	Project     : Navbharat CTS Outward
-	File        : batch-detail.zul
-	Author      : Umesh M.  |  Updated: June 2026
-	Description : Cheque detail / processing page for a batch.
-	              Pure ZK MVC — zero JS dependency.
-	              JS files (batch-detail.js, bce.js) removed.
-	              Popup show/hide via ZK setVisible().
-	              Images via ZK <image> component.
-	              Delete confirm via ZK Messagebox.
-	              Payee state panels via ZK setVisible().
-	              Validate / Delete / Prev / Next all ZK buttons.
-	============================================================
+ ============================================================
+  Project     : Navbharat CTS Outward
+  File        : batch-detail.zul
+  Package     : webapp/zul/outward
+  Author      : Umesh M.  |  Updated: June 2026
+  Description : Cheque processing page for a selected batch.
+                Displays cheque list + cheque detail popup
+                with image viewer and data entry form.
+
+  Architecture: Pure ZK MVC — ZERO JS dependency (except one
+                confirmed /caveman exception for image tab switching).
+                All modal show/hide → ZK setVisible()
+                All data binding   → ZK @Wire + composer
+                All validation     → server-side in composer
+                All navigation     → ZK button onClick events
+
+  Layer Flow  :
+    batch-detail.zul  (View — ZUL)
+         ↓  ZK events (onClick, onChange, onSelect, onChanging)
+    BatchDetailComposer.java  (UI layer — Composer)
+         ↓  service call only
+    BatchService.java / BatchServiceImpl.java  (Business layer)
+    ChequeService.java / ChequeServiceImpl.java
+    CBSService.java / CBSServiceImpl.java       (Payee lookup)
+         ↓  DAO call only
+    BatchDAO.java / BatchDAOImpl.java  (Data layer)
+    ChequeDAO.java / ChequeDAOImpl.java
+    CBSDAO.java / CBSDAOImpl.java
+         ↓  Hibernate / PostgreSQL + Firebase Firestore (CBS)
+    outward_batches / outward_cheques tables + CBS account store
+
+  Component Map — Main Page:
+    lblBatchIdTitle → populated on doAfterCompose() from session arg
+    btnBack         → onClick → navigate back to my-batches.zul
+    btnSaveBatch    → onClick → BatchDetailComposer.onSaveBatch()
+    lblBatchId      → batch ID display in sidebar
+    lblBranchCode   → branch code in sidebar
+    lblTotalCheques → live count updated on each save/delete
+    lblTotalAmount  → live sum updated on each save/delete
+    lblVerifiedCheques → count of cheques in READY state
+    lblPendingCheques  → count of cheques still PENDING
+    lblChequeRange  → "Showing X–Y of N" above listbox
+    txtSearch       → onChanging → composer filter re-render
+    dtDateFilter    → onChange  → composer filter re-render (from)
+    dtDateTo        → onChange  → composer filter re-render (to)
+    cmbStatusFilter → onSelect  → composer filter re-render
+    lblFilterCount  → live count of filtered results
+    btnClearFilter  → onClick   → reset all filters
+    lbCheques       → rows injected by renderCurrentPage()
+    btnFirst/Prev/Next/Last → pagination handlers
+
+  Component Map — Cheque Detail Popup:
+    chequePopup     → visible=false; shown by setVisible(true) in composer
+    popChequeNo     → cheque number in popup title
+    btnPopClose     → onClick → closePopup()
+    popSingleImg    → native <n:img>; src swapped by bdSwitchImage() JS
+    imgBtnFront/FrontGray/Rear/RearGray → onclick=bdSwitchImage() tab buttons
+    popCheckNo/popCity/popBank/popBranch/popTc → MICR band fields
+    popAccountNo    → drawee account number
+    popChequeDate   → cheque date (DD/MM/YYYY)
+    popAmount       → amount in digits
+    popAmountWords  → amount in words (auto-filled by composer)
+    txtPayeeAcct    → payee account input for CBS lookup
+    btnValidateAcct → onClick → CBSService.lookupAccount()
+    divAcctPending/Found/NotFound → ZK divs toggled by setVisible()
+    btnPopPrev/Next → prev/next cheque navigation within popup
+    popNavInfo      → "Cheque N of M" nav indicator
+    btnDeleteCheque → onClick → Messagebox confirm → delete
+    btnPopSave      → onClick → validate + save + auto-advance to next
+
+  /caveman Exception — bdSwitchImage():
+    Image tab switching (F/FG/R/RG) uses client-side JS because
+    <n:img> is a native HTML element — ZK cannot reach its src
+    attribute server-side without a full round-trip. The JS reads
+    data-front/frontgray/rear/reargray attributes pre-loaded onto
+    the <n:img> by BatchDetailComposer.showChequeImages() via
+    Clients.evalJavaScript(). No server round-trip on tab switch.
+ ============================================================
 -->
+
 <zk xmlns="http://www.zkoss.org/2005/zul" xmlns:n="native">
 
-	<style src="/css/outward/batch-cheque-entry.css" />
-	<style src="/css/outward/my-batches.css" />
-	<style src="/css/outward/batch-detail.css" />
+    <!--
+      External CSS load order matters:
+        1. cheque-scan.css   → CSS variables (navy, cyan, etc.)
+                               + shared button/input base styles
+        2. my-batches.css    → shared card, popup, pagination, chip styles
+                               reused across batch-detail and my-batches pages
+        3. batch-detail.css  → page-specific overrides: filter bar,
+                               MICR field widths, image viewer, payee lookup
+    -->
+    <n:link rel="stylesheet" href="/navbharat/css/outward/cheque-scan.css" />
+    <n:link rel="stylesheet" href="/navbharat/css/outward/my-batches.css" />
+    <n:link rel="stylesheet" href="/navbharat/css/outward/batch-detail.css" />
 
-	<div id="bdRoot"
-		apply="com.cts.outward.composer.BatchDetailComposer">
+    <!--
+      Root container — bdRoot
+      apply= wires BatchDetailComposer to this ZUL tree.
+      All @Wire fields in the composer resolve as children of bdRoot.
+      BatchDetailComposer.doAfterCompose() reads batchId from
+      Executions.getCurrent().getArg() passed by MyBatchesComposer
+      when navigating here via Executions.createComponents().
+    -->
+    <div id="bdRoot" apply="com.cts.outward.composer.BatchDetailComposer">
 
-		<!-- Page heading -->
-		<n:div class="pg-head">
-			<n:div>
-				<n:div class="bd-page-title">
-					Cheque Processing &#x2014;
-					<n:span class="bd-batch-id-title">
-						<label id="lblBatchIdTitle" value="&#x2014;" />
-					</n:span>
-				</n:div>
-			</n:div>
-			<n:div class="pg-actions">
-				<button id="btnBack" sclass="btn btn-outline"
-					label="&#x2190; Back" />
-				<button id="btnSaveBatch" sclass="btn btn-primary"
-					label="&#x1F4BE; Save Batch" />
-			</n:div>
-		</n:div>
+        <!-- ============================================================
+             SECTION: Page Header
+             Title: "Cheque Processing — BATCH-XXXXXX"
+             lblBatchIdTitle → populated by composer after batch load.
+             Actions: Back (return to my-batches) + Save Batch.
+             ============================================================ -->
+        <n:div class="pg-head">
+            <n:div>
+                <n:div class="bd-page-title">
+                    <!-- Static prefix + dynamic batch ID label -->
+                    Cheque Processing &#x2014;
+                    <n:span class="bd-batch-id-title">
+                        <!-- Populated by composer: lblBatchIdTitle.setValue(batch.getBatchId()) -->
+                        <label id="lblBatchIdTitle" value="&#x2014;" />
+                    </n:span>
+                </n:div>
+            </n:div>
+            <n:div class="pg-actions">
+                <!-- Back: navigates to my-batches.zul via composer -->
+                <button id="btnBack" sclass="btn btn-outline" label="&#x2190; Back" />
+                <!-- Save Batch: triggers BatchDetailComposer.onSaveBatch()
+                     Validates all cheques are READY before allowing save -->
+                <button id="btnSaveBatch" sclass="btn btn-primary" label="&#x1F4BE; Save Batch" />
+            </n:div>
+        </n:div>
 
-		<n:div class="bd-layout">
+        <!-- Two-column layout: sidebar (batch summary) + main (cheque list) -->
+        <n:div class="bd-layout">
 
-			<!-- Summary sidebar -->
-			<n:div class="bd-sidebar">
-				<n:div class="bd-summary-card">
-					<n:div class="bd-summary-title">Batch Summary</n:div>
-					<n:div class="bd-summary-row">
-						<n:span class="bd-summary-lbl">Batch ID</n:span>
-						<label id="lblBatchId"
-							sclass="bd-summary-val bd-val-mono" value="&#x2014;" />
-					</n:div>
-					<n:div class="bd-summary-row">
-						<n:span class="bd-summary-lbl">Branch</n:span>
-						<label id="lblBranchCode"
-							sclass="bd-summary-val" value="&#x2014;" />
-					</n:div>
-					<n:div class="bd-summary-row">
-						<n:span class="bd-summary-lbl">Total Cheques</n:span>
-						<label id="lblTotalCheques"
-							sclass="bd-summary-val" value="0" />
-					</n:div>
-					<n:div class="bd-summary-row">
-						<n:span class="bd-summary-lbl">Total Amount</n:span>
-						<label id="lblTotalAmount"
-							sclass="bd-summary-val bd-val-mono" value="&#x20B9;0.00" />
-					</n:div>
-					<n:div class="bd-summary-row">
-						<n:span class="bd-summary-lbl">Ready</n:span>
-						<label id="lblVerifiedCheques"
-							sclass="bd-summary-val bd-stat-green" value="0" />
-					</n:div>
-					<n:div class="bd-summary-row">
-						<n:span class="bd-summary-lbl">Pending</n:span>
-						<label id="lblPendingCheques"
-							sclass="bd-summary-val bd-stat-red" value="0" />
-					</n:div>
-				</n:div>
-			</n:div>
+            <!-- ========================================================
+                 SECTION: Batch Summary Sidebar
+                 Dark navy card showing batch-level aggregates.
+                 All label values injected by BatchDetailComposer
+                 on doAfterCompose() and refreshed after each save/delete.
+                 ======================================================== -->
+            <n:div class="bd-sidebar">
+                <n:div class="bd-summary-card">
+                    <n:div class="bd-summary-title">Batch Summary</n:div>
 
-			<!-- Main cheque list -->
-			<n:div class="bd-main">
-				<n:div class="bd-cheque-card">
+                    <!-- Batch ID — monospace for fixed-width alignment -->
+                    <n:div class="bd-summary-row">
+                        <n:span class="bd-summary-lbl">Batch ID</n:span>
+                        <label id="lblBatchId" sclass="bd-summary-val bd-val-mono" value="&#x2014;" />
+                    </n:div>
 
-					<n:div class="bd-cheque-head">
-						<n:span class="bd-cheque-title">CHEQUES LIST</n:span>
-						<label id="lblChequeRange"
-							sclass="bd-cheque-range" value="0 cheques" />
-					</n:div>
+                    <!-- Branch code of the presenting branch -->
+                    <n:div class="bd-summary-row">
+                        <n:span class="bd-summary-lbl">Branch</n:span>
+                        <label id="lblBranchCode" sclass="bd-summary-val" value="&#x2014;" />
+                    </n:div>
 
-					<!-- Filter bar -->
-					<div sclass="bd-filter-bar">
-						<!-- LEFT: search -->
-						<n:div class="bd-filter-left">
-							<n:span class="bd-filter-icon">&#x1F50D;</n:span>
-							<textbox id="txtSearch"
-								sclass="bd-search-input"
-								placeholder="Cheque no / payer&#x2026;" instant="true" />
-						</n:div>
-						<!-- RIGHT: date-range + status + count + clear -->
-						<n:div class="bd-filter-right">
-							<n:span class="bd-filter-lbl">From:</n:span>
-							<datebox id="dtDateFilter"
-								sclass="bd-datebox-filter" format="dd/MM/yyyy" width="120px" />
-							<n:span class="bd-filter-sep">&#x2192;</n:span>
-							<n:span class="bd-filter-lbl">To:</n:span>
-							<datebox id="dtDateTo"
-								sclass="bd-datebox-filter" format="dd/MM/yyyy" width="120px" />
-							<n:span class="bd-filter-divider" />
-							<n:span class="bd-filter-lbl">Status:</n:span>
-							<combobox id="cmbStatusFilter"
-								sclass="bd-status-combo" readonly="true" width="118px">
-								<comboitem label="All" value="All" />
-								<comboitem label="Ready" value="Ready" />
-								<comboitem label="Pending" value="Pending" />
-							</combobox>
-							<n:span class="bd-filter-count-wrap">
-								<label id="lblFilterCount"
-									sclass="bd-filter-count" value="" />
-							</n:span>
-							<button id="btnClearFilter" sclass="bd-clear-btn"
-								label="&#x2715; Clear" />
-						</n:div>
-					</div>
+                    <!-- Total cheque count in this batch -->
+                    <n:div class="bd-summary-row">
+                        <n:span class="bd-summary-lbl">Total Cheques</n:span>
+                        <label id="lblTotalCheques" sclass="bd-summary-val" value="0" />
+                    </n:div>
 
-					<!-- Cheque list table -->
-					<div sclass="bd-tbl-wrap">
-						<listbox id="lbCheques" sclass="bd-listbox"
-							rows="5" mold="default" style="width:100%;border:none;">
-							<listhead sclass="bd-listhead">
-								<listheader label="#" sclass="bd-lh"
-									width="46px" align="center" />
-								<listheader label="CHEQUE NO."
-									sclass="bd-lh" hflex="2" align="left" />
-								<listheader label="PAYEE NAME"
-									sclass="bd-lh" hflex="4" align="left" />
-								<listheader label="AMOUNT"
-									sclass="bd-lh" hflex="2" align="right" />
-								<listheader label="DATE" sclass="bd-lh"
-									hflex="2" align="center" />
-								<listheader label="STATUS"
-									sclass="bd-lh" hflex="2" align="center" />
-							</listhead>
-						</listbox>
-					</div>
+                    <!-- Sum of all cheque amounts — monospace ₹ value -->
+                    <n:div class="bd-summary-row">
+                        <n:span class="bd-summary-lbl">Total Amount</n:span>
+                        <label id="lblTotalAmount" sclass="bd-summary-val bd-val-mono" value="&#x20B9;0.00" />
+                    </n:div>
 
-					<!-- Pagination -->
-					<div id="paginationBar" sclass="bd-pagination-bar">
-						<button id="btnFirst" sclass="bd-pg-btn"
-							label="&#x00AB; First" disabled="true" />
-						<button id="btnPrev" sclass="bd-pg-btn"
-							label="&#x2039; Prev" disabled="true" />
-						<label id="lblPageInfo" sclass="bd-pg-info"
-							value="Page 1 of 1" />
-						<button id="btnNext" sclass="bd-pg-btn"
-							label="Next &#x203A;" />
-						<button id="btnLast" sclass="bd-pg-btn"
-							label="Last &#x00BB;" />
-					</div>
+                    <!-- Count of READY cheques (data entry complete, validation passed) -->
+                    <n:div class="bd-summary-row">
+                        <n:span class="bd-summary-lbl">Ready</n:span>
+                        <!-- bd-stat-green → green text in CSS for positive count -->
+                        <label id="lblVerifiedCheques" sclass="bd-summary-val bd-stat-green" value="0" />
+                    </n:div>
 
-				</n:div>
-			</n:div>
+                    <!-- Count of PENDING cheques (not yet processed) -->
+                    <n:div class="bd-summary-row">
+                        <n:span class="bd-summary-lbl">Pending</n:span>
+                        <!-- bd-stat-red → red text in CSS for warning count -->
+                        <label id="lblPendingCheques" sclass="bd-summary-val bd-stat-red" value="0" />
+                    </n:div>
 
-		</n:div>
+                </n:div>
+            </n:div>
+            <!-- END: Batch Summary Sidebar -->
 
-		<!-- ═══ CHEQUE DETAIL POPUP (ZK Div — show/hide via setVisible) ═════ -->
-		<div id="chequePopup" sclass="pop-overlay" visible="false">
-			<n:div class="pop-box">
+            <!-- ========================================================
+                 SECTION: Cheque List (Main Content)
+                 White card containing filter bar + listbox + pagination.
+                 Rows dynamically injected by composer renderCurrentPage().
+                 ======================================================== -->
+            <n:div class="bd-main">
+                <n:div class="bd-cheque-card">
 
-				<!-- Header -->
-				<n:div class="pop-head">
-					<label id="popChequeNo" sclass="pop-title"
-						value="Cheque #&#x2014;" />
-					<button id="btnPopClose" sclass="pop-close-btn"
-						label="&#x2715; Close" />
-				</n:div>
+                    <!-- Card header: section title + cheque range label -->
+                    <n:div class="bd-cheque-head">
+                        <n:span class="bd-cheque-title">CHEQUES LIST</n:span>
+                        <!-- Updated by composer: "Showing 1–5 of 24 cheques" -->
+                        <label id="lblChequeRange" sclass="bd-cheque-range" value="0 cheques" />
+                    </n:div>
 
-				<n:div class="pop-body">
+                    <!-- ================================================
+                         SECTION: Filter Bar
+                         Two halves:
+                           LEFT  → free-text search (cheque no / payer name)
+                           RIGHT → date range + status dropdown + count + clear
+                         Composer re-renders lbCheques on every filter change.
+                         ================================================ -->
+                    <div sclass="bd-filter-bar">
 
-					<!-- ═══ IMAGE VIEWER — single image + F/R/G tab strip ══ -->
-					<n:div class="img-viewer-wrap">
+                        <!-- LEFT: live-search textbox
+                             instant="true" fires onChanging on every keystroke
+                             without waiting for Enter or blur -->
+                        <n:div class="bd-filter-left">
+                            <n:span class="bd-filter-icon">&#x1F50D;</n:span>
+                            <textbox id="txtSearch"
+                                     sclass="bd-search-input"
+                                     placeholder="Cheque no / payer&#x2026;"
+                                     instant="true" />
+                        </n:div>
 
-						<!-- Left: single image frame -->
-						<n:div class="img-viewer-frame">
-							<div id="imgEmptyState" sclass="img-viewer-empty">
-								<n:div class="img-empty-icon">&#x1F5BC;</n:div>
-								<n:div class="img-empty-text">Select a cheque to view image</n:div>
-							</div>
-								<n:img id="popSingleImg" class="img-viewer-img" style="display:none;width:100%;height:100%;object-fit:contain;" />
-						</n:div>
+                        <!-- RIGHT: date range + status + filter count + clear button -->
+                        <n:div class="bd-filter-right">
 
-						<!-- Right: F / FG / R / RG vertical toggle buttons -->
-						<n:div class="img-tab-bar">
-							<n:button id="imgBtnFront"
-								class="img-tab-btn img-tab-active"
-								onclick="bdSwitchImage('front')"
-								title="Front Side">F</n:button>
-							<n:button id="imgBtnFrontGray"
-								class="img-tab-btn"
-								onclick="bdSwitchImage('frontgray')"
-								title="Front Grayscale">FG</n:button>
-							<n:button id="imgBtnRear"
-								class="img-tab-btn"
-								onclick="bdSwitchImage('rear')"
-								title="Rear Side">R</n:button>
-							<n:button id="imgBtnRearGray"
-								class="img-tab-btn"
-								onclick="bdSwitchImage('reargray')"
-								title="Rear Grayscale">RG</n:button>
-						</n:div>
+                            <!-- From-date: inclusive lower bound on cheque date -->
+                            <n:span class="bd-filter-lbl">From:</n:span>
+                            <datebox id="dtDateFilter"
+                                     sclass="bd-datebox-filter"
+                                     format="dd/MM/yyyy"
+                                     width="120px" />
 
-					</n:div>
-					<!-- END IMAGE VIEWER -->
+                            <!-- Arrow separator between From and To -->
+                            <n:span class="bd-filter-sep">&#x2192;</n:span>
 
-					<!-- Cheque Data Entry -->
-					<n:div class="pop-section-label">Cheque Data Entry</n:div>
+                            <!-- To-date: inclusive upper bound on cheque date -->
+                            <n:span class="bd-filter-lbl">To:</n:span>
+                            <datebox id="dtDateTo"
+                                     sclass="bd-datebox-filter"
+                                     format="dd/MM/yyyy"
+                                     width="120px" />
 
-					<!-- MICR row -->
-					<n:div class="pop-micr-row">
-						<n:div class="pop-field pop-field-micr">
-							<n:label class="pop-field-lbl">
-								Cheque No.
-								<n:span class="req-star">*</n:span>
-								<n:span class="field-hint">6 digits</n:span>
-							</n:label>
-							<textbox id="popCheckNo"
-								sclass="pop-input pop-input-mono pop-input-chqno" placeholder="000000"
-								maxlength="6" />
-							<label id="errCheckNo"
-								sclass="err-tip-hidden" value="" />
-						</n:div>
-						<n:div class="pop-field pop-field-micr">
-							<n:label class="pop-field-lbl">
-								City
-								<n:span class="req-star">*</n:span>
-								<n:span class="field-hint">3 digits</n:span>
-							</n:label>
-							<textbox id="popCity"
-								sclass="pop-input pop-input-mono pop-input-city" placeholder="110"
-								maxlength="3" />
-							<label id="errCity" sclass="err-tip-hidden" value="" />
-						</n:div>
-						<n:div class="pop-field pop-field-micr">
-							<n:label class="pop-field-lbl">
-								Bank
-								<n:span class="req-star">*</n:span>
-								<n:span class="field-hint">3 digits</n:span>
-							</n:label>
-							<textbox id="popBank"
-								sclass="pop-input pop-input-mono pop-input-bank" placeholder="532"
-								maxlength="3" />
-							<label id="errBank" sclass="err-tip-hidden" value="" />
-						</n:div>
-						<n:div class="pop-field pop-field-micr">
-							<n:label class="pop-field-lbl">
-								Branch
-								<n:span class="req-star">*</n:span>
-								<n:span class="field-hint">3 digits</n:span>
-							</n:label>
-							<textbox id="popBranch"
-								sclass="pop-input pop-input-mono pop-input-branch" placeholder="119"
-								maxlength="3" />
-							<label id="errBranch"
-								sclass="err-tip-hidden" value="" />
-						</n:div>
+                            <!-- Vertical pipe divider between date and status filters -->
+                            <n:span class="bd-filter-divider" />
 
-						<n:div class="pop-field pop-field-micr">
-							<n:label class="pop-field-lbl">
-								TC
-								<n:span class="req-star">*</n:span>
-								<n:span class="field-hint">2-3 digits</n:span>
-							</n:label>
-							<textbox id="popTc"
-								sclass="pop-input pop-input-mono pop-input-tc" placeholder="31"
-								maxlength="3" />
-							<label id="errTc" sclass="err-tip-hidden" value="" />
-						</n:div>
-					</n:div>
+                            <!-- Status filter: All / Ready / Pending
+                                 readonly=true — no free-text entry, fixed options only -->
+                            <n:span class="bd-filter-lbl">Status:</n:span>
+                            <combobox id="cmbStatusFilter"
+                                      sclass="bd-status-combo"
+                                      readonly="true"
+                                      width="118px">
+                                <comboitem label="All"     value="All" />     <!-- no filter applied -->
+                                <comboitem label="Ready"   value="Ready" />   <!-- ChequeStatus.READY -->
+                                <comboitem label="Pending" value="Pending" /> <!-- ChequeStatus.PENDING -->
+                            </combobox>
 
-					<!-- Face row -->
-					<n:div class="pop-face-row">
-						<n:div class="pop-field">
-							<n:label class="pop-field-lbl">
-								Acc No (Drawee)
-								<n:span class="req-star">*</n:span>
-							</n:label>
-							<textbox id="popAccountNo"
-								sclass="pop-input pop-input-mono pop-input-acctno"
-								placeholder="Account printed on cheque" maxlength="20" />
-							<label id="errAccountNo"
-								sclass="err-tip-hidden" value="" />
-						</n:div>
-						<n:div class="pop-field">
-							<n:label class="pop-field-lbl">
-								Date
-								<n:span class="req-star">*</n:span>
-								<n:span class="field-hint">DD/MM/YYYY</n:span>
-							</n:label>
-							<textbox id="popChequeDate"
-								sclass="pop-input" placeholder="05/05/2026" maxlength="10" />
-							<label id="errChequeDate"
-								sclass="err-tip-hidden" value="" />
-						</n:div>
-						<n:div class="pop-field">
-							<n:label class="pop-field-lbl">
-								Amt in Digits (&#x20B9;)
-								<n:span class="req-star">*</n:span>
-							</n:label>
-							<textbox id="popAmount"
-								sclass="pop-input pop-input-mono" placeholder="2000000.00" />
-							<label id="errAmount"
-								sclass="err-tip-hidden" value="" />
-						</n:div>
-						<n:div class="pop-field pop-field-wide">
-							<n:label class="pop-field-lbl">Amt in Words</n:label>
-							<textbox id="popAmountWords"
-								sclass="pop-input" placeholder="Twenty Lakh Rupees Only" />
-						</n:div>
-					</n:div>
+                            <!-- Live filter result count badge e.g. "12 results"
+                                 Hidden when no filter is active; shown by composer -->
+                            <n:span class="bd-filter-count-wrap">
+                                <label id="lblFilterCount" sclass="bd-filter-count" value="" />
+                            </n:span>
 
-					<!-- ═══ PAYEE ACCOUNT LOOKUP ═════════════════════════════ -->
-					<n:div style="background:#f0f4ff;border:1px solid #c5cfe8;border-radius:8px;padding:2px 6px;margin-top:0;">
+                            <!-- Clear all filters — resets search + dates + status -->
+                            <button id="btnClearFilter" sclass="bd-clear-btn" label="&#x2715; Clear" />
 
-						<n:div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
-							<n:span style="font-size:16px;">&#x1F50D;</n:span>
-							<n:span style="font-weight:700;font-size:13px;color:#1a3a6b;letter-spacing:0.5px;">
-								PAYEE ACCOUNT LOOKUP
-							</n:span>
-						</n:div>
+                        </n:div>
+                    </div>
+                    <!-- END: Filter Bar -->
 
-						<n:div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
-							<n:label style="font-size:12px;font-weight:600;color:#444;white-space:nowrap;">
-								Account Number: <n:span style="color:#c0392b;">*</n:span>
-							</n:label>
-							<textbox id="txtPayeeAcct"
-								sclass="pop-input"
-								style="width:220px;flex:0 0 220px;"
-								placeholder="Enter payee account number"
-								maxlength="30" />
-							<button id="btnValidateAcct" sclass="btn btn-primary btn-sm validate-btn"
-								label="Validate" />
-						</n:div>
+                    <!-- ================================================
+                         SECTION: Cheque Listbox
+                         Columns: # | CHEQUE NO. | PAYEE NAME | AMOUNT
+                                  | DATE | STATUS
+                         Rows: NOT in ZUL — BatchDetailComposer injects
+                               Listitem + Listcell programmatically in
+                               renderCurrentPage(). Each row onClick
+                               opens the chequePopup for that cheque.
+                         rows="5" = page size (matches pagination).
+                         ================================================ -->
+                    <div sclass="bd-tbl-wrap">
+                        <listbox id="lbCheques"
+                                 sclass="bd-listbox"
+                                 rows="5"
+                                 mold="default"
+                                 style="width:100%;border:none;">
+                            <listhead sclass="bd-listhead">
+                                <!-- Row number column — narrow fixed width -->
+                                <listheader label="#"           sclass="bd-lh" width="46px"  align="center" />
+                                <!-- Cheque number — links to popup -->
+                                <listheader label="CHEQUE NO."  sclass="bd-lh" hflex="2"     align="left" />
+                                <!-- Payee name — widest column (most text) -->
+                                <listheader label="PAYEE NAME"  sclass="bd-lh" hflex="4"     align="left" />
+                                <!-- Amount — right-aligned for numeric readability -->
+                                <listheader label="AMOUNT"      sclass="bd-lh" hflex="2"     align="right" />
+                                <!-- Cheque date -->
+                                <listheader label="DATE"        sclass="bd-lh" hflex="2"     align="center" />
+                                <!-- READY / PENDING status chip -->
+                                <listheader label="STATUS"      sclass="bd-lh" hflex="2"     align="center" />
+                            </listhead>
+                            <!-- Listitem rows injected at runtime by renderCurrentPage() -->
+                        </listbox>
+                    </div>
+                    <!-- END: Cheque Listbox -->
 
-						<!-- PENDING state -->
-						<div id="divAcctPending" visible="true"
-							style="color:#888;font-size:10px;font-style:italic;line-height:1.2;padding:0;">
-							<label value="Enter account number and click Validate." />
-						</div>
+                    <!-- ================================================
+                         SECTION: Pagination Bar
+                         Same pattern as my-batches.zul pagination.
+                         State managed in BatchDetailComposer:
+                           currentPage (0-based), totalPages.
+                         Buttons disabled by composer at boundary pages.
+                         ================================================ -->
+                    <div id="paginationBar" sclass="bd-pagination-bar">
+                        <!-- Jump to first page; disabled=true initially -->
+                        <button id="btnFirst" sclass="bd-pg-btn" label="&#x00AB; First" disabled="true" />
+                        <!-- Go to previous page; disabled=true initially -->
+                        <button id="btnPrev"  sclass="bd-pg-btn" label="&#x2039; Prev"  disabled="true" />
+                        <!-- "Page N of M" — updated by composer -->
+                        <label  id="lblPageInfo" sclass="bd-pg-info" value="Page 1 of 1" />
+                        <!-- Go to next page -->
+                        <button id="btnNext"  sclass="bd-pg-btn" label="Next &#x203A;" />
+                        <!-- Jump to last page -->
+                        <button id="btnLast"  sclass="bd-pg-btn" label="Last &#x00BB;" />
+                    </div>
+                    <!-- END: Pagination Bar -->
 
-						<!-- ACCOUNT FOUND block -->
-						<div id="divAcctFound" visible="false" style="min-height:0;">
-							<n:div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;">
+                </n:div>
+            </n:div>
+            <!-- END: Cheque List Main Content -->
 
-								<n:div style="background:#fff;border:1px solid #d1e7dd;border-radius:6px;padding:5px 10px;">
-									<n:div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">
-										Account Holder's Name
-									</n:div>
-									<label id="lblAcctHolderName"
-										style="font-size:13px;font-weight:600;color:#1a3a6b;"
-										value="&#x2014;" />
-								</n:div>
+        </n:div>
+        <!-- END: bd-layout (sidebar + main two-column) -->
 
-								<n:div style="background:#fff;border:1px solid #d1e7dd;border-radius:6px;padding:2px 6px;">
-									<n:div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">
-										Account Status
-									</n:div>
-									<label id="lblAcctStatus"
-										style="font-size:13px;font-weight:600;color:#1a3a6b;"
-										value="&#x2014;" />
-								</n:div>
 
-								<n:div style="background:#fff;border:1px solid #d1e7dd;border-radius:6px;padding:2px 6px;">
-									<n:div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">
-										Account Is New
-									</n:div>
-									<label id="lblAcctSubcategory"
-										style="font-size:13px;font-weight:600;color:#1a3a6b;"
-										value="&#x2014;" />
-								</n:div>
+        <!-- ============================================================
+             SECTION: Cheque Detail Popup Modal
+             ZK <div> acting as a full-screen overlay.
+             visible="false" → hidden by default; ZK adds display:none.
+             Shown by: BatchDetailComposer.openChequePopup() → setVisible(true)
+             Hidden by: closePopup() → setVisible(false)
 
-							</n:div>
-						</div>
+             Structure:
+               pop-box
+                 ├─ pop-head        → cheque number title + close button
+                 ├─ pop-body        → image viewer + data entry + payee lookup
+                 │    ├─ img-viewer-wrap   → single image frame + F/FG/R/RG tabs
+                 │    ├─ pop-micr-row     → MICR band fields (CheckNo, City, Bank, Branch, TC)
+                 │    ├─ pop-face-row     → face fields (AccNo, Date, Amount, AmountWords)
+                 │    └─ payee-lookup     → CBS account lookup section
+                 └─ pop-footer      → Prev/Next nav + Delete + Save&Next buttons
+             ============================================================ -->
+        <div id="chequePopup" sclass="pop-overlay" visible="false">
+            <n:div class="pop-box">
 
-						<!-- ACCOUNT NOT FOUND block -->
-						<div id="divAcctNotFound" visible="false"
-							style="padding:3px 8px;background:#fff5f5;border:1px solid #fcc;border-radius:6px;min-height:0;">
-							<label sclass="pop-acct-notfound-lbl"
-								value="&#x26A0; Payee Account Not Found"
-								style="color:#c0392b;font-weight:700;font-size:13px;" />
-						</div>
+                <!-- ====================================================
+                     Popup Header
+                     Title shows current cheque number e.g. "Cheque #000123"
+                     Updated by composer on each cheque open/navigate.
+                     ==================================================== -->
+                <n:div class="pop-head">
+                    <!-- Populated by composer: popChequeNo.setValue("Cheque #" + cheque.getChequeNo()) -->
+                    <label id="popChequeNo" sclass="pop-title" value="Cheque #&#x2014;" />
+                    <!-- Close: BatchDetailComposer.onPopClose() → setVisible(false) -->
+                    <button id="btnPopClose" sclass="pop-close-btn" label="&#x2715; Close" />
+                </n:div>
+                <!-- END: Popup Header -->
 
-					</n:div>
-					<!-- END PAYEE ACCOUNT LOOKUP -->
+                <!-- ====================================================
+                     Popup Body (scrollable)
+                     Contains image viewer, data entry form, payee lookup.
+                     Separated from footer so footer stays pinned at bottom
+                     even when body content is taller than viewport.
+                     ==================================================== -->
+                <n:div class="pop-body">
 
-				</n:div>
-				<!-- END pop-body (scrollable middle section only — footer below is OUTSIDE
-				     this div now, so it's pinned and never gets clipped/scrolled away,
-				     regardless of zoom level or content height) -->
+                    <!-- ================================================
+                         SECTION: Image Viewer
+                         Single image frame + 4-tab toggle strip (F/FG/R/RG).
 
-				<!-- ═══ POPUP FOOTER — sibling of pop-body, pinned via flex-shrink:0 ═══ -->
-				<n:div class="pop-footer">
-					<n:div class="pop-footer-left">
-						<button id="btnPopPrev" sclass="pop-nav-btn" label="&#x2039; Prev" />
-						<label id="popNavInfo" sclass="bd-pg-info" value="" />
-						<button id="btnPopNext" sclass="pop-nav-btn" label="Next &#x203A;" />
-					</n:div>
-					<n:div class="pop-footer-right">
-						<button id="btnDeleteCheque" sclass="btn btn-danger"
-							label="&#x1F5D1; Delete Cheque" />
-						<button id="btnPopSave" sclass="btn btn-primary"
-							label="&#x1F4BE; Save &amp; Next" />
-					</n:div>
-				</n:div>
-				<!-- END POPUP FOOTER -->
+                         /caveman Exception — bdSwitchImage():
+                           Tab buttons use native onclick=bdSwitchImage(side)
+                           because popSingleImg is a <n:img> (native HTML).
+                           ZK cannot reach native element src attribute
+                           server-side without a full round-trip.
+                           The JS reads data-* attributes pre-loaded by
+                           BatchDetailComposer.showChequeImages() via
+                           Clients.evalJavaScript() setting:
+                             data-front, data-frontgray, data-rear, data-reargray
+                           on the native img element.
+                           Tab switch = pure client DOM swap. No server call.
+                         ================================================ -->
+                    <n:div class="img-viewer-wrap">
 
-			</n:div>
-			<!-- END pop-box -->
-		</div>
-		<!-- END chequePopup -->
+                        <!-- Image display frame — shows selected cheque side image -->
+                        <n:div class="img-viewer-frame">
 
-		<!--
-		  bdSwitchImage(side) — pure client-side image toggle.
-		  Reads data-front/frontgray/rear/reargray from native <n:img> DOM node,
-		  swaps src, updates active button style.
-		  MUST be inside bdRoot div — NOT a sibling of bdRoot under <zk>.
-		-->
-		<n:script><![CDATA[
-		function bdSwitchImage(side) {
-		    var imgEl = document.getElementById('popSingleImg')
-		             || document.querySelector('[id$="popSingleImg"]');
-		    if (!imgEl) return;
-		    var url = imgEl.getAttribute('data-' + side);
-		    if (!url) return;
-		    imgEl.src = url;
-		    imgEl.style.display = 'block';
-		    document.querySelectorAll('.img-tab-btn').forEach(function(b) {
-		        b.classList.remove('img-tab-active');
-		    });
-		    var idMap = {
-		        front:     'imgBtnFront',
-		        frontgray: 'imgBtnFrontGray',
-		        rear:      'imgBtnRear',
-		        reargray:  'imgBtnRearGray'
-		    };
-		    var btn = document.getElementById(idMap[side])
-		           || document.querySelector('[id$="' + idMap[side] + '"]');
-		    if (btn) btn.classList.add('img-tab-active');
-		}
-		]]></n:script>
+                            <!-- Empty state: shown when no cheque is selected yet
+                                 Composer hides this div via imgEmptyState.setVisible(false)
+                                 once cheque images are loaded -->
+                            <div id="imgEmptyState" sclass="img-viewer-empty">
+                                <n:div class="img-empty-icon">&#x1F5BC;</n:div>
+                                <n:div class="img-empty-text">Select a cheque to view image</n:div>
+                            </div>
 
-	</div>
-	<!-- END bdRoot -->
+                            <!-- Native img element — src swapped by bdSwitchImage() JS.
+                                 display:none initially; shown by JS when src is set.
+                                 data-* attributes set by composer via Clients.evalJavaScript():
+                                   data-front     = /ChequeImageServlet?id=X&side=front
+                                   data-frontgray = /ChequeImageServlet?id=X&side=frontgray
+                                   data-rear      = /ChequeImageServlet?id=X&side=rear
+                                   data-reargray  = /ChequeImageServlet?id=X&side=reargray
+                                 object-fit:contain preserves cheque aspect ratio in frame. -->
+                            <n:img id="popSingleImg"
+                                   class="img-viewer-img"
+                                   style="display:none;width:100%;height:100%;object-fit:contain;" />
+
+                        </n:div>
+                        <!-- END: Image Display Frame -->
+
+                        <!-- Vertical tab strip — F / FG / R / RG buttons
+                             onclick calls bdSwitchImage(side) — pure client JS.
+                             img-tab-active class set/removed by bdSwitchImage()
+                             to highlight the currently selected side.
+                             Buttons are native <n:button> (not ZK) because they
+                             trigger client-side behavior only. -->
+                        <n:div class="img-tab-bar">
+                            <!-- F = Front color image (default active tab) -->
+                            <n:button id="imgBtnFront"
+                                      class="img-tab-btn img-tab-active"
+                                      onclick="bdSwitchImage('front')"
+                                      title="Front Side">F</n:button>
+                            <!-- FG = Front grayscale image -->
+                            <n:button id="imgBtnFrontGray"
+                                      class="img-tab-btn"
+                                      onclick="bdSwitchImage('frontgray')"
+                                      title="Front Grayscale">FG</n:button>
+                            <!-- R = Rear/back color image -->
+                            <n:button id="imgBtnRear"
+                                      class="img-tab-btn"
+                                      onclick="bdSwitchImage('rear')"
+                                      title="Rear Side">R</n:button>
+                            <!-- RG = Rear grayscale image -->
+                            <n:button id="imgBtnRearGray"
+                                      class="img-tab-btn"
+                                      onclick="bdSwitchImage('reargray')"
+                                      title="Rear Grayscale">RG</n:button>
+                        </n:div>
+                        <!-- END: Image Tab Strip -->
+
+                    </n:div>
+                    <!-- END: Image Viewer -->
+
+                    <!-- Section label separating image viewer from data entry -->
+                    <n:div class="pop-section-label">Cheque Data Entry</n:div>
+
+                    <!-- ================================================
+                         SECTION: MICR Band Fields
+                         Reads from the physical MICR line at bottom of cheque.
+                         Field order matches MICR band structure:
+                           [ChequeNo 6] [City 3] [Bank 3] [Branch 3] [TC 2-3]
+                         All fields: monospace font, maxlength enforced.
+                         errXxx labels: shown/hidden by composer validation.
+                         ================================================ -->
+                    <n:div class="pop-micr-row">
+
+                        <!-- Cheque Number: 6-digit serial from MICR band -->
+                        <n:div class="pop-field pop-field-micr">
+                            <n:label class="pop-field-lbl">
+                                Cheque No.
+                                <n:span class="req-star">*</n:span>
+                                <n:span class="field-hint">6 digits</n:span>
+                            </n:label>
+                            <textbox id="popCheckNo"
+                                     sclass="pop-input pop-input-mono pop-input-chqno"
+                                     placeholder="000000"
+                                     maxlength="6" />
+                            <!-- Error label: hidden normally; composer shows on validation fail -->
+                            <label id="errCheckNo" sclass="err-tip-hidden" value="" />
+                        </n:div>
+
+                        <!-- City Code: 3-digit RBI city code from MICR band -->
+                        <n:div class="pop-field pop-field-micr">
+                            <n:label class="pop-field-lbl">
+                                City
+                                <n:span class="req-star">*</n:span>
+                                <n:span class="field-hint">3 digits</n:span>
+                            </n:label>
+                            <textbox id="popCity"
+                                     sclass="pop-input pop-input-mono pop-input-city"
+                                     placeholder="110"
+                                     maxlength="3" />
+                            <label id="errCity" sclass="err-tip-hidden" value="" />
+                        </n:div>
+
+                        <!-- Bank Code: 3-digit MICR bank code -->
+                        <n:div class="pop-field pop-field-micr">
+                            <n:label class="pop-field-lbl">
+                                Bank
+                                <n:span class="req-star">*</n:span>
+                                <n:span class="field-hint">3 digits</n:span>
+                            </n:label>
+                            <textbox id="popBank"
+                                     sclass="pop-input pop-input-mono pop-input-bank"
+                                     placeholder="532"
+                                     maxlength="3" />
+                            <label id="errBank" sclass="err-tip-hidden" value="" />
+                        </n:div>
+
+                        <!-- Branch Code: 3-digit MICR branch code -->
+                        <n:div class="pop-field pop-field-micr">
+                            <n:label class="pop-field-lbl">
+                                Branch
+                                <n:span class="req-star">*</n:span>
+                                <n:span class="field-hint">3 digits</n:span>
+                            </n:label>
+                            <textbox id="popBranch"
+                                     sclass="pop-input pop-input-mono pop-input-branch"
+                                     placeholder="119"
+                                     maxlength="3" />
+                            <label id="errBranch" sclass="err-tip-hidden" value="" />
+                        </n:div>
+
+                        <!-- Transaction Code (TC): 2-3 digit MICR transaction code -->
+                        <n:div class="pop-field pop-field-micr">
+                            <n:label class="pop-field-lbl">
+                                TC
+                                <n:span class="req-star">*</n:span>
+                                <n:span class="field-hint">2-3 digits</n:span>
+                            </n:label>
+                            <textbox id="popTc"
+                                     sclass="pop-input pop-input-mono pop-input-tc"
+                                     placeholder="31"
+                                     maxlength="3" />
+                            <label id="errTc" sclass="err-tip-hidden" value="" />
+                        </n:div>
+
+                    </n:div>
+                    <!-- END: MICR Band Fields -->
+
+                    <!-- ================================================
+                         SECTION: Face Fields
+                         Data from the printed face of the cheque.
+                         Fields: Drawee AccNo | Date | Amount (digits) | Amount (words)
+                         Amount-in-words auto-filled by composer on amount change.
+                         ================================================ -->
+                    <n:div class="pop-face-row">
+
+                        <!-- Drawee account number — printed on face of cheque -->
+                        <n:div class="pop-field">
+                            <n:label class="pop-field-lbl">
+                                Acc No (Drawee)
+                                <n:span class="req-star">*</n:span>
+                            </n:label>
+                            <textbox id="popAccountNo"
+                                     sclass="pop-input pop-input-mono pop-input-acctno"
+                                     placeholder="Account printed on cheque"
+                                     maxlength="20" />
+                            <label id="errAccountNo" sclass="err-tip-hidden" value="" />
+                        </n:div>
+
+                        <!-- Cheque date: DD/MM/YYYY entered manually from face -->
+                        <n:div class="pop-field">
+                            <n:label class="pop-field-lbl">
+                                Date
+                                <n:span class="req-star">*</n:span>
+                                <n:span class="field-hint">DD/MM/YYYY</n:span>
+                            </n:label>
+                            <textbox id="popChequeDate"
+                                     sclass="pop-input"
+                                     placeholder="05/05/2026"
+                                     maxlength="10" />
+                            <label id="errChequeDate" sclass="err-tip-hidden" value="" />
+                        </n:div>
+
+                        <!-- Amount in digits — numeric ₹ value from cheque face -->
+                        <n:div class="pop-field">
+                            <n:label class="pop-field-lbl">
+                                Amt in Digits (&#x20B9;)
+                                <n:span class="req-star">*</n:span>
+                            </n:label>
+                            <textbox id="popAmount"
+                                     sclass="pop-input pop-input-mono"
+                                     placeholder="2000000.00" />
+                            <label id="errAmount" sclass="err-tip-hidden" value="" />
+                        </n:div>
+
+                        <!-- Amount in words — auto-filled by AmountToWords util in composer.
+                             User can override; composer cross-checks on save. -->
+                        <n:div class="pop-field pop-field-wide">
+                            <n:label class="pop-field-lbl">Amt in Words</n:label>
+                            <textbox id="popAmountWords"
+                                     sclass="pop-input"
+                                     placeholder="Twenty Lakh Rupees Only" />
+                        </n:div>
+
+                    </n:div>
+                    <!-- END: Face Fields -->
+
+                    <!-- ================================================
+                         SECTION: Payee Account Lookup (CBS)
+                         Inline panel for validating payee account against
+                         Core Banking System (Firebase Firestore via CBSService).
+
+                         Flow:
+                           1. User enters payee account in txtPayeeAcct
+                           2. Clicks btnValidateAcct
+                           3. Composer → CBSService.lookupAccount(acctNo)
+                           4. CBS returns account details OR not-found
+                           5. Composer toggles divAcctPending/Found/NotFound
+                              via setVisible() — no JS, pure ZK MVC
+
+                         Three mutually exclusive state divs:
+                           divAcctPending  → initial/default: "Enter account and click Validate"
+                           divAcctFound    → account found: shows Name, Status, IsNew
+                           divAcctNotFound → account not found: shows error message
+                         ================================================ -->
+                    <n:div style="background:#f0f4ff;border:1px solid #c5cfe8;border-radius:8px;padding:2px 6px;margin-top:0;">
+
+                        <!-- Section header: PAYEE ACCOUNT LOOKUP title -->
+                        <n:div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+                            <n:span style="font-size:16px;">&#x1F50D;</n:span>
+                            <n:span style="font-weight:700;font-size:13px;color:#1a3a6b;letter-spacing:0.5px;">
+                                PAYEE ACCOUNT LOOKUP
+                            </n:span>
+                        </n:div>
+
+                        <!-- Input row: account number textbox + Validate button -->
+                        <n:div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+                            <n:label style="font-size:12px;font-weight:600;color:#444;white-space:nowrap;">
+                                Account Number: <n:span style="color:#c0392b;">*</n:span>
+                            </n:label>
+                            <!-- txtPayeeAcct: payee's bank account number for CBS lookup -->
+                            <textbox id="txtPayeeAcct"
+                                     sclass="pop-input"
+                                     style="width:220px;flex:0 0 220px;"
+                                     placeholder="Enter payee account number"
+                                     maxlength="30" />
+                            <!-- Validate button: onClick → CBSService.lookupAccount()
+                                 Shows spinner/loading state while CBS query runs -->
+                            <button id="btnValidateAcct"
+                                    sclass="btn btn-primary btn-sm validate-btn"
+                                    label="Validate" />
+                        </n:div>
+
+                        <!-- STATE: PENDING — shown by default; hidden after Validate click -->
+                        <div id="divAcctPending" visible="true"
+                             style="color:#888;font-size:10px;font-style:italic;line-height:1.2;padding:0;">
+                            <label value="Enter account number and click Validate." />
+                        </div>
+
+                        <!-- STATE: ACCOUNT FOUND — shown when CBS returns valid account
+                             Grid shows: Holder Name | Account Status | Is New Account
+                             Values populated by composer: lblAcctHolderName.setValue(...) etc. -->
+                        <div id="divAcctFound" visible="false" style="min-height:0;">
+                            <n:div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;">
+
+                                <!-- Account holder's registered name from CBS -->
+                                <n:div style="background:#fff;border:1px solid #d1e7dd;border-radius:6px;padding:5px 10px;">
+                                    <n:div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">
+                                        Account Holder's Name
+                                    </n:div>
+                                    <label id="lblAcctHolderName"
+                                           style="font-size:13px;font-weight:600;color:#1a3a6b;"
+                                           value="&#x2014;" />
+                                </n:div>
+
+                                <!-- Account status from CBS: ACTIVE / INACTIVE / DORMANT etc. -->
+                                <n:div style="background:#fff;border:1px solid #d1e7dd;border-radius:6px;padding:2px 6px;">
+                                    <n:div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">
+                                        Account Status
+                                    </n:div>
+                                    <label id="lblAcctStatus"
+                                           style="font-size:13px;font-weight:600;color:#1a3a6b;"
+                                           value="&#x2014;" />
+                                </n:div>
+
+                                <!-- Whether account is newly opened — flags extra scrutiny -->
+                                <n:div style="background:#fff;border:1px solid #d1e7dd;border-radius:6px;padding:2px 6px;">
+                                    <n:div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px;">
+                                        Account Is New
+                                    </n:div>
+                                    <label id="lblAcctSubcategory"
+                                           style="font-size:13px;font-weight:600;color:#1a3a6b;"
+                                           value="&#x2014;" />
+                                </n:div>
+
+                            </n:div>
+                        </div>
+                        <!-- END: STATE ACCOUNT FOUND -->
+
+                        <!-- STATE: ACCOUNT NOT FOUND — shown when CBS returns no match
+                             Red warning box alerts operator to investigate before saving -->
+                        <div id="divAcctNotFound" visible="false"
+                             style="padding:3px 8px;background:#fff5f5;border:1px solid #fcc;border-radius:6px;min-height:0;">
+                            <label sclass="pop-acct-notfound-lbl"
+                                   value="&#x26A0; Payee Account Not Found"
+                                   style="color:#c0392b;font-weight:700;font-size:13px;" />
+                        </div>
+                        <!-- END: STATE ACCOUNT NOT FOUND -->
+
+                    </n:div>
+                    <!-- END: Payee Account Lookup -->
+
+                </n:div>
+                <!-- END: pop-body
+                     NOTE: footer is a SIBLING of pop-body (not nested inside it).
+                     This is intentional — flex layout on pop-box keeps footer
+                     pinned at bottom regardless of body scroll height or zoom level. -->
+
+                <!-- ====================================================
+                     Popup Footer (pinned — sibling of pop-body)
+                     LEFT:  Prev / "Cheque N of M" / Next navigation
+                     RIGHT: Delete Cheque + Save & Next action buttons
+
+                     btnPopPrev/Next: navigate to adjacent cheque in current
+                       filtered list without closing popup.
+                     btnDeleteCheque: shows ZK Messagebox confirm dialog
+                       before deletion — no JS confirm().
+                     btnPopSave: validates all fields → saves cheque →
+                       auto-advances to next cheque if available.
+                     ==================================================== -->
+                <n:div class="pop-footer">
+
+                    <!-- LEFT: cheque navigation within popup -->
+                    <n:div class="pop-footer-left">
+                        <!-- Navigate to previous cheque in list -->
+                        <button id="btnPopPrev" sclass="pop-nav-btn" label="&#x2039; Prev" />
+                        <!-- "Cheque N of M" — updated by composer on each navigate -->
+                        <label id="popNavInfo" sclass="bd-pg-info" value="" />
+                        <!-- Navigate to next cheque in list -->
+                        <button id="btnPopNext" sclass="pop-nav-btn" label="Next &#x203A;" />
+                    </n:div>
+
+                    <!-- RIGHT: destructive + primary action buttons -->
+                    <n:div class="pop-footer-right">
+                        <!-- Delete: composer shows ZK Messagebox confirm before delete
+                             Deletes cheque from DB, updates sidebar counts, closes popup -->
+                        <button id="btnDeleteCheque" sclass="btn btn-danger"  label="&#x1F5D1; Delete Cheque" />
+                        <!-- Save & Next: validate → persist → open next cheque
+                             If last cheque in list: saves and closes popup -->
+                        <button id="btnPopSave"      sclass="btn btn-primary" label="&#x1F4BE; Save &amp; Next" />
+                    </n:div>
+
+                </n:div>
+                <!-- END: Popup Footer -->
+
+            </n:div>
+            <!-- END: pop-box -->
+        </div>
+        <!-- END: chequePopup overlay div -->
+
+        <!--
+          bdSwitchImage(side) — CLIENT-SIDE JS (/caveman exception)
+          ──────────────────────────────────────────────────────────
+          Purpose: swap the visible cheque image when user clicks
+                   F / FG / R / RG tab buttons in the image viewer.
+
+          WHY JS and not ZK server-side:
+            popSingleImg is a native <n:img> element. ZK has no
+            server-side API to set src on a native HTML element
+            without a full Ajax round-trip. For image tab switching
+            (no data changes, pure display toggle), the round-trip
+            is unnecessary overhead. This is a confirmed /caveman
+            exception: client-only DOM operation with no server benefit.
+
+          How it works:
+            1. BatchDetailComposer.showChequeImages() calls
+               Clients.evalJavaScript() to set data-* attrs on
+               the <n:img> element with pre-signed servlet URLs:
+                 data-front     → servlet URL for front color image
+                 data-frontgray → servlet URL for front grayscale
+                 data-rear      → servlet URL for rear color image
+                 data-reargray  → servlet URL for rear grayscale
+            2. bdSwitchImage(side) reads the data-* attr for the
+               requested side, sets img.src, makes img visible.
+            3. Updates .img-tab-active class on the correct tab button.
+
+          Placement: INSIDE bdRoot div — NOT a sibling of bdRoot.
+            ZK renders <n:script> into the DOM at its position.
+            Must be inside bdRoot so it renders after bdRoot's
+            children exist in the DOM tree.
+        -->
+        <n:script><![CDATA[
+        function bdSwitchImage(side) {
+            // Find native img element — try direct ID first, then suffix match
+            // (ZK may prefix IDs with component tree path in some configurations)
+            var imgEl = document.getElementById('popSingleImg')
+                     || document.querySelector('[id$="popSingleImg"]');
+            if (!imgEl) return;
+
+            // Read pre-loaded servlet URL for the requested side from data-* attribute
+            var url = imgEl.getAttribute('data-' + side);
+            if (!url) return; // side not available for this cheque (e.g. no rear image)
+
+            // Swap image src and make visible
+            imgEl.src = url;
+            imgEl.style.display = 'block';
+
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.img-tab-btn').forEach(function(b) {
+                b.classList.remove('img-tab-active');
+            });
+
+            // Map side key to button ID — add active class to selected tab
+            var idMap = {
+                front:     'imgBtnFront',
+                frontgray: 'imgBtnFrontGray',
+                rear:      'imgBtnRear',
+                reargray:  'imgBtnRearGray'
+            };
+            // Try direct ID, fall back to suffix match for ZK ID-prefixing
+            var btn = document.getElementById(idMap[side])
+                   || document.querySelector('[id$="' + idMap[side] + '"]');
+            if (btn) btn.classList.add('img-tab-active');
+        }
+        ]]></n:script>
+
+    </div>
+    <!-- END: bdRoot / BatchDetailComposer scope -->
 
 </zk>
