@@ -213,16 +213,19 @@ public final class SecurityUtil {
         permissions.put("/zul/outward/reports/batchSummaryReport.zul", "OUTWARD_BATCH_SUMMARY");
         permissions.put("/zul/outward/reports/chequeLevelReport.zul", "OUTWARD_CHEQUE_LEVEL");
 
-        permissions.put("/zul/inward/uploadService.zul", "INWARD_UPLOAD_SERVICE");
-        permissions.put("/zul/inward/micrService.zul", "INWARD_MICR_SERVICE");
-        permissions.put("/zul/inward/returnCheques.zul", "INWARD_RETURN_QUEUE");
-        permissions.put("/zul/inward/checkerQueue.zul", "INWARD_CHECKER_QUEUE");
-        permissions.put("/zul/inward/escalationQueue.zul", "INWARD_ESCALATION_QUEUE");
+        permissions.put("/zul/inward/dashboard/makerDashboard.zul", "INWARD_MAKER_DASHBOARD_VIEW");
+        permissions.put("/zul/inward/dashboard/verifierIDashboard.zul", "INWARD_VERIFIER1_DASHBOARD_VIEW");
+        permissions.put("/zul/inward/dashboard/verifierIIDashboard.zul", "INWARD_VERIFIER2_DASHBOARD_VIEW");
 
-        permissions.put("/zul/inward/reports/makerReport.zul", "INWARD_MAKER_REPORT");
-        permissions.put("/zul/inward/reports/checkerReport1.zul", "INWARD_CHECKER_REPORT_1");
-        permissions.put("/zul/inward/reports/checkerReport2.zul", "INWARD_CHECKER_REPORT_2");
-        permissions.put("/zul/inward/reports/checkerReport3.zul", "INWARD_CHECKER_REPORT_3");
+        // Inward Clearing (new flow)
+        permissions.put("/zul/inward/clearing/uploadCheques.zul", "INWARD_UPLOAD_CHEQUES");
+        permissions.put("/zul/inward/clearing/returnedCheques.zul", "INWARD_RETURNED_CHEQUES");
+        permissions.put("/zul/inward/clearing/resubmittedByVI.zul", "INWARD_RESUBMITTED_VI");
+        permissions.put("/zul/inward/clearing/resubmittedByV2.zul", "INWARD_RESUBMITTED_V2");
+        permissions.put("/zul/inward/clearing/referredCheques.zul", "INWARD_REFERRED_CHEQUES");
+
+        // Inward Reports (consolidated)
+        permissions.put("/zul/inward/reports/reportSummary.zul", "INWARD_REPORT_SUMMARY");
 
         permissions.put("/zul/uam/role-mgmt.zul", "UAM_ROLE_MGMT");
         permissions.put("/zul/uam/user-mgmt.zul", "UAM_USER_MGMT");
