@@ -1,198 +1,295 @@
 package com.cts.composer;
 
+import com.cts.uam.model.User;
+import com.cts.util.SecurityUtil;
+import java.util.ArrayList;
+import java.util.List;
 import org.zkoss.zk.ui.Component;
+import org.zkoss.zk.ui.Executions;
+import org.zkoss.zk.ui.HtmlBasedComponent;
+import org.zkoss.zk.ui.Page;
 import org.zkoss.zk.ui.Sessions;
-import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zk.ui.select.SelectorComposer;
 import org.zkoss.zk.ui.select.annotation.Listen;
 import org.zkoss.zk.ui.select.annotation.Wire;
+import org.zkoss.zk.ui.util.Clients;
 import org.zkoss.zul.Div;
+import org.zkoss.zul.Include;
 import org.zkoss.zul.Label;
-
-import java.util.Arrays;
-import java.util.List;
 
 public class SidebarComposer extends SelectorComposer<Component> {
 
-    // ── Session keys for dropdown open/close state ─────────────────
-    private static final String SESS_OUTWARD_OPEN         = "sidebar_outward_open";
-    private static final String SESS_INWARD_OPEN          = "sidebar_inward_open";
-    private static final String SESS_OUTWARD_REPORTS_OPEN = "sidebar_outwardReports_open";
-    private static final String SESS_INWARD_REPORTS_OPEN  = "sidebar_inwardReports_open";
-    private static final String SESS_USER_OPEN            = "sidebar_user_open";
+    @Wire("#sidebarToggle")
+    private Div sidebarToggle;
 
-    // ── Session key for the currently active menu item id ──────────
-    private static final String SESS_ACTIVE_ITEM = "sidebar_active_item";
+    @Wire("#outwardHeader")
+    private Div outwardHeader;
+    @Wire("#outwardMenu")
+    private Div outwardMenu;
+    @Wire("#outwardArrow")
+    private Label outwardArrow;
 
-    // Default active item id (shown on first load / fresh session)
-    private static final String DEFAULT_ACTIVE_ID = "menuDashboard";
+    @Wire("#inwardHeader")
+    private Div inwardHeader;
+    @Wire("#inwardMenu")
+    private Div inwardMenu;
+    @Wire("#inwardArrow")
+    private Label inwardArrow;
 
-    // ── Dropdown menus ─────────────────────────────────────────────
-    @Wire private Div   outwardMenu;
-    @Wire private Div   inwardMenu;
-    @Wire private Div   outwardReportsMenu;
-    @Wire private Div   inwardReportsMenu;
-    @Wire private Div   userMenu;
+    @Wire("#outwardReportsHeader")
+    private Div outwardReportsHeader;
+    @Wire("#outwardReportsMenu")
+    private Div outwardReportsMenu;
+    @Wire("#outwardReportsArrow")
+    private Label outwardReportsArrow;
 
-    @Wire private Label outwardArrow;
-    @Wire private Label inwardArrow;
-    @Wire private Label outwardReportsArrow;
-    @Wire private Label inwardReportsArrow;
-    @Wire private Label userArrow;
+    @Wire("#inwardReportsHeader")
+    private Div inwardReportsHeader;
+    @Wire("#inwardReportsMenu")
+    private Div inwardReportsMenu;
+    @Wire("#inwardReportsArrow")
+    private Label inwardReportsArrow;
 
-    // ── All top-level and sub menu-item divs (must have id in ZUL) ─
-    @Wire private Div menuDashboard;
-    @Wire private Div menuScanModule;
-    @Wire private Div menuBatchManagement;
-    @Wire private Div menuVerification1;
-    @Wire private Div menuVerification2;
-    @Wire private Div menuCxfCibf;
-    @Wire private Div menuUploadService;
-    @Wire private Div menuMicrService;
-    @Wire private Div menuReturnCheques;
-    @Wire private Div menuCheckerQueue;
-    @Wire private Div menuEscalationQueue;
-    @Wire private Div menuCxfReport;
-    @Wire private Div menuCxbfReport;
-    @Wire private Div menuMakerReport;
-    @Wire private Div menuCheckerReport1;
-    @Wire private Div menuCheckerReport2;
-    @Wire private Div menuCheckerReport3;
-    @Wire private Div menuRoleManagement;
-    @Wire private Div menuUserManagement;
-    @Wire private Div menuPendingUserApproval;
-    @Wire private Div menuPendingRoleApproval;
+    @Wire("#userHeader")
+    private Div userHeader;
+    @Wire("#userMenu")
+    private Div userMenu;
+    @Wire("#userArrow")
+    private Label userArrow;
 
-    /** Flat list of every clickable menu-item div — used for clearing active. */
-    private List<Div> allMenuItems;
+    private User currentUser;
+    private boolean isCollapsed;
 
     @Override
     public void doAfterCompose(Component comp) throws Exception {
         super.doAfterCompose(comp);
 
-        allMenuItems = Arrays.asList(
-            menuDashboard,
-            menuScanModule, menuBatchManagement, menuVerification1,
-            menuVerification2, menuCxfCibf,
-            menuUploadService, menuMicrService, menuReturnCheques,
-            menuCheckerQueue, menuEscalationQueue,
-            menuCxfReport, menuCxbfReport,
-            menuMakerReport, menuCheckerReport1, menuCheckerReport2, menuCheckerReport3,
-            menuRoleManagement, menuUserManagement,
-            menuPendingUserApproval, menuPendingRoleApproval
-        );
-
-        // Restore dropdown open/close states
-        applyDropdownState(outwardMenu,        outwardArrow,        SESS_OUTWARD_OPEN);
-        applyDropdownState(inwardMenu,         inwardArrow,         SESS_INWARD_OPEN);
-        applyDropdownState(outwardReportsMenu, outwardReportsArrow, SESS_OUTWARD_REPORTS_OPEN);
-        applyDropdownState(inwardReportsMenu,  inwardReportsArrow,  SESS_INWARD_REPORTS_OPEN);
-        applyDropdownState(userMenu,           userArrow,           SESS_USER_OPEN);
-
-        // Restore active menu item highlight
-        String activeId = (String) Sessions.getCurrent().getAttribute(SESS_ACTIVE_ITEM);
-        if (activeId == null) activeId = DEFAULT_ACTIVE_ID;
-        applyActiveById(activeId);
-    }
-
-    // ── DROPDOWN HELPERS ───────────────────────────────────────────
-
-    private void applyDropdownState(Div menu, Label arrow, String sessionKey) {
-        boolean open = Boolean.TRUE.equals(Sessions.getCurrent().getAttribute(sessionKey));
-        menu.setVisible(open);
-        arrow.setValue(open ? "▼" : "▶");
-    }
-
-    private void toggle(Div menu, Label arrow, String sessionKey) {
-        boolean open = !menu.isVisible();
-        menu.setVisible(open);
-        arrow.setValue(open ? "▼" : "▶");
-        Sessions.getCurrent().setAttribute(sessionKey, open);
-    }
-
-    // ── ACTIVE STATE HELPERS ───────────────────────────────────────
-
-    /** Remove 'active' sclass from every menu item, then set it on the target. */
-    private void setActive(Div target) {
-        for (Div item : allMenuItems) {
-            if (item == null) continue;
-            String sc = item.getSclass();
-            if (sc == null) sc = "";
-            // Remove 'active' token
-            sc = sc.replaceAll("\\bactive\\b", "").trim();
-            item.setSclass(sc);
+        currentUser = SecurityUtil.getCurrentUser();
+        if (currentUser == null) {
+            Executions.sendRedirect("/zul/login.zul");
+            return;
         }
-        if (target != null) {
-            String sc = target.getSclass();
-            if (sc == null) sc = "";
-            if (!sc.contains("active")) {
-                sc = (sc + " active").trim();
+
+        isCollapsed = getSclass(comp).contains("collapsed");
+
+        // Remove menu items the current user cannot access
+        applyMenuAccessRules(comp);
+
+        // Hide section headers that no longer have visible items underneath
+        updateSectionVisibility(comp);
+
+        wireAccordion(outwardHeader, outwardMenu, outwardArrow);
+        wireAccordion(inwardHeader, inwardMenu, inwardArrow);
+        wireAccordion(outwardReportsHeader, outwardReportsMenu, outwardReportsArrow);
+        wireAccordion(inwardReportsHeader, inwardReportsMenu, inwardReportsArrow);
+        wireAccordion(userHeader, userMenu, userArrow);
+    }
+
+    private void applyMenuAccessRules(Component root) {
+        List<Component> children = new ArrayList<Component>(root.getChildren());
+        for (Component child : children) {
+            configureMenuNode(child);
+        }
+    }
+
+    /**
+     * Reads page/perm only from this node.
+     * Child layout nodes are left untouched so submenu structure remains intact.
+     */
+    private void configureMenuNode(Component node) {
+        String pagePath = getOwnAttributeValue(node, "page");
+        String requiredPermission = getOwnAttributeValue(node, "perm");
+
+        if (pagePath != null) {
+            boolean allowed = SecurityUtil.hasPermission(requiredPermission)
+                    && SecurityUtil.canAccessPage(pagePath);
+
+            if (!allowed) {
+                node.detach();
+                return;
             }
-            target.setSclass(sc);
-            // Persist so refresh restores it
-            Sessions.getCurrent().setAttribute(SESS_ACTIVE_ITEM, target.getId());
+
+            node.addEventListener("onClick", event -> navigateToPage(pagePath, node));
+            return;
+        }
+
+        List<Component> children = new ArrayList<Component>(node.getChildren());
+        for (Component child : children) {
+            configureMenuNode(child);
         }
     }
 
-    /** Find the wired Div by its ZUL id string and activate it. */
-    private void applyActiveById(String id) {
-        if (id == null) return;
-        for (Div item : allMenuItems) {
-            if (item != null && id.equals(item.getId())) {
-                setActive(item);
+    /**
+     * Reads an attribute from the component itself only.
+     * Supports both plain attributes and data-* attributes.
+     */
+    private String getOwnAttributeValue(Component node, String attributeName) {
+        Object value = node.getAttribute(attributeName, 0);
+        if (value != null) {
+            return value.toString();
+        }
+
+        Object dataValue = node.getAttribute("data-" + attributeName, 0);
+        return dataValue != null ? dataValue.toString() : null;
+    }
+
+    private void wireAccordion(Div header, Div menu, Label arrow) {
+        if (header == null || menu == null || arrow == null) {
+            return;
+        }
+
+        header.addEventListener("onClick", event -> {
+            if (isCollapsed) {
+                expandSidebar();
+            }
+
+            boolean menuIsOpen = menu.isVisible();
+            if (!menuIsOpen) {
+                // Re-check access before showing the submenu
+                applyMenuAccessRules(menu);
+
+                // If everything inside was removed, keep the submenu closed
+                if (!hasVisibleMenuItems(menu)) {
+                    return;
+                }
+            }
+
+            menu.setVisible(!menuIsOpen);
+            arrow.setValue(menuIsOpen ? "▶" : "▼");
+        });
+    }
+
+    private void navigateToPage(String pagePath, Component clickedItem) {
+        if (!SecurityUtil.canAccessPage(pagePath)) {
+            return;
+        }
+
+        // Remember the page so DashboardComposer can restore it after refresh
+        Sessions.getCurrent().setAttribute(DashboardComposer.LAST_VISITED_PAGE_KEY, pagePath);
+
+        clearActiveMenuState(getSelf());
+
+        String currentClass = getSclass(clickedItem);
+        if (!currentClass.contains("active")) {
+            setSclass(clickedItem, (currentClass + " active").trim());
+        }
+
+        // Fallback: update the shared content include from any loaded page
+        for (Page page : Executions.getCurrent().getDesktop().getPages()) {
+            Component mainContent = page.getFellowIfAny("mainContent");
+            if (mainContent instanceof Include include) {
+                include.setSrc(pagePath);
                 return;
             }
         }
     }
 
-    // ── TOGGLE LISTENERS ──────────────────────────────────────────
+    private void updateSectionVisibility(Component root) {
+        List<Component> children = new ArrayList<>(root.getChildren());
 
-    @Listen("onClick=#outwardHeader")
-    public void toggleOutwardMenu() {
-        toggle(outwardMenu, outwardArrow, SESS_OUTWARD_OPEN);
-    }
+        for (int i = 0; i < children.size(); i++) {
+            Component child = children.get(i);
+            String sclass = getSclass(child);
 
-    @Listen("onClick=#inwardHeader")
-    public void toggleInwardMenu() {
-        toggle(inwardMenu, inwardArrow, SESS_INWARD_OPEN);
-    }
+            // Hide empty section headers so users only see usable sections
+            if (sclass.contains("sidebar-section") || sclass.contains("nav-section")) {
+                child.setVisible(hasVisibleMenuItems(child));
+            }
 
-    @Listen("onClick=#outwardReportsHeader")
-    public void toggleOutwardReportsMenu() {
-        toggle(outwardReportsMenu, outwardReportsArrow, SESS_OUTWARD_REPORTS_OPEN);
-    }
+            // Hide the accordion header when the user cannot access anything inside it
+            if (sclass.contains("cts-menu-header")) {
+                Component submenu = (i + 1 < children.size()) ? children.get(i + 1) : null;
+                boolean hasAccess = submenu != null && hasVisibleMenuItems(submenu);
 
-    @Listen("onClick=#inwardReportsHeader")
-    public void toggleInwardReportsMenu() {
-        toggle(inwardReportsMenu, inwardReportsArrow, SESS_INWARD_REPORTS_OPEN);
-    }
+                child.setVisible(hasAccess);
 
-    @Listen("onClick=#userHeader")
-    public void toggleUserMenu() {
-        toggle(userMenu, userArrow, SESS_USER_OPEN);
-    }
-
-    // ── PAGE NAVIGATION ───────────────────────────────────────────
-
-    @Listen("onClick=.cts-menu-item")
-    public void navigate(Event event) {
-        // Walk up from clicked element to the div that has pagePath
-        Component target = event.getTarget();
-        while (target != null && target.getAttribute("pagePath") == null) {
-            target = target.getParent();
+                if (submenu != null && getSclass(submenu).contains("cts-submenu")) {
+                    submenu.setVisible(false);
+                }
+            }
         }
-        if (target == null) return;
+    }
 
-        String pagePath = target.getAttribute("pagePath").toString();
+    private boolean hasVisibleMenuItems(Component component) {
+        for (Component child : component.getChildren()) {
+            String sclass = getSclass(child);
 
-        // Update active highlight — target is the .cts-menu-item Div
-        if (target instanceof Div) {
-            setActive((Div) target);
+            if (sclass.contains("cts-menu-item") && child.isVisible()) {
+                return true;
+            }
+
+            if (hasVisibleMenuItems(child)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void clearActiveMenuState(Component component) {
+        String sclass = getSclass(component);
+        if (sclass.contains("cts-menu-item")) {
+            setSclass(component, sclass.replace("active", "").trim());
         }
 
-        // Save last sub-page so refresh restores the content area
-        Sessions.getCurrent().setAttribute(DashboardComposer.SESS_LAST_SUB_PAGE, pagePath);
+        for (Component child : component.getChildren()) {
+            clearActiveMenuState(child);
+        }
+    }
 
-        DashboardComposer.getInstance().loadPage(pagePath);
+    @Listen("onClick = #sidebarToggle")
+    public void toggleSidebar() {
+        Component root = getSelf();
+
+        if (isCollapsed) {
+            expandSidebar();
+            return;
+        }
+
+        // Close all submenus before collapsing so the sidebar stays visually clean
+        closeAllSubmenus(root);
+        setSclass(root, (getSclass(root) + " collapsed").trim());
+        updateSidebarWidth("70px");
+        isCollapsed = true;
+    }
+
+    private void expandSidebar() {
+        Component root = getSelf();
+        setSclass(root, getSclass(root).replace(" collapsed", "").trim());
+        updateSidebarWidth("240px");
+        isCollapsed = false;
+    }
+
+    private void closeAllSubmenus(Component root) {
+        for (Component child : root.getChildren()) {
+            String sclass = getSclass(child);
+
+            if (sclass.contains("cts-submenu")) {
+                child.setVisible(false);
+            }
+
+            if (child instanceof Label arrow && sclass.contains("cts-arrow")) {
+                arrow.setValue("▶");
+            }
+
+            closeAllSubmenus(child);
+        }
+    }
+
+    private void updateSidebarWidth(String width) {
+        Clients.evalJavaScript(
+                "var sidebar = document.querySelector('.app-sidebar');" +
+                        "if (sidebar) { sidebar.style.width='" + width + "'; }");
+    }
+
+    private String getSclass(Component component) {
+        return component instanceof HtmlBasedComponent html && html.getSclass() != null
+                ? html.getSclass()
+                : "";
+    }
+
+    private void setSclass(Component component, String sclass) {
+        if (component instanceof HtmlBasedComponent html) {
+            html.setSclass(sclass);
+        }
     }
 }

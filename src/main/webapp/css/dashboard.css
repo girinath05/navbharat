@@ -2,187 +2,136 @@
    GLOBAL — full height, no scroll on outer page
    ================================================== */
 html, body, .z-page {
-	width: 100%;
-	height: 100%;
-	margin: 0;
-	padding: 0;
-	overflow: hidden;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
 }
 
 /* ==================================================
    BORDERLAYOUT — outer wrapper
    ================================================== */
 .cts-dashboard-layout {
-	width: 100%;
-	height: 100%;
-	border: none !important;
+    width: 100%;
+    height: 100%;
+    border: none !important;
 }
 
-/* ==================================================
-   SCOPED ZK RESETS
-   All rules scoped under .cts-dashboard-layout
-   so they never bleed into sidebar or header styles.
-   ================================================== */
-.cts-dashboard-layout .z-borderlayout, .cts-dashboard-layout .z-borderlayout-body
-	{
-	border: none !important;
-	padding: 0 !important;
-	margin: 0 !important;
+.cts-dashboard-layout .z-borderlayout,
+.cts-dashboard-layout .z-borderlayout-body {
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 100% !important;
 }
 
 /* ==================================================
    NORTH REGION — header bar
+   overflow must be VISIBLE so the profile popup can
+   render outside the north boundary.
    ================================================== */
-.cts-dashboard-layout .z-north, .cts-dashboard-layout .z-north-body {
-	border: none !important;
-	padding: 0 !important;
-	margin: 0 !important;
-	overflow: hidden !important;
-	background: #1a1633 !important; /* matches --hdr-bg, kills any skin-default white sliver */
+.cts-dashboard-layout .z-north,
+.cts-dashboard-layout .z-north-body {
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
 }
 
 /* ==================================================
    WEST REGION — sidebar container
-   
-   KEY FIX: We force height: 100% on the west body
-   AND on the direct child z-div that ZK generates
-   when using <include src="..."/>.
-   
    DOM chain with <include>:
      .z-west
        └── .z-west-body
              └── .z-div   ← ZK wraps <include> output
                    └── .cts-sidebar
-
-   All three must have height: 100% for the chain
-   to pass height down to our sidebar div.
+   All must propagate height for sidebar to fill panel.
    ================================================== */
 .cts-dashboard-layout .z-west {
-	border: none !important;
-	padding: 0 !important;
-	margin: 0 !important;
-	/* West panel must NOT scroll — sidebar handles its own scroll */
-	overflow: hidden !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
 }
 
 .cts-dashboard-layout .z-west-body {
-	border: none !important;
-	padding: 0 !important;
-	margin: 0 !important;
-	/* Fill the full viewport height so sidebar can scroll within it */
-	height: 100% !important;
-	/* Clip any overflow — sidebar's own scrollbar is the only scroll here */
-	overflow: hidden !important;
-	/* Establish a block formatting context so child height:100% resolves */
-	display: block !important;
-	position: relative !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    display: block !important;
+    position: relative !important;
 }
 
-/*
- * ZK wraps <include src="..."/> output in an anonymous .z-div.
- * It must fill the west-body completely so .cts-sidebar gets
- * a real pixel height to scroll within.
- */
-.cts-dashboard-layout .z-west-body>.z-div {
-	height: 100% !important;
-	width: 100% !important;
-	display: block !important;
-	padding: 0 !important;
-	margin: 0 !important;
-	border: none !important;
-	box-sizing: border-box !important;
-	/* No overflow here — let .cts-sidebar own the scrollbar */
-	overflow: hidden !important;
-	position: relative !important;
+.cts-dashboard-layout .z-west-body > .z-div {
+    height: 100% !important;
+    width: 100% !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    position: relative !important;
 }
 
 /* ==================================================
    CENTER REGION — main content area
+   FIX: explicit height on both .z-center and
+   .z-center-body so the browser actually has a
+   bounded box to scroll *inside*. Without an
+   explicit height, overflow:auto has nothing to
+   clip against and content silently spills out /
+   gets cut off instead of scrolling.
    ================================================== */
-.cts-dashboard-layout .z-center, .cts-dashboard-layout .z-center-body {
-	border: none !important;
+.cts-dashboard-layout .z-center,
+.cts-dashboard-layout .z-center-body {
+    border: none !important;
+    height: 100% !important;
 }
 
 .cts-dashboard-layout .z-center-body {
-	background: #f4f6f9;
-	padding: 0 !important;
-	overflow: auto !important;
+    background: #f0f4fa;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    display: block !important;
 }
 
 /* ==================================================
-   CONTENT AREA — inner padding for page content
+   CONTENT AREA — inner div where sub-pages load
+   FIX: use height:100% (not min-height) so this div
+   stays bounded by its scrolling parent
+   (.z-center-body) instead of growing to fit all
+   children and pushing the scrollbar up the chain.
    ================================================== */
 .cts-content {
-	padding: 0px !important;
-	min-height: 100%;
-	box-sizing: border-box;
-	background: #f4f6f9;
+    height: 100%;
+    box-sizing: border-box;
+    background: #f0f4fa;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* ==================================================
-   PAGE TITLE
+   SHARED PAGE TITLE
    ================================================== */
 .cts-page-title {
-	font-size: 24px;
-	font-weight: 600;
-	color: #1f2937;
-	margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a2b4a;
+    margin: 0;
 }
 
 /* ==================================================
-   CARD — reusable white card block
+   SHARED CARD
    ================================================== */
 .cts-card {
-	background: white;
-	border-radius: 8px;
-	padding: 20px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-/* ==================================================
-   MODAL MASK & MESSAGEBOX — global z-index fix
-   --------------------------------------------------
-   DevTools inspection shows ZK renders:
-   • Mask:       class="z-modal-mask"           style="z-index:1800"
-   • Msgbox win: class="z-messagebox-window
-                        z-window
-                        z-window-highlighted
-                        z-window-shadow"         style="z-index:1800"
-
-   The mask was getting z-index:10100 from our CSS
-   (CSS !important DOES beat inline on masks because
-   masks have no specificity conflict) — that's why
-   blur started working. BUT the messagebox WINDOW
-   was still at inline z-index:1800, buried under
-   the mask (10100). Fix: push the window above the mask.
-   ================================================== */
-
-/* ── Mask — blur + block background ── */
-.z-modal-mask,
-.z-highlighted-mask {
-    backdrop-filter:         blur(4px) !important;
-    -webkit-backdrop-filter: blur(4px) !important;
-    background:   rgba(0, 0, 0, 0.50) !important;
-    position:     fixed    !important;
-    top:          0        !important;
-    left:         0        !important;
-    width:        100vw    !important;
-    height:       100vh    !important;
-    pointer-events: all    !important;
-    cursor:       default  !important;
-    z-index:      10100    !important;
-}
-
-/* ── Messagebox WINDOW — must be ABOVE the mask ── */
-/* DevTools confirmed class list:
-   z-messagebox-window  z-window  z-window-highlighted  z-window-shadow */
-.z-messagebox-window,
-.z-messagebox-window.z-window,
-.z-messagebox-window.z-window-highlighted,
-.z-messagebox-window.z-window-modal,
-.z-messagebox-window.z-window-overlapped,
-.z-messagebox-window.z-window-shadow,
-.z-messagebox {
-    z-index:        10200  !important;
-    position:       fixed  !important;
-    pointer-events: all    !important;
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
 }

@@ -5,6 +5,7 @@ import com.cts.outward.dto.ReportBatchDTO;
 import com.cts.outward.dto.ReportChequeDTO;
 import com.cts.outward.service.OutwardReportService;
 import com.cts.outward.service.OutwardReportServiceImpl;
+import com.cts.util.SecurityUtil;
 import com.cts.outward.enums.BatchStatus;
 
 import org.zkoss.zk.ui.Component;
@@ -839,10 +840,9 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
             String adminName = "Admin";
             org.zkoss.zk.ui.Session zkSession = org.zkoss.zk.ui.Sessions.getCurrent();
             if (zkSession != null) {
-                String sessionUserName = (String) zkSession.getAttribute("userName");
-                if (sessionUserName == null) {
-                    sessionUserName = (String) zkSession.getAttribute("loggedUser");
-                }
+                com.cts.uam.model.User sessionUser = (com.cts.uam.model.User) zkSession
+                        .getAttribute(SecurityUtil.SESSION_USER_KEY);
+                String sessionUserName = sessionUser != null ? sessionUser.getUsername() : "System";
                 if (sessionUserName != null && !sessionUserName.trim().isEmpty()) {
                     adminName = sessionUserName;
                 }

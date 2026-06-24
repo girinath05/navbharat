@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zk xmlns:n="native">
+
+    <style src="/css/uam/pending-approval.css" />
+
+    <vlayout sclass="uam-page" hflex="1" vflex="1"
+        apply="com.cts.uam.composer.PendingApprovalComposer">
+
+        <div sclass="uam-surface">
+            <div sclass="uam-body">
+
+                <!-- Page header -->
+                <div sclass="page-header-row">
+                    <div>
+                        <label value="Pending User Approval" sclass="page-title" />
+                        <div sclass="page-subtitle">
+                            Review and approve or reject pending user creation requests.
+                        </div>
+                    </div>
+                    <button id="btnRefresh" sclass="btn btn-outline btn-sm"
+                        label="&#8635; Refresh" />
+                </div>
+
+                <!-- Main card -->
+                <div sclass="user-list-card">
+
+                    <div sclass="table-header-row">
+                        <label sclass="table-title" value="USER REQUESTS" />
+                        <label id="lblUamCount" sclass="count-badge" value="0 Requests" />
+                    </div>
+
+                    <div sclass="table-scroll-area">
+                        <listbox id="lstUamApprovals" sclass="cts-table"
+                            mold="default" autopaging="false" nonselectableTags="">
+                            <listhead>
+                                <listheader label="#"            width="50px"/>
+                                <listheader label="Username"     width="140px"/>
+                                <listheader label="Full Name"    width="160px"/>
+                                <listheader label="Role"         width="150px"/>
+                                <listheader label="Requested By" width="130px"/>
+                                <listheader label="Requested At" width="155px"/>
+                                <listheader label="Actions"      width="220px"/>
+                            </listhead>
+                        </listbox>
+                    </div>
+
+                    <div sclass="pagination-bar">
+                        <label id="lblPaginationInfo" sclass="pagination-info" value="" />
+                        <div sclass="pagination-controls">
+                            <button id="btnFirstPage" sclass="btn btn-outline btn-xs"
+                                label="&#171; First" disabled="true" />
+                            <button id="btnPrevPage" sclass="btn btn-outline btn-xs"
+                                label="&#8249; Prev" disabled="true" />
+                            <label id="lblPageNum" sclass="page-num" value="Page 1 of 1" />
+                            <button id="btnNextPage" sclass="btn btn-outline btn-xs"
+                                label="Next &#8250;" />
+                            <button id="btnLastPage" sclass="btn btn-outline btn-xs"
+                                label="Last &#187;" />
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Detail Modal -->
+        <div id="detailModalOverlay" sclass="modal-overlay" visible="false">
+            <div sclass="modal-card">
+
+                <div sclass="modal-header">
+                    <label id="lblDetailTitle" sclass="modal-title" value="Pending User — Details" />
+                    <button id="btnDetailClose" sclass="btn btn-ghost btn-sm modal-close-btn"
+                        label="&#10005;" />
+                </div>
+
+                <div sclass="modal-body">
+
+                    <div id="dSelfWarning" sclass="self-warning" visible="false">
+                        <n:span>&#9888;&#65039;</n:span>
+                        <n:span>This request was submitted by you. A different user must approve or reject it (four-eyes rule).</n:span>
+                    </div>
+
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="User ID:" />
+                        <label id="dUserId" sclass="detail-val" value="" />
+                    </div>
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Pending Action:" />
+                        <label id="dActionType" sclass="detail-val" value="" />
+                    </div>
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Requested By:" />
+                        <label id="dRequestedBy" sclass="detail-val" value="" />
+                    </div>
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Current Status:" />
+                        <label id="dUserStatus" sclass="detail-val" value="" />
+                    </div>
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Full Name:" />
+                        <label id="dFullName" sclass="detail-val" value="" />
+                    </div>
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Email:" />
+                        <label id="dEmail" sclass="detail-val" value="" />
+                    </div>
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Mobile:" />
+                        <label id="dMobile" sclass="detail-val" value="" />
+                    </div>
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Role:" />
+                        <label id="dRole" sclass="detail-val" value="" />
+                    </div>
+                    <div sclass="detail-row">
+                        <label sclass="detail-key" value="Requested At:" />
+                        <label id="dCreatedAt" sclass="detail-val" value="" />
+                    </div>
+
+                    <div id="dLockRow" sclass="detail-row" visible="false">
+                        <label sclass="detail-key" value="Lock Duration (min):" />
+                        <label id="dLockMinutes" sclass="detail-val" value="" />
+                    </div>
+
+                    <div id="dRejectSection" sclass="reject-section" visible="false">
+                        <n:hr style="margin:14px 0" />
+                        <div sclass="reject-label">
+                            Rejection Reason <n:span style="color:#e05252">*</n:span>
+                        </div>
+                        <textbox id="txtRejectRemarks" sclass="reject-input"
+                            multiline="true" placeholder="Enter reason for rejection..." />
+                    </div>
+
+                </div>
+
+                <div sclass="modal-footer">
+                    <button id="btnModalApprove" sclass="btn btn-success" label="&#10003; Approve" />
+                    <button id="btnModalReject"  sclass="btn btn-danger"  label="&#10005; Reject" />
+                    <button id="btnModalClose"   sclass="btn btn-outline" label="Close" />
+                </div>
+
+            </div>
+        </div>
+
+    </vlayout>
+
+</zk>

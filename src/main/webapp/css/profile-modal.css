@@ -1,0 +1,155 @@
+/* ═══════════════════════════════════════════════
+   profile-modal.css
+   Styles for the My Profile modal in header.zul
+   ═══════════════════════════════════════════════ */
+
+/* ── Overlay ─────────────────────────────────── */
+.prof-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 20, 40, 0.55);
+    backdrop-filter: blur(3px);
+    z-index: 9900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Card ────────────────────────────────────── */
+.prof-modal-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    width: 480px;
+    max-width: 96vw;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Header ──────────────────────────────────── */
+.prof-modal-header {
+    background: linear-gradient(135deg, #152844 0%, #1e3f6e 100%);
+    color: #fff;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.prof-modal-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fff !important;
+}
+
+.prof-modal-close {
+    color: rgba(255,255,255,0.8) !important;
+    border-color: rgba(255,255,255,0.3) !important;
+}
+
+/* ── Tab content ─────────────────────────────── */
+.prof-tab-content {
+    padding: 24px 26px 0;
+}
+
+/* ── Avatar row ──────────────────────────────── */
+.prof-avatar-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.prof-avatar-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e3f6e, #4fc5ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(79,197,255,0.3);
+}
+
+/* ── Field grid (view) ───────────────────────── */
+.prof-field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 20px;
+    margin-bottom: 6px;
+}
+
+.prof-field {}
+
+.prof-field-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #7a9fc4;
+    margin-bottom: 3px;
+}
+
+.prof-field-value {
+    font-size: 0.92rem;
+    color: #1a2a3e;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.prof-field-value.mono {
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #1e3f6e;
+}
+
+/* ── Edit form ───────────────────────────────── */
+.prof-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.prof-edit-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #eef5ff;
+    border: 1px solid #c3d9f5;
+    border-radius: 8px;
+    padding: 10px 13px;
+    font-size: 0.83rem;
+    color: #1e3f6e;
+}
+
+/* ── Password tab ────────────────────────────── */
+.prof-pw-note {
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 8px;
+    padding: 10px 13px;
+    font-size: 0.82rem;
+    color: #7a5800;
+    margin-bottom: 4px;
+}
+
+.prof-pw-error {
+    color: var(--cts-danger, #e53935) !important;
+    font-size: 0.83rem;
+    min-height: 18px;
+    margin-top: 2px;
+}
+
+/* ── Footer ──────────────────────────────────── */
+.prof-modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding: 18px 26px;
+    border-top: 1px solid #e8f0fb;
+    background: #f7faff;
+    margin-top: 20px;
+}

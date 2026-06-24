@@ -1,0 +1,109 @@
+/* ═══════════════════════════════════════════════
+   Change-Password modal styles (for user-mgmt)
+   Add these rules to css/uam/user-mgmt.css
+   (or keep as separate import)
+   ═══════════════════════════════════════════════ */
+
+/* ── Overlay ─────────────────────────────────── */
+.chpw-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 20, 40, 0.55);
+    backdrop-filter: blur(3px);
+    z-index: 9800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Card ────────────────────────────────────── */
+.chpw-modal-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    width: 420px;
+    max-width: 96vw;
+    overflow: hidden;
+}
+
+/* ── Header ──────────────────────────────────── */
+.chpw-modal-header {
+    background: linear-gradient(135deg, #152844 0%, #1e3f6e 100%);
+    color: #fff;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.chpw-modal-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff !important;
+}
+
+.chpw-close {
+    color: rgba(255,255,255,0.8) !important;
+    border-color: rgba(255,255,255,0.3) !important;
+}
+
+/* ── Body ────────────────────────────────────── */
+.chpw-modal-body {
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.chpw-target-info {
+    font-size: 0.9rem;
+    color: #1a2a3e;
+}
+
+.chpw-target-label {
+    font-weight: 600;
+    color: #7a9fc4;
+}
+
+.chpw-target-value {
+    font-weight: 700;
+    color: #1e3f6e;
+}
+
+.chpw-note {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    color: #7a5800;
+}
+
+.chpw-error {
+    color: #e53935 !important;
+    font-size: 0.83rem;
+    min-height: 18px;
+}
+
+/* ── Footer ──────────────────────────────────── */
+.chpw-modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding: 16px 24px;
+    border-top: 1px solid #e8f0fb;
+    background: #f7faff;
+}
+
+/* ── btn-info (cyan, used for Chg. Pwd button) ─ */
+.btn.btn-info {
+    background: #0288d1;
+    color: #fff;
+    border: none;
+}
+.btn.btn-info:hover {
+    background: #0277bd;
+}

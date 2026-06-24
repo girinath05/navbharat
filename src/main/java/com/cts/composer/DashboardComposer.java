@@ -1,62 +1,89 @@
 package com.cts.composer;
 
+import com.cts.util.SecurityUtil;
 import org.zkoss.zk.ui.Component;
 import org.zkoss.zk.ui.Executions;
-import org.zkoss.zk.ui.Session;
+import org.zkoss.zk.ui.Page;
 import org.zkoss.zk.ui.Sessions;
 import org.zkoss.zk.ui.select.SelectorComposer;
 import org.zkoss.zk.ui.select.annotation.Wire;
-import org.zkoss.zul.Div;
+import org.zkoss.zul.Include;
 
 public class DashboardComposer extends SelectorComposer<Component> {
 
-   private static final long serialVersionUID = 1L;
+    /**
+     * Stores the last page the user visited so we can restore it after refresh.
+     */
+    public static final String LAST_VISITED_PAGE_KEY = "CTS_LAST_PAGE";
 
-   @Wire
-   private Div contentArea;
+    @Wire("#mainContent")
+    private Include contentInclude;
 
-   private static DashboardComposer instance;
+    @Override
+    public void doAfterCompose(Component component) throws Exception {
+        super.doAfterCompose(component);
+        contentInclude.setSrc(getInitialPage());
+    }
 
-   // Session key to store last loaded sub-page 
-   public static final String SESS_LAST_SUB_PAGE = "lastSubPage";
+    /**
+     * Prefer the last visited page if it is still allowed.
+     * Otherwise load the default dashboard for the user's role.
+     */
+    private String getInitialPage() {
+        String lastVisitedPage = getLastVisitedPage();
 
-   private static final String DEFAULT_PAGE = "/zul/outward/outwardDashboard.zul";
+        if (isAccessible(lastVisitedPage)) {
+            return lastVisitedPage;
+        }
 
-   @Override
-   public void doAfterCompose(Component comp) throws Exception {
-       super.doAfterCompose(comp);
+        return getDefaultDashboardPage();
+    }
 
-       // Session guard 
-       Session session = Sessions.getCurrent();
-       Object loggedUser = session.getAttribute(LoginComposer.SESS_LOGGED_USER);
-       if (loggedUser == null || loggedUser.toString().trim().isEmpty()) {
-           Executions.sendRedirect("/zul/index.zul");
-           return;
-       }
+    private String getLastVisitedPage() {
+        Object value = Sessions.getCurrent().getAttribute(LAST_VISITED_PAGE_KEY);
+        return value instanceof String ? (String) value : null;
+    }
 
-       session.setAttribute(LoginComposer.SESS_CURRENT_PAGE, DEFAULT_PAGE);
+    private boolean isAccessible(String pagePath) {
+        return pagePath != null
+                && !pagePath.isBlank()
+                && SecurityUtil.canAccessPage(pagePath);
+    }
 
-       instance = this;
+    private String getDefaultDashboardPage() {
+        if (SecurityUtil.canAccessPage("/zul/dashboard.zul")) {
+            return "/zul/dashboard.zul";
+        }
+        if (SecurityUtil.canAccessPage("/zul/outward/outwardDashboard.zul")) {
+            return "/zul/outward/outwardDashboard.zul";
+        }
+        if (SecurityUtil.canAccessPage("/zul/inward/inwardDashboard.zul")) {
+            return "/zul/inward/inwardDashboard.zul";
+        }
+        return "/zul/no-dashboard-access.zul";
+    }
 
-       // APPROACH 2: Read last sub-page from session 
-       // If user refreshes, session still has the last sub-page they visited
-       // So we load that instead of the default
-       String lastSubPage = (String) session.getAttribute(SESS_LAST_SUB_PAGE);
-       if (lastSubPage != null && !lastSubPage.trim().isEmpty()) {
-           loadPage(lastSubPage);   // first time login, load default
-       }
-       else
-       {
-    	   loadPage(DEFAULT_PAGE);
-       }
-   }
+    /**
+     * Programmatic navigation helper for composers that are not wired into
+     * SidebarComposer's click handling (e.g. "Back" / "Next" buttons inside
+     * outward sub-pages). Mirrors the lookup SidebarComposer uses to find the
+     * shared #mainContent Include and swap its src. Replaces the legacy
+     * {@code DashboardComposer.getInstance().loadPage(...)} API from before
+     * the Include-based shell was introduced.
+     */
+    public static void navigateTo(String pagePath) {
+        if (!SecurityUtil.canAccessPage(pagePath)) {
+            return;
+        }
 
-   public static DashboardComposer getInstance() {
-       return instance;
-   }
+        Sessions.getCurrent().setAttribute(LAST_VISITED_PAGE_KEY, pagePath);
 
-   public void loadPage(String pagePath) {
-       contentArea.getChildren().clear();
-       Executions.createComponents(pagePath, contentArea, null);
-   }
+        for (Page page : Executions.getCurrent().getDesktop().getPages()) {
+            Component mainContent = page.getFellowIfAny("mainContent");
+            if (mainContent instanceof Include include) {
+                include.setSrc(pagePath);
+                return;
+            }
+        }
+    }
 }

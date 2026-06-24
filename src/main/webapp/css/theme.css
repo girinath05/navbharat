@@ -1,0 +1,49 @@
+:root {
+    --cts-bg: #edf2f8;
+    --cts-surface: #ffffff;
+    --cts-shell: #163154;
+    --cts-shell-2: #203f69;
+    --cts-shell-3: #284d7b;
+    --cts-border: #c9d5e6;
+    --cts-text: #1d2c42;
+    --cts-muted: #778aa8;
+    --cts-accent: #42b4ff;
+    --cts-success: #2a9d68;
+    --cts-warning: #d58b1c;
+    --cts-danger: #e25959;
+    --cts-violet: #8d35d2;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background: var(--cts-bg);
+    color: var(--cts-text);
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    font-size: 14px;
+}
+
+.meta-green {
+    color: var(--cts-success);
+}
+
+.meta-orange {
+    color: var(--cts-warning);
+}
+
+.meta-red {
+    color: var(--cts-danger);
+}
+
+.meta-blue {
+    color: #1f69df;
+}

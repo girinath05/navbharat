@@ -19,14 +19,14 @@
 
     <!-- batch-cheque-entry.js: live clock, session timer, bce_updateBatchLabel.
          Modal/toast/dialog logic migrated to pure ZK MVC — see composer. -->
-    <n:script src="/navbharat/js/batch-cheque-entry.js"/>
+    <n:script src="/js/batch-cheque-entry.js"/>
     <!-- batch-detail.js: validatePayeeAccount, resetPayeeLookup, bce_renderImages -->
-    <n:script src="/navbharat/js/batch-detail.js"/>
+    <n:script src="/js/batch-detail.js"/>
 
-    <n:link rel="stylesheet" href="/navbharat/css/outward/batch-cheque-entry.css"/>
-    <n:link rel="stylesheet" href="/navbharat/css/outward/batch-detail.css"/>
+    <style src="/css/outward/batch-cheque-entry.css"/>
+    <style src="/css/outward/batch-detail.css"/>
     <!-- my-batches.css: mb-card, mb-toolbar, mb-listbox, mb-th, mb-row, mb-pg-bar etc. -->
-    <n:link rel="stylesheet" href="/navbharat/css/outward/my-batches.css"/>
+    <style src="/css/outward/my-batches.css"/>
 
     <div id="bceRoot" apply="com.cts.outward.composer.BatchChequeEntryComposer">
 
@@ -147,7 +147,8 @@
         <!-- ═══════════════════════════════════════════════════════
              CREATE BATCH MODAL  (Step 1 of 2)
              Pure ZK MVC: visibility driven by composer field
-             (batchModal.setVisible).
+             (batchModal.setVisible) — no bce_openBatchModal/
+             bce_closeBatchModal JS needed.
         ═══════════════════════════════════════════════════════ -->
         <div id="batchModal" sclass="modal-overlay open" visible="false">
             <div sclass="modal-box">

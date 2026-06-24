@@ -5,8 +5,8 @@
     <zscript>
         org.zkoss.zk.ui.Sessions.getCurrent().setAttribute("sidebar_report_tab", "CXF_REPORT");
     </zscript>
-    <window id="outwardReportsRoot" apply="com.cts.outward.composer.OutwardReportComposer"
-            border="none" width="100%" sclass="od-page-bg outward-reports-root" style="padding:0;margin:0;">
+    <div id="outwardReportsRoot" apply="com.cts.outward.composer.OutwardReportComposer"
+         width="100%" sclass="od-page-bg outward-reports-root" style="padding:0;margin:0;">
 
         <style src="/css/outward/outward-reports.css?v=51"/>
 
@@ -91,5 +91,5 @@
         
         <timer id="outwardReportsTimer" delay="3000" repeats="true" />
 
-    </window>
+    </div>
 </zk>

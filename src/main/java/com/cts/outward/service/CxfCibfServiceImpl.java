@@ -5,7 +5,7 @@ import com.cts.outward.dao.CxfCibfDAOImpl;
 import com.cts.outward.dto.CxfBatchDTO;
 import com.cts.outward.dto.CxfChequeDTO;
 
-import com.cts.outward.util.HibernateUtil;
+import com.cts.util.HibernateUtil;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;

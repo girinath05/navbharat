@@ -61,9 +61,24 @@
  *      7. if session["autoOpenBatchModal"] → openBatchModal()
  *
  * ──────────────────────────────────────────────────────────────
- *  ZIP IMPORT FLOW
- * 
- * Scan modal (manual batch created first):
+ *  TWO-PATH ZIP IMPORT FLOW
+ * ──────────────────────────────────────────────────────────────
+ *
+ *  PATH A — Direct upload (no pre-created batch):
+ *  ────────────────────────────────────────────────
+ *  btnUploadZip.onUpload
+ *    └─► onZipUpload(UploadEvent)
+ *          → readAllBytes(media.getStreamData())
+ *          → ZipImportServiceImpl.importZip(bytes, name, branch, user)
+ *              → CtsZipParserImpl.parse()
+ *              → ChequeDAOImpl.findExistingChequeNos()  (dedup)
+ *              → BatchDAOImpl.saveBatch()
+ *              → ChequeDAOImpl.saveCheques()
+ *              → returns ImportResult
+ *          → if allDuplicates → openDuplicateDialog()
+ *          → else → showSuccessToast()
+ *
+ *  PATH B — Scan modal (manual batch created first):
  *  ──────────────────────────────────────────────────
  *  btnOpenBatchModal.onClick
  *    └─► openBatchModal()    [shows Step 1 modal]
@@ -398,7 +413,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 		super.doAfterCompose(comp);
 
 		if (!isSessionValid()) {
-			Executions.sendRedirect("index.zul");
+			Executions.sendRedirect("/zul/login.zul");
 			return;
 		}
 
@@ -427,7 +442,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	 * login and cleared on logout or session timeout.
 	 */
 	private boolean isSessionValid() {
-		return Sessions.getCurrent().getAttribute(SESS_LOGGED_USER) != null;
+		return com.cts.util.SecurityUtil.isLoggedIn();
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
@@ -682,7 +697,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	 */
 	@Listen("onClick = #btnViewBatches")
 	public void onViewBatches() {
-		com.cts.composer.DashboardComposer.getInstance().loadPage("/zul/outward/batchManagement.zul");
+		com.cts.composer.DashboardComposer.navigateTo("/zul/outward/batchManagement.zul");
 	}
 
 	/**
@@ -1216,7 +1231,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	@Listen("onClick = #btnLogout")
 	public void onLogout(Event event) {
 		Sessions.getCurrent().invalidate();
-		Executions.sendRedirect("index.zul");
+		Executions.sendRedirect("/zul/login.zul");
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
@@ -1588,7 +1603,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	private void navigateToBatchDetail(BatchEntity batch) {
 		Sessions.getCurrent().setAttribute("selectedBatchId", batch.getBatchId());
 		Sessions.getCurrent().setAttribute("batchDetailBackPage", "/zul/outward/scanModule.zul");
-		com.cts.composer.DashboardComposer.getInstance().loadPage("/zul/outward/batch-detail.zul");
+		com.cts.composer.DashboardComposer.navigateTo("/zul/outward/batch-detail.zul");
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
@@ -1623,7 +1638,6 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 		long pendingChequeCount;
 		try {
 			pendingChequeCount = chequeService.countPending();
-			
 		} catch (Exception ex) {
 			pendingChequeCount = totalChequeCount; // fallback if DB is temporarily unreachable
 		}
@@ -1762,8 +1776,18 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	 * @return the attribute value, or {@code defaultValue}
 	 */
 	private String sessionStr(String attributeKey, String defaultValue) {
-		Object attributeValue = Sessions.getCurrent().getAttribute(attributeKey);
-		return attributeValue != null ? attributeValue.toString() : defaultValue;
+		com.cts.uam.model.User currentUser = com.cts.util.SecurityUtil.getCurrentUser();
+		if (currentUser == null) return defaultValue;
+		if (SESS_USER_NAME.equals(attributeKey)) {
+			String fullName = currentUser.getFullName();
+			return (fullName != null && !fullName.isBlank()) ? fullName : currentUser.getUsername();
+		}
+		if (SESS_USER_ROLE.equals(attributeKey)) {
+			String roleLabel = currentUser.getRoleLabel();
+			return roleLabel != null ? roleLabel : defaultValue;
+		}
+		// SESS_USER_BRANCH has no equivalent on the UAM User model yet; keep default.
+		return defaultValue;
 	}
 
 	/**

@@ -552,7 +552,7 @@ public class MyBatchesComposer extends SelectorComposer<Component> {
     @Listen("onClick = #btnCreateBatch")
     public void onCreateBatch() {
         Sessions.getCurrent().setAttribute("autoOpenBatchModal", true);
-        com.cts.composer.DashboardComposer.getInstance().loadPage("/zul/outward/scanModule.zul");
+        com.cts.composer.DashboardComposer.navigateTo("/zul/outward/scanModule.zul");
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -812,7 +812,7 @@ public class MyBatchesComposer extends SelectorComposer<Component> {
      */
     private void openBatch(String batchId) {
         Sessions.getCurrent().setAttribute("selectedBatchId", batchId);
-        com.cts.composer.DashboardComposer.getInstance().loadPage("/zul/outward/batch-detail.zul");
+        com.cts.composer.DashboardComposer.navigateTo("/zul/outward/batch-detail.zul");
     }
 
     /**
@@ -975,9 +975,8 @@ public class MyBatchesComposer extends SelectorComposer<Component> {
      * {@link #doAfterCompose(Component)} — first action before any DB access.
      */
     private void guardSession() {
-        Object loggedUser = Sessions.getCurrent().getAttribute(SESS_LOGGED_USER);
-        if (loggedUser == null || loggedUser.toString().trim().isEmpty()) {
-            Executions.sendRedirect("/zul/index.zul");
+        if (!com.cts.util.SecurityUtil.isLoggedIn()) {
+            Executions.sendRedirect("/zul/login.zul");
         }
     }
 

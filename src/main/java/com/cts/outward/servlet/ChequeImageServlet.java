@@ -51,7 +51,6 @@ public class ChequeImageServlet extends HttpServlet {
     private static final long   serialVersionUID = 1L;
     private static final Logger LOG = Logger.getLogger(ChequeImageServlet.class.getName());
 
-    private static final String SESS_LOGGED_USER = "loggedUser";
     private static final String SESS_IMG_CACHE   = "cts.imgCache";
     private static final int    CACHE_MAX_ENTRIES = 80;   // 20 cheques × 4 sides
 
@@ -72,8 +71,12 @@ public class ChequeImageServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
         // ── 1. Session guard ──────────────────────────────────────────────────
+        // MERGE FIX: LoginComposer no longer sets a raw "loggedUser" attribute;
+        // it stores a com.cts.uam.model.User under SecurityUtil.SESSION_USER_KEY
+        // on both the ZK session and the HttpSession.
         HttpSession session = req.getSession(false);
-        if (session == null || session.getAttribute(SESS_LOGGED_USER) == null) {
+        if (session == null || !(session.getAttribute(com.cts.util.SecurityUtil.SESSION_USER_KEY)
+                instanceof com.cts.uam.model.User)) {
             resp.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Not authenticated");
             return;
         }

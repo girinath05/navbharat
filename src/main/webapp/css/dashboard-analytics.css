@@ -1,0 +1,409 @@
+/* ==================================================
+   COMBINED DASHBOARD + ANALYTICS
+   Extends cts-content / cts-card / cts-page-title
+   from dashboard.css. Do not duplicate those rules here.
+   ================================================== */
+
+.cts-dash-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.cts-dash-datetime {
+    font-size: 13px;
+    color: #6b7a99;
+}
+
+.cts-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a2b4a;
+    margin: 28px 0 12px;
+}
+
+/* ---------- KPI cards (top row) ---------- */
+.cts-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.cts-kpi-card {
+    border-radius: 12px;
+    padding: 18px 20px;
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.cts-kpi-card .cts-kpi-num {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.cts-kpi-card .cts-kpi-label {
+    font-size: 13px;
+    margin-top: 4px;
+    opacity: 0.9;
+}
+
+.cts-kpi-blue  { background: #2962d6; }
+.cts-kpi-teal  { background: #15a07a; }
+.cts-kpi-amber { background: #e88a1d; }
+.cts-kpi-red   { background: #d6493c; }
+
+/* ---------- module panels (inward / outward) ---------- */
+.cts-panel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.cts-panel-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cts-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.cts-dot-blue { background: #2962d6; }
+.cts-dot-teal { background: #15a07a; }
+
+/* ---------- mini stat table inside panel cards ---------- */
+.cts-mini-table {
+    width: 100%;
+    font-size: 13px;
+    border-collapse: collapse;
+}
+
+.cts-mini-table td {
+    padding: 7px 0;
+}
+
+.cts-mini-table td:last-child {
+    text-align: right;
+    font-weight: 600;
+}
+
+.cts-mini-table tr + tr td {
+    border-top: 1px solid #eef1f6;
+}
+
+.cts-mini-danger {
+    color: #d6493c;
+}
+
+/* ---------- recent batches table ---------- */
+.cts-recent-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.cts-recent-table th {
+    text-align: left;
+    color: #6b7a99;
+    font-weight: 600;
+    padding: 8px 6px;
+    border-bottom: 2px solid #eef1f6;
+}
+
+.cts-recent-table td {
+    padding: 9px 6px;
+    border-bottom: 1px solid #f3f5f9;
+}
+
+.cts-badge {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.cts-badge-pending  { background: #fdeccb; color: #8a5a05; }
+.cts-badge-verified { background: #cdeee2; color: #0d6b4d; }
+
+/* ---------- analytics filter row ---------- */
+.cts-filter-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 28px 0 12px;
+}
+
+.cts-filter-row .cts-section-title {
+    margin: 0;
+}
+
+/* ---------- analytics metric cards ---------- */
+.cts-metric-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.cts-metric-card {
+    background: #eef2fa;
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+
+.cts-metric-card .cts-metric-label {
+    font-size: 12px;
+    color: #6b7a99;
+}
+
+.cts-metric-card .cts-metric-val {
+    font-size: 22px;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+/* ---------- chart cards ---------- */
+.cts-chart-card {
+    margin-bottom: 16px;
+}
+
+.cts-chart-card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.cts-chart-box {
+    position: relative;
+    width: 100%;
+    height: 220px;
+}
+
+.cts-chart-box-sm {
+    position: relative;
+    width: 100%;
+    height: 180px;
+}
+
+.cts-legend {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: #6b7a99;
+    margin-bottom: 8px;
+}
+
+.cts-legend span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.cts-legend .cts-sw {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+.cts-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+/* ---------- AI insights section ---------- */
+.cts-insight-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 4px;
+    margin-bottom: 16px;
+}
+
+.cts-insight-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.cts-insight-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.cts-insight-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.cts-insight-icon-blue { background: #e3edff; }
+.cts-insight-icon-red  { background: #fde3e0; }
+
+.cts-insight-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a2b4a;
+}
+
+.cts-insight-big-num {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a2b4a;
+    margin-bottom: 6px;
+}
+
+.cts-insight-desc {
+    font-size: 13px;
+    color: #6b7a99;
+    line-height: 1.5;
+}
+
+.cts-insight-sentence {
+    font-size: 13px;
+    color: #3a3f4d;
+    line-height: 1.5;
+    margin-bottom: 14px;
+}
+
+.cts-insight-mini-table {
+    width: 100%;
+    font-size: 13px;
+    border-collapse: collapse;
+}
+
+.cts-insight-mini-table td {
+    padding: 6px 0;
+}
+
+.cts-insight-mini-table td:last-child {
+    text-align: right;
+    font-weight: 600;
+    color: #d6493c;
+}
+
+.cts-insight-mini-table tr + tr td {
+    border-top: 1px solid #eef1f6;
+}
+
+/* ---------- chatbot widget ---------- */
+.cts-chatbot-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #2962d6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(41, 98, 214, 0.4);
+    cursor: pointer;
+    z-index: 999;
+}
+
+.cts-chatbot-fab-icon {
+    font-size: 24px;
+}
+
+.cts-chatbot-window {
+    position: fixed;
+    bottom: 90px;
+    right: 24px;
+    width: 320px;
+    height: 420px;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1000;
+}
+
+.cts-chatbot-header {
+    background: #2962d6;
+    color: white;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cts-chatbot-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+}
+
+.cts-chatbot-close {
+    cursor: pointer;
+    font-size: 14px;
+    color: white;
+    opacity: 0.85;
+}
+
+.cts-chatbot-body {
+    flex: 1 1 auto;
+    padding: 14px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #f6f8fc;
+}
+
+.cts-chat-msg {
+    max-width: 80%;
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.cts-chat-msg-bot {
+    background: #eef2fa;
+    color: #1a2b4a;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+
+.cts-chat-msg-user {
+    background: #2962d6;
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+
+.cts-chatbot-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    border-top: 1px solid #eef1f6;
+    background: white;
+}
+
+.cts-chatbot-input {
+    flex: 1 1 auto;
+}
+
+.cts-chatbot-send-btn {
+    flex-shrink: 0;
+}

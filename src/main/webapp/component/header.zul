@@ -1,105 +1,136 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?link rel="stylesheet" href="/css/header.css"?>
+<?link rel="stylesheet" href="/css/profile-modal.css"?>
 
 <zk xmlns:n="native">
 
-	<div id="hdrRoot" apply="com.cts.composer.HeaderComposer">
+    <div id="hdrRoot" apply="com.cts.composer.HeaderComposer">
 
-		<timer id="hdrTimer" delay="1000" repeats="true" running="true" />
+        <timer id="hdrTimer" delay="1000" repeats="true" running="true" />
 
-		<!-- ── HEADER BAR ─────────────────────────────────────────── -->
-		<div id="ctsHeader" sclass="cts-header">
+        <!-- ── HEADER BAR ──────────────────────────────────────── -->
+        <div id="ctsHeader" sclass="cts-header">
 
-			<!-- LEFT — Nav Bharat Bank logo -->
-			<n:div class="hdr-left">
-				<n:img src="../images/navbharat.jpg"
-					class="hdr-nbb-logo" alt="Nav Bharat Bank" />
-			</n:div>
+            <n:div class="hdr-left">
+                <image src="/images/navbharat.jpg" sclass="hdr-nbb-logo" />
+            </n:div>
 
-			<!-- CENTRE — Date and Clock (hidden/shown by composer) -->
-			<div id="hdrCentre" sclass="hdr-centre">
-				<label id="lblHdrDate" sclass="hdr-date-label" value="01 JAN 2000" />
-				<label id="lblHdrTime" sclass="hdr-clock-label" value="00:00 AM" />
-			</div>
+            <div id="hdrCentre" sclass="hdr-centre">
+                <label id="lblHdrDate" sclass="hdr-date-label" value="01 JAN 2000" />
+                <label id="lblHdrTime" sclass="hdr-clock-label" value="00:00 AM" />
+            </div>
 
-			<!-- RIGHT — ClearPay logo + avatar button -->
-			<div sclass="hdr-right">
-				<n:div class="hdr-cp-block">
-					<n:img src="../images/clearpay.jpg"
-						class="hdr-cp-logo-img" alt="ClearPay CTS" />
-				</n:div>
-				<div id="avatarBtn" sclass="hdr-avatar-btn">
-					<label id="lblHdrAvatar" sclass="hdr-avatar" value="A" />
-				</div>
-			</div>
+            <div sclass="hdr-right">
+                <n:div class="hdr-cp-block">
+                    <image src="/images/clearpay.jpg" sclass="hdr-cp-logo-img" />
+                </n:div>
+                <div id="avatarBtn" sclass="hdr-avatar-btn">
+                    <label id="lblHdrAvatar" sclass="hdr-avatar" value="A" />
+                </div>
+            </div>
 
-		</div>
+        </div>
 
-		<!-- CLICK-OUTSIDE CATCHER — invisible, covers the whole screen.
-		     Shown only while the profile popup is open. Clicking ANYWHERE
-		     on it (header / sidebar / dashboard center, doesn't matter
-		     since this is position:fixed and sits above everything else
-		     except the popup itself) closes the popup.
-		     Styling is INLINE on purpose so it doesn't depend on header.css. -->
-		<div id="ppOverlay" sclass="pp-overlay" visible="false"
-			style="position:fixed; top:0; left:0; width:100%; height:100%; background:transparent; z-index:99998;" />
+        <!-- CLICK-OUTSIDE CATCHER — FROM V1
+             Invisible full-screen overlay shown only while the profile
+             popup is open. Sits at z-index:99998 (just below the popup
+             at 99999). Any click outside the popup lands here and the
+             composer's onOverlayClick() closes the popup.
+             Styling is inline so it never depends on header.css. -->
+        <div id="ppOverlay" visible="false"
+             style="position:fixed; top:0; left:0; width:100%; height:100%;
+                    background:transparent; z-index:99998;" />
 
-		<!-- PROFILE POPUP -->
-		<div id="profilePopup" sclass="profile-popup" style="z-index:99999;">
+        <!-- PROFILE POPUP -->
+        <div id="profilePopup" sclass="profile-popup">
 
-			<n:div class="pp-top">
-				<n:div class="pp-avatar-big">
-					<label id="lblPopupAvatar" sclass="pp-avatar-letter" value="A" />
-				</n:div>
-				<label id="lblPopupName"  sclass="pp-name"      value="Administrator" />
-				<label id="lblPopupEmail" sclass="pp-email"      value="user@navbharatbank.in" />
-				<label id="lblPopupRole"  sclass="pp-role-badge" value="ADMINISTRATOR" />
-			</n:div>
+            <n:div class="pp-top">
+                <n:div class="pp-avatar-big">
+                    <label id="lblPopupAvatar" sclass="pp-avatar-letter" value="A" />
+                </n:div>
+                <label id="lblPopupName"  sclass="pp-name"       value="Administrator" />
+                <label id="lblPopupEmail" sclass="pp-email"       value="user@navbharatbank.in" />
+                <label id="lblPopupRole"  sclass="pp-role-badge"  value="ADMINISTRATOR" />
+            </n:div>
 
-			<n:div class="pp-divider" />
+            <n:div class="pp-divider" />
 
-			<n:div class="pp-menu">
+            <n:div class="pp-menu">
 
-				<div id="btnViewProfile" sclass="pp-menu-item">
-					<n:span class="pp-icon pp-icon-profile">&#128100;</n:span>
-					<n:span class="pp-menu-label">View Profile</n:span>
-				</div>
+                <div id="btnChangePassword" sclass="pp-menu-item">
+                    <n:span class="pp-icon pp-icon-profile">&#128273;</n:span>
+                    <n:span class="pp-menu-label">Change Password</n:span>
+                </div>
 
-				<div id="btnChangePassword" sclass="pp-menu-item">
-					<n:span class="pp-icon pp-icon-password">&#128273;</n:span>
-					<n:span class="pp-menu-label">Change Password</n:span>
-				</div>
+                <!-- CLOCK TOGGLE ROW -->
+                <div id="btnToggleClock" sclass="pp-menu-item">
+                    <n:span class="pp-icon pp-icon-clock">&#128336;</n:span>
+                    <n:span class="pp-menu-label">Show Clock</n:span>
+                    <div id="clockTogglePill" sclass="pp-toggle pp-toggle-on">
+                        <label id="lblClockToggle" sclass="pp-toggle-label" value="ON" />
+                    </div>
+                </div>
 
-				<div id="btnEditAccount" sclass="pp-menu-item">
-					<n:span class="pp-icon pp-icon-edit">&#9998;</n:span>
-					<n:span class="pp-menu-label">Edit Account</n:span>
-				</div>
+                <div id="btnLogout" sclass="pp-menu-item pp-logout">
+                    <n:span class="pp-icon pp-icon-logout">&#9211;</n:span>
+                    <n:span class="pp-menu-label">Logout</n:span>
+                </div>
 
-				<!-- CLOCK TOGGLE ROW -->
-				<div id="btnToggleClock" sclass="pp-menu-item">
-					<n:span class="pp-icon pp-icon-clock">&#128336;</n:span>
-					<n:span class="pp-menu-label">Show Clock</n:span>
-					<div id="clockTogglePill" sclass="pp-toggle pp-toggle-on">
-						<label id="lblClockToggle" sclass="pp-toggle-label" value="ON" />
-					</div>
-				</div>
+            </n:div>
 
-				<div id="btnLogout" sclass="pp-menu-item pp-logout">
-					<n:span class="pp-icon pp-icon-logout">&#9211;</n:span>
-					<n:span class="pp-menu-label">Logout</n:span>
-				</div>
+            <n:div class="pp-footer">
+                <n:span class="pp-online-dot" />
+                <label id="lblSessionTime" sclass="pp-session-label"
+                    value="Active session · 00:00:00" />
+            </n:div>
 
-			</n:div>
+        </div>
 
-			<n:div class="pp-footer">
-				<n:span class="pp-online-dot" />
-				<label id="lblSessionTime" sclass="pp-session-label"
-					value="Active session · 00:00:00" />
-			</n:div>
+        <!-- CHANGE PASSWORD MODAL -->
+        <div id="chpwModalOverlay" sclass="chpw-modal-overlay" visible="false">
+            <div sclass="chpw-modal-card">
 
-		</div>
+                <div sclass="chpw-modal-header">
+                    <n:span class="chpw-modal-title">&#128273; Change Password</n:span>
+                    <button id="btnChpwClose" sclass="btn btn-ghost btn-sm chpw-close-btn" label="✕" />
+                </div>
 
-	</div>
+                <div sclass="chpw-modal-body">
+                    <n:div class="chpw-note">
+                        Password must be ≥8 chars with at least one uppercase letter,
+                        one digit, and one special character.
+                    </n:div>
+
+                    <div sclass="field-group">
+                        <n:div class="field-label">Current Password <n:span class="req">*</n:span></n:div>
+                        <textbox id="txtCurrentPw" sclass="field-input"
+                            type="password" placeholder="Enter current password" />
+                    </div>
+
+                    <div sclass="field-group">
+                        <n:div class="field-label">New Password <n:span class="req">*</n:span></n:div>
+                        <textbox id="txtNewPw" sclass="field-input"
+                            type="password" placeholder="Enter new password" />
+                    </div>
+
+                    <div sclass="field-group">
+                        <n:div class="field-label">Confirm New Password <n:span class="req">*</n:span></n:div>
+                        <textbox id="txtConfirmPw" sclass="field-input"
+                            type="password" placeholder="Repeat new password" />
+                    </div>
+
+                    <label id="lblChpwError" sclass="chpw-error-label" value="" />
+                </div>
+
+                <div sclass="chpw-modal-footer">
+                    <button id="btnSavePassword" sclass="btn btn-primary"  label="Save Password" />
+                    <button id="btnChpwCancel"   sclass="btn btn-outline"  label="Cancel" />
+                </div>
+
+            </div>
+        </div>
+
+    </div>
 
 </zk>

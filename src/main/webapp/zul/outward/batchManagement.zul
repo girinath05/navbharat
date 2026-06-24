@@ -20,8 +20,8 @@
 <zk xmlns="http://www.zkoss.org/2005/zul"
     xmlns:n="native">
 
-    <n:link rel="stylesheet" href="/navbharat/css/outward/batch-cheque-entry.css"/>
-    <n:link rel="stylesheet" href="/navbharat/css/outward/my-batches.css"/>
+    <style src="/css/outward/batch-cheque-entry.css"/>
+    <style src="/css/outward/my-batches.css"/>
 
     <div id="mbRoot" apply="com.cts.outward.composer.MyBatchesComposer"
          style="padding: 20px;">
