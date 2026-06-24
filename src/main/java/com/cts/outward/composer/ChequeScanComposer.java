@@ -1,59 +1,52 @@
-/*
- * ============================================================
- *  Project     : NavBharat CTS — Cheque Truncation System
- *  Module      : Outward Clearing — Scan / Batch-Create Module
- *  File        : BatchChequeEntryComposer.java
- *  Package     : com.cts.outward.composer
- *  Author      : Umesh M.
- *  Created     : June 2026
+/**
+ * File     : ChequeScanComposer.java
+ * Package  : com.cts.outward.composer
+ * Purpose  : ZK SelectorComposer for cheque-scan.zul — manages the full
+ *            batch creation and ZIP import workflow for the Maker role.
+ *            Handles batch listing, modal orchestration, ZIP import,
+ *            duplicate detection, mismatch resolution, and success feedback.
+ * Author   : Umesh M.
+ * Date     : June 2026
  *
  * ──────────────────────────────────────────────────────────────
- *  PURPOSE
- * ──────────────────────────────────────────────────────────────
- *  ZK SelectorComposer that powers the Scan Module screen
- *  (scanModule.zul). Responsibilities:
- *
- *  1. Display the Maker's batch list (Draft + Pending batches only).
- *  2. Allow creation of a new manual batch (Step 1 modal: enter
- *     expected cheque count and control amount).
- *  3. Accept a ZIP file upload (Step 2 scan modal) to import
- *     scanned cheque images and parse MICR data.
- *  4. Handle all import edge cases:
- *       a. All cheques already in system → "All Duplicates" dialog
- *       b. Cheque count mismatch → "Mismatch" dialog (Accept/Discard)
- *       c. Clean import → success toast
- *  5. Navigate to batch-detail.zul when a batch row is clicked.
- *
- * ──────────────────────────────────────────────────────────────
- *  ARCHITECTURE — WHERE THIS CLASS FITS
+ * LAYER FLOW  (UI → Service → DAO → DB)
  * ──────────────────────────────────────────────────────────────
  *
- *  Browser (ZUL)                   Server (Composer)               DB / Parser
- *  ─────────────────               ──────────────────────────────  ──────────────────
- *  scanModule.zul ─load──►  BatchChequeEntryComposer               Supabase PostgreSQL
- *      Batch list                  ↕ BatchServiceImpl                 cts_batches
- *      Create modal                ↕ ChequeServiceImpl                cts_cheques
- *      Scan modal                  ↕ ZipImportServiceImpl
- *      Mismatch dialog               ↕ CtsZipParserImpl            ZIP/XML parsing
- *      Dup dialog                    ↕ ChequeDAOImpl                  findExistingNos
- *      Success toast
+ *  cheque-scan.zul
+ *      │   (ZK events: onClick, onChange, onUpload, onTimer)
+ *      ▼
+ *  ChequeScanComposer       ← THIS FILE  (UI logic only, no SQL)
+ *      │   calls ↓
+ *      ├── BatchService / BatchServiceImpl
+ *      │       │   calls ↓
+ *      │       └── BatchDAO / BatchDAOImpl        → cts_batches (PostgreSQL)
+ *      │
+ *      ├── ChequeService / ChequeServiceImpl
+ *      │       │   calls ↓
+ *      │       └── ChequeDAO / ChequeDAOImpl      → cts_cheques (PostgreSQL)
+ *      │
+ *      └── ZipImportService / ZipImportServiceImpl
+ *              │   calls ↓
+ *              ├── CtsZipParserImpl               → ZIP / XML parsing
+ *              ├── ChequeDAOImpl.findExistingNos  → dedup check
+ *              ├── BatchDAOImpl.saveBatch         → persist new batch row
+ *              └── ChequeDAOImpl.saveCheques      → persist cheque rows
  *
  * ──────────────────────────────────────────────────────────────
- *  NAVIGATION ENTRY POINTS  (who calls this page)
+ * NAVIGATION ENTRY POINTS  (who calls this page)
  * ──────────────────────────────────────────────────────────────
- *  1. DashboardComposer.loadPage("/zul/outward/scanModule.zul")
- *       Called from the sidebar "Scan" menu item.
- *
+ *  1. DashboardComposer.loadPage("/zul/outward/my-batches.zul")
+ *       → called from sidebar "Scan Module" menu item
  *  2. MyBatchesComposer.onCreateBatch()
- *       Sets session["autoOpenBatchModal"] = true
- *       → DashboardComposer.loadPage(".../scanModule.zul")
+ *       → sets session["autoOpenBatchModal"] = true
+ *       → DashboardComposer.loadPage(".../cheque-scan.zul")
  *
  * ──────────────────────────────────────────────────────────────
- *  LIFECYCLE  (ZK call order)
+ * ZK LIFECYCLE  (call order guaranteed by ZK framework)
  * ──────────────────────────────────────────────────────────────
  *  doAfterCompose(comp)
- *      1. isSessionValid()          → redirect to index.zul if no session
- *      2. loadUserInfo()            → populate header labels
+ *      1. isSessionValid()          → redirect to index.zul if not logged in
+ *      2. loadUserInfo()            → populate header labels from session
  *      3. loadBatchesFromService()  → BatchService → DB → in-memory list
  *      4. renderBatches()           → build Listitem rows in lbBatches
  *      5. refreshStats()            → update stat card labels
@@ -61,63 +54,35 @@
  *      7. if session["autoOpenBatchModal"] → openBatchModal()
  *
  * ──────────────────────────────────────────────────────────────
- *  TWO-PATH ZIP IMPORT FLOW
+ * SCANNING FLOW
  * ──────────────────────────────────────────────────────────────
- *
- *  PATH A — Direct upload (no pre-created batch):
- *  ────────────────────────────────────────────────
- *  btnUploadZip.onUpload
- *    └─► onZipUpload(UploadEvent)
- *          → readAllBytes(media.getStreamData())
- *          → ZipImportServiceImpl.importZip(bytes, name, branch, user)
- *              → CtsZipParserImpl.parse()
- *              → ChequeDAOImpl.findExistingChequeNos()  (dedup)
- *              → BatchDAOImpl.saveBatch()
- *              → ChequeDAOImpl.saveCheques()
- *              → returns ImportResult
- *          → if allDuplicates → openDuplicateDialog()
- *          → else → showSuccessToast()
- *
- *  PATH B — Scan modal (manual batch created first):
- *  ──────────────────────────────────────────────────
- *  btnOpenBatchModal.onClick
- *    └─► openBatchModal()    [shows Step 1 modal]
- *
- *  btnCreateBatch.onClick
- *    └─► onCreateBatch()
- *          → BatchServiceImpl.createBatch(branch, count, amount, user)
- *              → BatchDAOImpl.saveBatch()  [status=Draft]
- *          → store pendingBatchId
- *          → openScanModal(batchId)        [shows Step 2 modal]
- *
- *  btnScanUploadZip.onUpload
- *    └─► onScanZipUpload(UploadEvent)
- *          → ZipImportServiceImpl.importZip(bytes, name, branch, user, pendingBatchId)
- *              → (same as Path A, but links cheques to existingBatchId)
- *          → Case 1: allDuplicates → discardPendingBatch() → openDuplicateDialog()
- *          → Case 2: count mismatch → save pendingMismatchResult → openMismatchDialog()
- *          → Case 3: success → finishSuccessfulImport()
- *
- *  btnMismatchAccept.onClick
- *    └─► onMismatchAccept()
- *          → finishSuccessfulImport(pendingMismatchResult)
- *
- *  btnMismatchDiscard.onClick
- *    └─► onMismatchDiscard()
- *          → BatchServiceImpl.discardBatch(pendingBatchId)
- *              → BatchDAOImpl.deleteBatchAndCheques()
+ *  PATH A -Two-step (create batch first, then scan):
+ *  
+ *      Step 1: btnOpenBatchModal.onClick → openBatchModal()
+ *      
+ *      Step 1: btnCreateBatch.onClick   → onCreateBatch()
+ *                  → BatchServiceImpl.createBatch() → status=Draft
+ *                  → store pendingBatchId
+ *                  → openScanModal(batchId)
+ *                  
+ *      Step 2: btnScanUploadZip.onUpload → onScanZipUpload(UploadEvent)
+ *                  → ZipImportServiceImpl.importZip(bytes, name, branch, user, pendingBatchId)
+ *                      Case 1: allDuplicates  → discardPendingBatch() → openDuplicateDialog()
+ *                      Case 2: count mismatch → store pendingMismatchResult → openMismatchDialog()
+ *                      Case 3: clean import   → finishSuccessfulImport()
+ *      btnMismatchAccept.onClick  → onMismatchAccept()  → finishSuccessfulImport(pendingMismatchResult)
+ *      btnMismatchDiscard.onClick → onMismatchDiscard() → BatchServiceImpl.discardBatch()
  *
  * ──────────────────────────────────────────────────────────────
- *  KEY DESIGN DECISIONS
+ * KEY DESIGN DECISIONS
  * ──────────────────────────────────────────────────────────────
  *  • Pure ZK MVC — all overlay/modal visibility driven by setVisible().
  *    No JavaScript innerHTML rebuilds, no DOM manipulation.
- *  • pendingBatchId is the bridge between Step 1 (create) and Step 2 (scan).
- *    It is cleared on: successful import, discard, or scan modal close.
- *  • Status filter: "Pending" in UI = "VerificationInProgressAtMaker" in DB.
- *  • Ghost batch guard: hides VerificationInProgressAtMaker batches with
- *    zero amount and no cheques (leftover from aborted manual creates).
- * ============================================================
+ *  • pendingBatchId bridges Step 1 (create) and Step 2 (scan).
+ *    Cleared on: successful import, discard, or scan modal close.
+ *  • "Pending" in UI = "VerificationInProgressAtMaker" in DB.
+ *  • Ghost batch guard: hides VerificationInProgressAtMaker batches
+ *    with zero amount and no cheques (leftover from aborted manual creates).
  */
 package com.cts.outward.composer;
 
@@ -164,30 +129,39 @@ import com.cts.outward.service.ZipImportService;
 import com.cts.outward.service.ZipImportServiceImpl;
 
 /**
- * ZK SelectorComposer for {@code scanModule.zul}.
+ * ZK SelectorComposer for {@code cheque-scan.zul}.
  *
  * <p>
  * Manages the full batch creation and ZIP import workflow for the Maker role.
- * See class-level Javadoc for the complete two-path import flow.
+ * See class-level Javadoc above for the complete two-path import flow and layer
+ * architecture diagram.
+ *
+ * <p>
+ * FLOW SUMMARY: cheque-scan.zul → ChequeScanComposer →
+ * BatchService/ChequeService/ZipImportService → DAO → DB
  *
  * @author Umesh M.
  * @see ZipImportService
  * @see BatchService
  */
-public class BatchChequeEntryComposer extends SelectorComposer<Component> {
+public class ChequeScanComposer extends SelectorComposer<Component> {
 
 	private static final long serialVersionUID = 1L;
 
 	/** Rows shown per page in the batch table. */
 	private static final int BATCH_PAGE_SIZE = 5;
 
-	/** Logger — import errors, discard events, session issues. */
-	private static final Logger LOG = Logger.getLogger(BatchChequeEntryComposer.class.getName());
+	/**
+	 * Logger for import errors, discard events, and session issues. Using class
+	 * name so log entries are traceable to this composer.
+	 */
+	private static final Logger LOG = Logger.getLogger(ChequeScanComposer.class.getName());
 
 	// ── Service layer (manual wiring — no DI framework) ──────────────────
-	// BatchService: batch CRUD + submit validation.
-	// ChequeService: cheque field save + pending count for stat card.
-	// ZipImportService: orchestrates ZIP parse → dedup → DB persist.
+	// FLOW: Composer → Service → DAO → DB (never Composer → DAO directly)
+	// BatchService : batch CRUD + submit validation
+	// ChequeService : cheque field save + pending count for stat card
+	// ZipImportService : orchestrates ZIP parse → dedup → DB persist
 	private final BatchService batchService = new BatchServiceImpl(new BatchDAOImpl(), new ChequeDAOImpl());
 	private final ChequeService chequeService = new ChequeServiceImpl(new ChequeDAOImpl());
 	private final ZipImportService zipImportService = new ZipImportServiceImpl();
@@ -195,7 +169,8 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	// ── Session attribute key constants ───────────────────────────────────
 	// Set by LoginComposer on successful login; read here for user context
 	// and for setting createdBy / branchCode on new batches.
-	private static final String SESS_LOGGED_USER = "loggedUser";
+//	private static final String SESS_LOGGED_USER = "loggedUser";
+	
 	private static final String SESS_USER_NAME = "userName";
 	private static final String SESS_USER_ROLE = "userRole";
 	private static final String SESS_USER_BRANCH = "userBranch";
@@ -205,29 +180,42 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	/**
 	 * Master batch list — loaded from DB at startup and refreshed after every
 	 * import / create / discard operation. Filtered in-memory by
-	 * getFilteredBatches().
+	 * {@link #getFilteredBatches()}.
+	 *
+	 * FLOW: loadBatchesFromService() → fills this list → getFilteredBatches()
+	 * applies UI filters → renderBatches() draws rows
 	 */
 	private final List<BatchEntity> batches = new ArrayList<>();
 
-	/** Current page index (1-based) for the batch table pagination controls. */
+	/**
+	 * Current page index (1-based) for the batch table pagination controls. Reset
+	 * to 1 on every filter change so the user always sees results.
+	 */
 	private int batchPage = 1;
 
 	/**
 	 * Batch ID of the Draft batch created in Step 1 (onCreateBatch), waiting for a
-	 * ZIP upload in Step 2 (onScanZipUpload). Cleared on: successful import, user
-	 * discards, scan modal closed without upload.
+	 * ZIP upload in Step 2 (onScanZipUpload).
+	 *
+	 * FLOW: onCreateBatch() sets this → onScanZipUpload() reads this →
+	 * finishSuccessfulImport() clears this Cleared on: successful import, user
+	 * discards, or scan modal closed without upload.
 	 */
 	private String pendingBatchId = null;
 
 	/**
 	 * Holds the ImportResult from onScanZipUpload() when the cheque count does not
-	 * match the Maker's declared count. Kept in memory until the user clicks Accept
-	 * (finishSuccessfulImport) or Discard (deleteBatchAndCheques).
+	 * match the Maker's declared count.
+	 *
+	 * FLOW: onScanZipUpload() sets this → openMismatchDialog() shows dialog →
+	 * onMismatchAccept() calls finishSuccessfulImport(this) OR onMismatchDiscard()
+	 * clears this
 	 */
 	private ImportResult pendingMismatchResult = null;
 
 	// ══════════════════════════════════════════════════════════════════════
 	// WIRED ZK COMPONENTS — HEADER + TOP-LEVEL BUTTONS
+	// All @Wire fields are injected by ZK after doAfterCompose() is called.
 	// ══════════════════════════════════════════════════════════════════════
 
 	@Wire
@@ -251,7 +239,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	@Wire
 	private Button btnCloseScanModal; // Close scan modal via × button
 	@Wire
-	private Button btnScanCancelDiscard; // Legacy discard fallback button
+	private Button btnScanCancelDiscard;// Legacy discard fallback button
 
 	// ══════════════════════════════════════════════════════════════════════
 	// WIRED ZK COMPONENTS — SCAN MODAL (Step 2)
@@ -270,6 +258,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// WIRED ZK COMPONENTS — MISMATCH DIALOG
+	// Shown when ZIP cheque count ≠ declared count from Step 1
 	// ══════════════════════════════════════════════════════════════════════
 
 	@Wire
@@ -297,6 +286,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// WIRED ZK COMPONENTS — ALL-DUPLICATES DIALOG
+	// Shown when every cheque in the ZIP already exists in cts_cheques
 	// ══════════════════════════════════════════════════════════════════════
 
 	@Wire
@@ -312,6 +302,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// WIRED ZK COMPONENTS — SUCCESS TOAST
+	// Auto-dismissed after 5 seconds via toastTimer (pure ZK MVC, no JS)
 	// ══════════════════════════════════════════════════════════════════════
 
 	@Wire
@@ -331,6 +322,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// WIRED ZK COMPONENTS — DASHBOARD STAT CARDS
+	// Updated after every import/create/discard operation
 	// ══════════════════════════════════════════════════════════════════════
 
 	@Wire
@@ -342,6 +334,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// WIRED ZK COMPONENTS — BATCH TABLE + TOOLBAR
+	// lbBatches rows are built dynamically by renderBatches() / appendBatchRow()
 	// ══════════════════════════════════════════════════════════════════════
 
 	@Wire
@@ -375,7 +368,10 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	/**
 	 * Number of cheques the Maker declares are in the physical bundle (control
-	 * total — used to detect ZIP count mismatch in Step 2).
+	 * total). Used in Step 2 to detect ZIP count mismatch.
+	 *
+	 * FLOW: Maker enters this → onCreateBatch() reads it → BatchServiceImpl stores
+	 * it → onScanZipUpload() compares ZIP count against it
 	 */
 	@Wire
 	private Intbox txtChequeCount;
@@ -389,41 +385,48 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// LIFECYCLE — doAfterCompose
+	// Entry point: ZK calls this once after the ZUL component tree is ready
+	// and all @Wire fields are injected.
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
 	 * ZK lifecycle entry point — called once after the ZUL component tree is parsed
 	 * and all {@code @Wire} fields are injected.
 	 *
-	 * <h3>Initialisation Order</h3>
+	 * <h3>Initialisation Order (FLOW)</h3>
 	 * <ol>
-	 * <li>Session guard — bounce if not logged in</li>
-	 * <li>Header labels — user name / role from session</li>
-	 * <li>Load batches from DB into in-memory {@link #batches} list</li>
-	 * <li>Render the batch table first page</li>
-	 * <li>Refresh stat cards</li>
-	 * <li>Auto-open create modal if navigated from My Batches "Create Batch"
-	 * button</li>
+	 * <li>isSessionValid() → bounce to index.zul if not logged in</li>
+	 * <li>loadUserInfo() → read userName/userRole from session → set header
+	 * labels</li>
+	 * <li>loadBatchesFromService() → BatchService.getAllBatches() → fill in-memory
+	 * list</li>
+	 * <li>renderBatches() → apply filters → build Listitem rows in lbBatches</li>
+	 * <li>refreshStats() → count batches/cheques/pending → update stat cards</li>
+	 * <li>updateBatchCountLabel() → update "N batches" badge label</li>
+	 * <li>autoOpenBatchModal check → if session flag set, open Create Batch
+	 * modal</li>
 	 * </ol>
 	 *
-	 * @param comp root ZK component of scanModule.zul
+	 * @param comp root ZK component of cheque-scan.zul
 	 */
 	@Override
 	public void doAfterCompose(Component comp) throws Exception {
 		super.doAfterCompose(comp);
 
+		// Step 1: Session guard — redirect immediately if not authenticated
 		if (!isSessionValid()) {
-			Executions.sendRedirect("/zul/login.zul");
+			Executions.sendRedirect("index.zul");
 			return;
 		}
 
+		// Step 2–6: Load data and render UI
 		loadUserInfo();
 		loadBatchesFromService();
 		renderBatches();
 		refreshStats();
 		updateBatchCountLabel();
 
-		// Auto-open the create modal when navigated here from My Batches
+		// Step 7: Auto-open create modal when navigated here from My Batches
 		// "Create Batch" button (MyBatchesComposer.onCreateBatch() sets this flag).
 		Object autoOpenFlag = Sessions.getCurrent().getAttribute("autoOpenBatchModal");
 		if (Boolean.TRUE.equals(autoOpenFlag)) {
@@ -433,28 +436,33 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
-	// SESSION
+	// SESSION — isSessionValid()
+	// FLOW: doAfterCompose() → isSessionValid() → if false → redirect
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
-	 * Returns true if the current HTTP session has an authenticated user. The
-	 * {@code loggedUser} attribute is set by {@code LoginComposer} on successful
-	 * login and cleared on logout or session timeout.
+	 * Returns true if the current HTTP session has an authenticated user.
+	 *
+	 * FLOW: doAfterCompose() calls this first. The {@code loggedUser} attribute is
+	 * set by {@code LoginComposer} on successful login and cleared on logout or
+	 * session timeout.
+	 *
+	 * @return true if loggedUser session attribute is present
 	 */
 	private boolean isSessionValid() {
-		return com.cts.util.SecurityUtil.isLoggedIn();
+	    return com.cts.util.SecurityUtil.getCurrentUser() != null;
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
-	// HEADER
+	// HEADER — loadUserInfo()
+	// FLOW: doAfterCompose() → loadUserInfo() → reads session → sets header labels
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
 	 * Reads {@code userName} and {@code userRole} from session and sets the page
 	 * header labels. Values are uppercased to match the design spec.
 	 *
-	 * <p>
-	 * Called from: {@link #doAfterCompose(Component)}
+	 * FLOW: Called from doAfterCompose() during init sequence (Step 2).
 	 */
 	private void loadUserInfo() {
 		if (lblHdrUser != null)
@@ -465,26 +473,30 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// DATA LOAD FROM SERVICE
+	// FLOW: Composer → BatchService.getAllBatches() → BatchDAO → DB → in-memory
+	// list
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
 	 * Clears the in-memory batch list and reloads all batches from the DB.
 	 *
-	 * <p>
-	 * Uses {@code BatchService.getAllBatches()} which returns the full table (all
-	 * statuses). The Maker-only view filter is applied in
-	 * {@link #getFilteredBatches()} at render time, keeping this method fast and
-	 * unconditional.
+	 * FLOW: loadBatchesFromService() → BatchService.getAllBatches() [Service layer
+	 * — no SQL here] → BatchDAOImpl.getAllBatches() [DAO layer — PostgreSQL query]
+	 * → cts_batches table [DB] → results stored in this.batches [in-memory,
+	 * filtered at render time]
 	 *
-	 * <p>
 	 * Called from: doAfterCompose, finishSuccessfulImport, discardPendingBatch,
 	 * onMismatchDiscard, onBatchSearch, onBatchStatusFilter, onBatchDateFilter.
+	 *
+	 * Note: getAllBatches() returns ALL statuses intentionally — Maker-only filter
+	 * is applied in getFilteredBatches() at render time.
 	 */
 	private void loadBatchesFromService() {
 		batches.clear();
 		try {
 			batches.addAll(batchService.getAllBatches());
 		} catch (Exception ex) {
+			// Show warning but don't crash — user can still see empty table
 			Clients.showNotification("⚠ Could not load batches: " + ex.getMessage(), "warning", null, "middle_center",
 					4000);
 		}
@@ -492,39 +504,37 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// PATH A — DIRECT ZIP UPLOAD (no pre-created batch)
+	// FLOW: btnUploadZip.onUpload → onZipUpload() → ZipImportService → result
+	// handling
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
 	 * Handles ZIP file upload from the main page upload button (Path A).
 	 *
-	 * <p>
-	 * This path creates the batch implicitly inside ZipImportServiceImpl — the
-	 * Maker does not fill in a control total first.
+	 * FLOW (Path A — no pre-created batch): onZipUpload(UploadEvent) → validate
+	 * file (null check, .zip extension) → readAllBytes(media.getStreamData())
+	 * [convert stream to byte[]] → ZipImportServiceImpl.importZip(bytes, name,
+	 * branch, user) → CtsZipParserImpl.parse() [extract XML + images from ZIP] →
+	 * ChequeDAOImpl.findExistingChequeNos() [dedup check against DB] →
+	 * BatchDAOImpl.saveBatch() [create new batch row, status=Draft] →
+	 * ChequeDAOImpl.saveCheques() [insert non-duplicate cheque rows] → if
+	 * allDuplicates → openDuplicateDialog() [nothing was saved] → else → update
+	 * in-memory list → renderBatches() → showSuccessToast()
 	 *
-	 * <h3>Call Chain</h3>
-	 * 
-	 * <pre>
-	 * onZipUpload(UploadEvent)
-	 *   → readAllBytes(media.getStreamData())
-	 *   → ZipImportServiceImpl.importZip(bytes, name, branch, user)
-	 *       → CtsZipParserImpl.parse()
-	 *       → ChequeDAOImpl.findExistingChequeNos()
-	 *       → BatchDAOImpl.saveBatch()      [new batch row]
-	 *       → ChequeDAOImpl.saveCheques()   [metadata + async image save]
-	 *   → if allDuplicates → openDuplicateDialog()
-	 *   → else → showSuccessToast()
-	 * </pre>
+	 * Triggered by: {@code onUpload = #btnUploadZip} in cheque-scan.zul
 	 *
-	 * <p>
-	 * Triggered by: {@code onUpload = #btnUploadZip} in scanModule.zul
+	 * @param event ZK upload event containing the uploaded media
 	 */
 	@Listen("onUpload = #btnUploadZip")
 	public void onZipUpload(UploadEvent event) {
 		Media uploadedMedia = event.getMedia();
+
+		// Validate: null media means upload was cancelled or failed silently
 		if (uploadedMedia == null) {
 			Clients.showNotification("No file received.", "error", null, "middle_center", 3000);
 			return;
 		}
+		// Validate: only .zip files accepted — reject everything else
 		if (!uploadedMedia.getName().toLowerCase().endsWith(".zip")) {
 			Clients.showNotification("Please upload a .zip file.", "warning", null, "middle_center", 3000);
 			return;
@@ -532,23 +542,25 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 		Clients.showBusy("Processing ZIP — please wait…");
 		try {
+			// Read the entire upload stream into a byte array for the parser
 			byte[] zipBytes = readAllBytes(uploadedMedia.getStreamData());
 			String branchCode = sessionStr(SESS_USER_BRANCH, "MUM01");
 			String createdBy = sessionStr(SESS_USER_NAME, "SYSTEM");
 
-			// Full import pipeline: parse → dedup → persist batch + cheques
+			// FLOW: Delegate to service layer — full parse → dedup → persist pipeline
+			// Path A: no existingBatchId, so service creates a new batch row
 			ImportResult importResult = zipImportService.importZip(zipBytes, uploadedMedia.getName(), branchCode,
 					createdBy);
 			Clients.clearBusy();
 
-			// All cheques already exist — nothing was saved to DB
+			// Case: all cheques already exist — nothing was saved to DB
 			if (importResult.isAllDuplicates()) {
 				openDuplicateDialog(importResult.getParsedTotal(), importResult.getParsedTotalAmount());
 				return;
 			}
 
-			// Update in-memory list and refresh the UI
-			batches.add(0, importResult.getBatch());
+			// Success: update in-memory list and refresh the UI
+			batches.add(0, importResult.getBatch()); // prepend so newest appears first
 			renderBatches();
 			refreshStats();
 			updateBatchCountLabel();
@@ -566,10 +578,15 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// PATH B STEP 1 — CREATE BATCH MODAL
+	// FLOW: btnOpenBatchModal.onClick → openBatchModal() → Maker fills form
+	// → btnCreateBatch.onClick → onCreateBatch() → service creates Draft batch
+	// → openScanModal(batchId) → Step 2 begins
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
 	 * Clears the cheque-count error highlight when the user modifies the field.
+	 *
+	 * FLOW: onChange event fires → clear error state so user sees clean input.
 	 * Triggered by: {@code onChange = #txtChequeCount}
 	 */
 	@Listen("onChange = #txtChequeCount")
@@ -582,6 +599,8 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	/**
 	 * Clears the control-amount error highlight when the user modifies the field.
+	 *
+	 * FLOW: onChange event fires → clear error state so user sees clean input.
 	 * Triggered by: {@code onChange = #txtExpectedAmount}
 	 */
 	@Listen("onChange = #txtExpectedAmount")
@@ -596,22 +615,16 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	 * Validates the Create Batch modal inputs, creates an empty Draft batch in the
 	 * DB, and opens the Scan Modal (Step 2) for ZIP upload.
 	 *
-	 * <h3>Validation</h3> Both fields are validated in one pass — all errors shown
-	 * before returning.
+	 * FLOW (Path B Step 1): onCreateBatch() → disable button (prevent double-click
+	 * during DB call) → clear previous error state → read txtChequeCount and
+	 * txtExpectedAmount values → validate both fields (collect ALL errors before
+	 * returning) → if invalid → show errors → re-enable button → return →
+	 * closeBatchModal() → BatchServiceImpl.createBatch(branch, count, expectedAmt,
+	 * user) → BatchDAOImpl.loadMaxBatchSeq() [generate next BATCH{n} ID] →
+	 * BatchDAOImpl.saveBatch() [status=Draft, no cheques yet] → pendingBatchId =
+	 * batch.getBatchId() [bridge to Step 2] → add to in-memory list →
+	 * renderBatches() → refreshStats() → openScanModal(batchId) [Step 2 begins]
 	 *
-	 * <h3>Call Chain on Success</h3>
-	 * 
-	 * <pre>
-	 * onCreateBatch()
-	 *   → closeBatchModal()
-	 *   → BatchServiceImpl.createBatch(branch, count, expectedAmt, user)
-	 *       → BatchDAOImpl.loadMaxBatchSeq()    [generates next BATCH{n} id]
-	 *       → BatchDAOImpl.saveBatch()           [status=Draft, no cheques yet]
-	 *   → pendingBatchId = batch.getBatchId()
-	 *   → openScanModal(batchId)                [Step 2 — ZIP upload]
-	 * </pre>
-	 *
-	 * <p>
 	 * Called from: {@code onClick = #btnCreateBatch}
 	 */
 	@Listen("onClick = #btnCreateBatch")
@@ -620,7 +633,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 		if (btnCreateBatch != null)
 			btnCreateBatch.setDisabled(true);
 
-		// Clear previous validation error state
+		// Clear all previous validation error state before re-validating
 		if (errChequeCount != null)
 			errChequeCount.setValue("");
 		if (errExpectedAmount != null)
@@ -630,13 +643,14 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 		if (txtExpectedAmount != null)
 			txtExpectedAmount.setSclass("mf-input");
 
-		// Read field values
+		// Read field values (null means the user left the field empty)
 		Integer rawChequeCount = (txtChequeCount != null) ? txtChequeCount.getValue() : null;
-		int chequeCount = (rawChequeCount != null) ? rawChequeCount : 0;
 		BigDecimal rawAmount = (txtExpectedAmount != null) ? txtExpectedAmount.getValue() : null;
+		int chequeCount = (rawChequeCount != null) ? rawChequeCount : 0;
 		BigDecimal controlAmt = (rawAmount != null) ? rawAmount : BigDecimal.ZERO;
 
-		// Validate both fields — collect all errors before returning
+		// Validate both fields — collect ALL errors before returning (UX: show all at
+		// once)
 		boolean hasValidationError = false;
 
 		if (rawChequeCount == null || chequeCount < 1) {
@@ -656,6 +670,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 				txtExpectedAmount.setSclass("mf-input mf-input-error");
 		}
 
+		// Stop here if validation failed — re-enable button so user can fix and retry
 		if (hasValidationError) {
 			if (btnCreateBatch != null)
 				btnCreateBatch.setDisabled(false);
@@ -668,10 +683,14 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 			String branchCode = sessionStr(SESS_USER_BRANCH, "MUM01");
 			String createdBy = sessionStr(SESS_USER_NAME, "SYSTEM");
 
-			// Persist Draft batch — returns entity with generated batchId (BATCH0123)
+			// FLOW: Composer → BatchService.createBatch() → BatchDAO → DB
+			// Returns entity with auto-generated batchId (e.g. BATCH0123)
 			BatchEntity newBatch = batchService.createBatch(branchCode, chequeCount, controlAmt, createdBy);
+
+			// Store batchId as the bridge between Step 1 and Step 2
 			pendingBatchId = newBatch.getBatchId();
 
+			// Optimistically prepend to in-memory list (avoids full DB reload)
 			batches.add(0, newBatch);
 			renderBatches();
 			refreshStats();
@@ -680,7 +699,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 			if (btnCreateBatch != null)
 				btnCreateBatch.setDisabled(false);
 
-			// Proceed to Step 2: ZIP scan modal
+			// FLOW: Proceed to Step 2 — scan modal waits for ZIP upload
 			openScanModal(newBatch.getBatchId());
 
 		} catch (Exception ex) {
@@ -692,33 +711,36 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	}
 
 	/**
-	 * Navigates to the My Batches page via DashboardComposer. Called from:
-	 * {@code onClick = #btnViewBatches}
+	 * Navigates to the My Batches page via DashboardComposer.
+	 *
+	 * FLOW: onClick → DashboardComposer.loadPage() → my-batches.zul renders in
+	 * content area Called from: {@code onClick = #btnViewBatches}
 	 */
 	@Listen("onClick = #btnViewBatches")
 	public void onViewBatches() {
-		com.cts.composer.DashboardComposer.navigateTo("/zul/outward/batchManagement.zul");
+		com.cts.composer.DashboardComposer.navigateTo("/zul/outward/my-batches.zul");
 	}
 
 	/**
-	 * Closes the scan modal and discards the pending (empty) Draft batch. Called
-	 * when the user clicks × on the scan modal without uploading a ZIP.
+	 * Closes the scan modal and discards the pending (empty) Draft batch.
 	 *
-	 * <p>
-	 * Called from: {@code onClick = #btnCloseScanModal}
+	 * FLOW: × button clicked → closeScanModal() → discardPendingBatch()
+	 * discardPendingBatch() → BatchService.discardBatch() →
+	 * BatchDAO.deleteBatchAndCheques() Called when the user exits the scan modal
+	 * without uploading a ZIP. Called from: {@code onClick = #btnCloseScanModal}
 	 */
 	@Listen("onClick = #btnCloseScanModal")
 	public void onCloseScanModal() {
 		closeScanModal();
-		discardPendingBatch(); // deletes the Draft batch row if no ZIP was uploaded
+		discardPendingBatch(); // deletes the empty Draft batch row created in Step 1
 	}
 
 	/**
 	 * Legacy fallback discard button — discards the pending batch. Retained for
 	 * backward compatibility with existing ZUL event wiring.
 	 *
-	 * <p>
-	 * Called from: {@code onClick = #btnScanCancelDiscard}
+	 * FLOW: onClick → discardPendingBatch() → BatchService → DAO → DB delete Called
+	 * from: {@code onClick = #btnScanCancelDiscard}
 	 */
 	@Listen("onClick = #btnScanCancelDiscard")
 	public void onScanCancelDiscard() {
@@ -727,10 +749,12 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// CREATE BATCH MODAL — OPEN / CLOSE
+	// FLOW: button clicks → these methods → batchModal.setVisible(true/false)
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
-	 * Opens the Create Batch modal (Step 1). Called from:
+	 * Opens the Create Batch modal (Step 1). FLOW: onClick → openBatchModal() →
+	 * clears inputs → modal visible Called from:
 	 * {@code onClick = #btnOpenBatchModal}
 	 */
 	@Listen("onClick = #btnOpenBatchModal")
@@ -739,7 +763,8 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	}
 
 	/**
-	 * Closes the Create Batch modal via the header × button. Called from:
+	 * Closes the Create Batch modal via the header × button. FLOW: onClick →
+	 * closeBatchModal() → modal hidden Called from:
 	 * {@code onClick = #btnCloseBatchModal}
 	 */
 	@Listen("onClick = #btnCloseBatchModal")
@@ -748,7 +773,8 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	}
 
 	/**
-	 * Closes the Create Batch modal via the footer Cancel button. Called from:
+	 * Closes the Create Batch modal via the footer Cancel button. FLOW: onClick →
+	 * closeBatchModal() → modal hidden Called from:
 	 * {@code onClick = #btnCancelBatchModal}
 	 */
 	@Listen("onClick = #btnCancelBatchModal")
@@ -757,18 +783,22 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	}
 
 	/**
-	 * Resets all modal inputs to blank state and shows the Create Batch modal
-	 * overlay. Called by: onOpenBatchModal, doAfterCompose (autoOpenBatchModal
-	 * flag).
+	 * Resets all modal inputs to blank state and shows the Create Batch modal.
+	 *
+	 * FLOW: reset txtChequeCount + txtExpectedAmount + error labels →
+	 * batchModal.setVisible(true) → ZK re-renders overlay on client
+	 *
+	 * Called by: onOpenBatchModal(), doAfterCompose() (autoOpenBatchModal flag).
 	 */
 	private void openBatchModal() {
+		// Reset inputs so Maker always sees a clean form (not stale from last use)
 		if (txtChequeCount != null) {
 			txtChequeCount.setValue((Integer) null);
-			txtChequeCount.setSclass("mf-input"); //
+			txtChequeCount.setSclass("mf-input");
 		}
 		if (txtExpectedAmount != null) {
-			txtExpectedAmount.setValue((java.math.BigDecimal) null); //
-			txtExpectedAmount.setSclass("mf-input"); //
+			txtExpectedAmount.setValue((java.math.BigDecimal) null);
+			txtExpectedAmount.setSclass("mf-input");
 		}
 		if (errChequeCount != null)
 			errChequeCount.setValue("");
@@ -778,7 +808,10 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 			batchModal.setVisible(true);
 	}
 
-	/** Hides the Create Batch modal. */
+	/**
+	 * Hides the Create Batch modal. FLOW: batchModal.setVisible(false) → ZK hides
+	 * overlay on client
+	 */
 	private void closeBatchModal() {
 		if (batchModal != null)
 			batchModal.setVisible(false);
@@ -786,23 +819,31 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// SCAN MODAL — OPEN / CLOSE / PROGRESS
+	// FLOW: openScanModal() → visible=true → Maker uploads ZIP → onScanZipUpload()
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
 	 * Shows the scan modal (Step 2) and displays the pending batch ID in the
 	 * header.
 	 *
-	 * @param batchId the batch ID created in Step 1 (displayed in modal header)
+	 * FLOW: onCreateBatch() → openScanModal(batchId) → modal visible with batch ID
+	 * label
+	 *
+	 * @param batchId the batch ID created in Step 1 (displayed in modal header so
+	 *                the Maker knows which batch they are scanning into)
 	 */
 	private void openScanModal(String batchId) {
 		if (scanBatchIdLabel != null)
 			scanBatchIdLabel.setValue(batchId != null ? batchId : "—");
-		hideScanProgress();
+		hideScanProgress(); // always reset progress bar before showing modal
 		if (scanModal != null)
 			scanModal.setVisible(true);
 	}
 
-	/** Hides the scan modal and resets the progress bar to zero. */
+	/**
+	 * Hides the scan modal and resets the progress bar to zero. FLOW:
+	 * closeScanModal() → modal hidden → hideScanProgress() resets bar
+	 */
 	private void closeScanModal() {
 		if (scanModal != null)
 			scanModal.setVisible(false);
@@ -810,11 +851,14 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	}
 
 	/**
-	 * Shows the progress bar at ~90% fill with a status message. Called immediately
-	 * after receiving the ZIP upload to give visual feedback during the synchronous
-	 * parse + DB persist operation.
+	 * Shows the progress bar at ~90% fill with a status message.
 	 *
-	 * @param statusMessage text to show in the progress label
+	 * FLOW: Called immediately after receiving the ZIP upload to give visual
+	 * feedback during the synchronous parse + DB persist operation. (90% fill, not
+	 * 100%, because we don't know actual progress — set to 100% on completion)
+	 *
+	 * @param statusMessage text to show in the progress label (e.g. "Processing
+	 *                      ZIP…")
 	 */
 	private void showScanProgress(String statusMessage) {
 		if (scanProgress != null)
@@ -822,32 +866,39 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 		if (scanProgressText != null)
 			scanProgressText.setValue(statusMessage != null ? statusMessage : "Scanning…");
 		if (scanProgressFill != null)
-			scanProgressFill.setStyle("width:90%;");
+			scanProgressFill.setStyle("width:90%;"); // 90% = "almost done" placeholder
 	}
 
-	/** Hides the progress bar and resets its fill width to 0%. */
+	/**
+	 * Hides the progress bar and resets its fill width to 0%. FLOW: Called after
+	 * import completes (success or error) to clean up UI state.
+	 */
 	private void hideScanProgress() {
 		if (scanProgress != null)
 			scanProgress.setVisible(false);
 		if (scanProgressFill != null)
-			scanProgressFill.setStyle("width:0%;");
+			scanProgressFill.setStyle("width:0%;"); // reset for next use
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
 	// MISMATCH DIALOG — OPEN / CLOSE
+	// FLOW: onScanZipUpload() detects mismatch → openMismatchDialog() → user
+	// decides
+	// → btnMismatchAccept → finishSuccessfulImport()
+	// → btnMismatchDiscard → discardBatch()
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
 	 * Populates and shows the cheque-count mismatch dialog.
 	 *
-	 * <p>
-	 * Shown when the number of non-duplicate cheques actually saved differs from
-	 * the control total the Maker declared in Step 1.
+	 * FLOW: onScanZipUpload() (Case 2 — count mismatch) → openMismatchDialog() →
+	 * populate all label fields with expected vs actual counts → conditionally
+	 * show/hide duplicate row → mismatchDialog.setVisible(true)
 	 *
-	 * @param expectedChequeCount cheque count entered in Step 1
-	 * @param controlAmount       control amount entered in Step 1
-	 * @param parsedChequeCount   total cheques found in the ZIP
-	 * @param parsedTotalAmount   total amount parsed from the ZIP
+	 * @param expectedChequeCount cheque count entered by Maker in Step 1
+	 * @param controlAmount       control amount entered by Maker in Step 1
+	 * @param parsedChequeCount   total cheques found inside the ZIP
+	 * @param parsedTotalAmount   total amount parsed from ZIP cheque records
 	 * @param savedChequeCount    new cheques actually saved (after duplicate
 	 *                            removal)
 	 * @param skippedDuplicates   cheques skipped because they already exist in
@@ -856,6 +907,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	private void openMismatchDialog(int expectedChequeCount, BigDecimal controlAmount, int parsedChequeCount,
 			BigDecimal parsedTotalAmount, int savedChequeCount, int skippedDuplicates) {
 
+		// Populate all comparison fields in the dialog
 		if (lblMdExpectedCount != null)
 			lblMdExpectedCount.setValue(expectedChequeCount + " cheque" + (expectedChequeCount != 1 ? "s" : ""));
 		if (lblMdControlAmt != null)
@@ -869,7 +921,8 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 		if (lblMdFooterAmt != null)
 			lblMdFooterAmt.setValue("₹" + formatAmtRaw(parsedTotalAmount));
 
-		// Show duplicate count row only when there were actually skipped cheques
+		// Only show duplicate count row when there were actually skipped cheques
+		// (hiding empty rows keeps the dialog clean and unambiguous)
 		if (skippedDuplicates > 0) {
 			if (lblMdSkippedCount != null)
 				lblMdSkippedCount.setValue(skippedDuplicates + " cheque" + (skippedDuplicates != 1 ? "s" : ""));
@@ -883,7 +936,10 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 			mismatchDialog.setVisible(true);
 	}
 
-	/** Hides the mismatch dialog. */
+	/**
+	 * Hides the mismatch dialog. FLOW: Called by onMismatchAccept() or
+	 * onMismatchDiscard() after user decides.
+	 */
 	private void closeMismatchDialog() {
 		if (mismatchDialog != null)
 			mismatchDialog.setVisible(false);
@@ -891,11 +947,15 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// ALL-DUPLICATES DIALOG — OPEN / CLOSE
+	// FLOW: importZip() returns allDuplicates=true → openDuplicateDialog() → user
+	// clicks OK
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
-	 * Dismisses the "All Cheques Already Present" dialog. Called from:
-	 * {@code onClick = #btnDuplicateOk}
+	 * Dismisses the "All Cheques Already Present" dialog.
+	 *
+	 * FLOW: btnDuplicateOk.onClick → closeDuplicateDialog() → dialog hidden Called
+	 * from: {@code onClick = #btnDuplicateOk}
 	 */
 	@Listen("onClick = #btnDuplicateOk")
 	public void onDuplicateOk() {
@@ -905,9 +965,13 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	/**
 	 * Populates and shows the "All Cheques Already Present" dialog.
 	 *
-	 * <p>
-	 * This dialog is shown when every cheque in the uploaded ZIP already exists in
-	 * the cts_cheques table. No new data was saved to DB.
+	 * FLOW: onZipUpload() or onScanZipUpload() (Case 1: allDuplicates) →
+	 * openDuplicateDialog(count, amount) → populate label fields →
+	 * duplicateDialog.setVisible(true)
+	 *
+	 * This dialog informs the Maker that nothing was saved — no batch row was
+	 * created/modified because every cheque in the ZIP already exists in
+	 * cts_cheques.
 	 *
 	 * @param totalParsedCount total cheques found in the ZIP
 	 * @param totalParsedAmt   total amount of those cheques
@@ -924,7 +988,10 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 			duplicateDialog.setVisible(true);
 	}
 
-	/** Hides the all-duplicates dialog. */
+	/**
+	 * Hides the all-duplicates dialog. FLOW: Called by onDuplicateOk() after user
+	 * acknowledges.
+	 */
 	private void closeDuplicateDialog() {
 		if (duplicateDialog != null)
 			duplicateDialog.setVisible(false);
@@ -932,10 +999,13 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// SUCCESS TOAST — OPEN / CLOSE
+	// FLOW: finishSuccessfulImport() → showSuccessToast() → toast visible
+	// → user clicks × or 5s timer fires → closeSuccessToast() → hidden
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
-	 * User clicks "✕ Close" inside the toast body. Called from:
+	 * User clicks "✕ Close" inside the toast body. FLOW: onClick →
+	 * closeSuccessToast() → stop timer → toast hidden Called from:
 	 * {@code onClick = #btnToastDismiss}
 	 */
 	@Listen("onClick = #btnToastDismiss")
@@ -944,7 +1014,8 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	}
 
 	/**
-	 * User clicks the small × corner button on the toast. Called from:
+	 * User clicks the small × corner button on the toast. FLOW: onClick →
+	 * closeSuccessToast() → stop timer → toast hidden Called from:
 	 * {@code onClick = #btnToastClose}
 	 */
 	@Listen("onClick = #btnToastClose")
@@ -953,8 +1024,9 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	}
 
 	/**
-	 * Auto-dismiss timer fires 5 seconds after the toast was shown. Called from:
-	 * {@code onTimer = #toastTimer}
+	 * Auto-dismiss timer fires 5 seconds after the toast was shown. FLOW:
+	 * toastTimer fires (delay=5000ms) → onToastTimer() → closeSuccessToast() Called
+	 * from: {@code onTimer = #toastTimer}
 	 */
 	@Listen("onTimer = #toastTimer")
 	public void onToastTimer() {
@@ -964,21 +1036,18 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	/**
 	 * Populates and shows the green "Batch Created Successfully" toast.
 	 *
-	 * <p>
-	 * Also closes any overlay that might still be visible (scan modal, mismatch
-	 * dialog, etc.) before showing the toast to avoid z-index conflicts.
-	 *
-	 * <p>
-	 * In addition to the custom toast Div, always fires a ZK built-in
-	 * {@code showNotification()} as a guaranteed-visible fallback in case the
-	 * custom toast Div fails to render.
+	 * FLOW: finishSuccessfulImport() → showSuccessToast(batchId, count, amount) →
+	 * force-close any lingering overlays (prevents z-index conflicts) → populate
+	 * toast labels → fire ZK built-in notification (guaranteed fallback if custom
+	 * toast fails) → batchSuccessToast.setVisible(true) →
+	 * toastTimer.setRunning(true) → auto-dismiss after 5s
 	 *
 	 * @param batchId     the created / updated batch ID
 	 * @param chequeCount number of cheques in the batch
 	 * @param amountStr   pre-formatted amount string without ₹ symbol
 	 */
 	private void showSuccessToast(String batchId, int chequeCount, String amountStr) {
-		// Force-close any overlay that may still be lingering
+		// Force-close any overlay that may still be lingering from the import flow
 		if (scanModal != null)
 			scanModal.setVisible(false);
 		if (batchModal != null)
@@ -988,6 +1057,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 		if (duplicateDialog != null)
 			duplicateDialog.setVisible(false);
 
+		// Populate toast content
 		if (lblToastBatchId != null)
 			lblToastBatchId.setValue(nullSafe(batchId, "—"));
 		if (lblToastChequeCount != null)
@@ -998,8 +1068,8 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 		LOG.info("showSuccessToast: batchId=" + batchId + " count=" + chequeCount + " amt=" + amountStr + " toastDiv="
 				+ (batchSuccessToast != null));
 
-		// Guaranteed fallback — ZK built-in notification works even if custom toast
-		// fails
+		// ZK built-in notification — guaranteed visible even if custom toast Div fails
+		// to render
 		Clients.showNotification("✅ Batch " + nullSafe(batchId, "—") + " created — " + chequeCount + " cheque"
 				+ (chequeCount != 1 ? "s" : "") + " · ₹" + amountStr, "info", null, "top_center", 4000);
 
@@ -1008,12 +1078,15 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 		// Restart the auto-dismiss timer (pure ZK MVC — no JS setTimeout needed)
 		if (toastTimer != null) {
-			toastTimer.setRunning(false);
-			toastTimer.setRunning(true);
+			toastTimer.setRunning(false); // stop first in case it was already running
+			toastTimer.setRunning(true); // start fresh 5s countdown
 		}
 	}
 
-	/** Hides the success toast and stops the auto-dismiss timer. */
+	/**
+	 * Hides the success toast and stops the auto-dismiss timer. FLOW: called by
+	 * dismiss buttons or toastTimer → stop timer → hide toast
+	 */
 	private void closeSuccessToast() {
 		if (toastTimer != null)
 			toastTimer.setRunning(false);
@@ -1023,40 +1096,55 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// PATH B STEP 2 — SCAN MODAL ZIP UPLOAD
+	// FLOW: Maker uploads ZIP in scan modal → onScanZipUpload() → 3 possible
+	// outcomes
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
 	 * Handles ZIP upload inside the scan modal (Path B Step 2).
 	 *
-	 * <p>
-	 * Differs from Path A: passes {@link #pendingBatchId} to importZip() so the
-	 * cheques are linked to the already-created Draft batch instead of creating a
-	 * new batch row.
+	 * FLOW (Path B Step 2 — has pre-created batch via pendingBatchId):
+	 * onScanZipUpload(UploadEvent) → validate file (null check, .zip extension) →
+	 * showScanProgress("Processing ZIP…") → readAllBytes(media.getStreamData()) →
+	 * ZipImportServiceImpl.importZip(bytes, name, branch, user, pendingBatchId)
+	 * [Unlike Path A: cheques are linked to pendingBatchId, no new batch row
+	 * created] → CtsZipParserImpl.parse() [extract XML + images from ZIP] →
+	 * ChequeDAOImpl.findExistingChequeNos() [dedup check] →
+	 * BatchDAOImpl.updateBatch() [set totalCheques + totalAmount on existing row] →
+	 * ChequeDAOImpl.saveCheques() [insert non-duplicate cheque rows]
 	 *
-	 * <h3>Three outcome cases</h3>
-	 * <ul>
-	 * <li><b>Case 1 — All duplicates:</b> discard pending batch → show dup
-	 * dialog</li>
-	 * <li><b>Case 2 — Count mismatch:</b> save result for later → show mismatch
-	 * dialog</li>
-	 * <li><b>Case 3 — Clean import:</b> call finishSuccessfulImport()</li>
-	 * </ul>
+	 * Case 1 — All Duplicates: → hideScanProgress() → closeScanModal() →
+	 * discardPendingBatch() [delete empty Draft batch from DB] →
+	 * openDuplicateDialog() [inform Maker nothing was saved]
 	 *
-	 * <p>
-	 * Called from: {@code onUpload = #btnScanUploadZip} in scanModule.zul
+	 * Case 2 — Count Mismatch (ZIP count ≠ expectedChequeCount): →
+	 * pendingMismatchResult = importResult [stash for Accept/Discard] →
+	 * hideScanProgress() → closeScanModal() → openMismatchDialog() [Maker chooses
+	 * Accept or Discard]
+	 *
+	 * Case 3 — Clean Import (counts match): → hideScanProgress() → closeScanModal()
+	 * → finishSuccessfulImport(importResult) [all 3 paths converge here]
+	 *
+	 * Called from: {@code onUpload = #btnScanUploadZip} in cheque-scan.zul
+	 *
+	 * @param event ZK upload event containing the uploaded ZIP media
 	 */
 	@Listen("onUpload = #btnScanUploadZip")
 	public void onScanZipUpload(UploadEvent event) {
 		Media uploadedMedia = event.getMedia();
+
+		// Validate: null media means upload was cancelled or failed silently
 		if (uploadedMedia == null) {
 			Clients.showNotification("No file received.", "error", null, "middle_center", 3000);
 			return;
 		}
+		// Validate: only .zip files accepted
 		if (!uploadedMedia.getName().toLowerCase().endsWith(".zip")) {
 			Clients.showNotification("Please upload a .zip file.", "warning", null, "middle_center", 3000);
 			return;
 		}
 
+		// Show progress immediately — parse+persist is synchronous and can take 2–10s
 		showScanProgress("Processing ZIP — please wait…");
 		Clients.showBusy("Processing ZIP…");
 
@@ -1065,41 +1153,38 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 			String branchCode = sessionStr(SESS_USER_BRANCH, "MUM01");
 			String createdBy = sessionStr(SESS_USER_NAME, "SYSTEM");
 
-			// importZip with existingBatchId:
-			// - Does NOT create a new batch row
-			// - Updates existing batch: sets total_cheques, total_amount
-			// - Inserts new ChequeEntity rows only for non-duplicates
+			// FLOW: Pass pendingBatchId so service links cheques to existing batch row
+			// (instead of creating a new batch row like Path A does)
 			ImportResult importResult = zipImportService.importZip(zipBytes, uploadedMedia.getName(), branchCode,
 					createdBy, pendingBatchId);
 			Clients.clearBusy();
 
-			// ── Case 1: ALL cheques were duplicates ────────────────────────
-			// ZipImportServiceImpl returned without saving anything.
-			// Discard the now-empty Draft batch.
+			// ── Case 1: ALL cheques were duplicates ──────────────────────
+			// Service returned without saving anything. Clean up the empty Draft batch.
 			if (importResult.isAllDuplicates()) {
 				hideScanProgress();
 				closeScanModal();
-				discardPendingBatch();
+				discardPendingBatch(); // delete the now-useless Draft batch row from DB
 				openDuplicateDialog(importResult.getParsedTotal(), importResult.getParsedTotalAmount());
 				return;
 			}
 
-			// ── Case 2: Cheque count mismatch ─────────────────────────────
-			// ZIP contained a different number of valid cheques than declared.
-			// Show the mismatch dialog and wait for user decision.
+			// ── Case 2: Cheque count mismatch ───────────────────────────
+			// ZIP contained a different number of valid cheques than the Maker declared.
+			// Cheques are already saved at this point — Maker decides Accept or Discard.
 			BatchEntity pendingBatchEntity = batches.stream().filter(b -> b.getBatchId().equals(pendingBatchId))
 					.findFirst().orElse(null);
 
-			int expectedChequeCount = pendingBatchEntity != null ? pendingBatchEntity.getExpectedCheques() : 0;
-			BigDecimal declaredControlAmt = pendingBatchEntity != null && pendingBatchEntity.getExpectedAmount() != null
-					? pendingBatchEntity.getExpectedAmount()
-					: BigDecimal.ZERO;
+			int expectedChequeCount = (pendingBatchEntity != null) ? pendingBatchEntity.getExpectedCheques() : 0;
+			BigDecimal declaredControlAmt = (pendingBatchEntity != null
+					&& pendingBatchEntity.getExpectedAmount() != null) ? pendingBatchEntity.getExpectedAmount()
+							: BigDecimal.ZERO;
 
-			int actualSavedCount = importResult.getCheques().size(); // non-duplicate cheques saved
-			int totalParsedCount = importResult.getParsedTotal(); // total cheques in ZIP
+			int actualSavedCount = importResult.getCheques().size(); // non-duplicate cheques persisted to DB
+			int totalParsedCount = importResult.getParsedTotal(); // total cheques found in ZIP (including dups)
 
 			if (expectedChequeCount > 0 && actualSavedCount != expectedChequeCount) {
-				// Stash result — onMismatchAccept() will call finishSuccessfulImport() with it
+				// Stash result so onMismatchAccept() can call finishSuccessfulImport() with it
 				pendingMismatchResult = importResult;
 				hideScanProgress();
 				closeScanModal();
@@ -1108,10 +1193,10 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 				return;
 			}
 
-			// ── Case 3: Clean import — all counts match ────────────────────
+			// ── Case 3: Clean import — all counts match ──────────────────
 			hideScanProgress();
 			closeScanModal();
-			finishSuccessfulImport(importResult);
+			finishSuccessfulImport(importResult); // all paths converge at finishSuccessfulImport
 
 		} catch (Exception ex) {
 			Clients.clearBusy();
@@ -1120,23 +1205,27 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 			String errorMsg = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
 			LOG.severe("onScanZipUpload error: " + errorMsg);
 			Clients.showNotification("❌ Upload failed: " + errorMsg, "error", null, "middle_center", 6000);
-			pendingBatchId = null; // clear so next Create Batch attempt works cleanly
+			pendingBatchId = null; // clear so next Create Batch attempt starts clean
 		}
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
 	// MISMATCH DIALOG — ACCEPT / DISCARD
+	// FLOW: onMismatchAccept() → finishSuccessfulImport(pendingMismatchResult)
+	// onMismatchDiscard() → BatchService.discardBatch() → DB delete → UI refresh
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
 	 * User accepts the mismatch — proceeds with the actual imported cheque count.
 	 *
-	 * <p>
-	 * The cheques are already persisted in the DB at this point (importZip already
-	 * ran). This just closes the dialog and triggers the normal success flow (UI
-	 * refresh + toast).
+	 * FLOW: btnMismatchAccept.onClick → onMismatchAccept() → closeMismatchDialog()
+	 * → finishSuccessfulImport(pendingMismatchResult) [Cheques already saved in DB
+	 * at this point — just update UI + show toast] → pendingMismatchResult = null
+	 * [clear bridge state]
 	 *
-	 * <p>
+	 * Note: No additional DB write needed here — importZip() already persisted the
+	 * cheques during onScanZipUpload(). Accept just approves the UI flow.
+	 *
 	 * Called from: {@code onClick = #btnMismatchAccept}
 	 */
 	@Listen("onClick = #btnMismatchAccept")
@@ -1151,17 +1240,15 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	/**
 	 * User discards the mismatch — deletes the batch and all its cheques from DB.
 	 *
-	 * <h3>Call Chain</h3>
-	 * 
-	 * <pre>
-	 * onMismatchDiscard()
-	 *   → BatchServiceImpl.discardBatch(pendingBatchId)
-	 *       → BatchDAOImpl.deleteBatchAndCheques()   [DELETE cascade]
-	 *   → remove from in-memory batches list
-	 *   → renderBatches() / refreshStats()
-	 * </pre>
+	 * FLOW: btnMismatchDiscard.onClick → onMismatchDiscard() →
+	 * closeMismatchDialog() → BatchServiceImpl.discardBatch(pendingBatchId) →
+	 * BatchDAOImpl.deleteBatchAndCheques() [CASCADE DELETE in DB] → remove from
+	 * in-memory batches list → renderBatches() → refreshStats() →
+	 * updateBatchCountLabel() → show warning notification
 	 *
-	 * <p>
+	 * Note: pendingBatchId is cleared BEFORE the DB call to prevent re-entry if an
+	 * exception triggers a second discard attempt.
+	 *
 	 * Called from: {@code onClick = #btnMismatchDiscard}
 	 */
 	@Listen("onClick = #btnMismatchDiscard")
@@ -1170,12 +1257,14 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 		String batchToDelete = pendingBatchId;
 		pendingMismatchResult = null;
-		pendingBatchId = null; // clear before DB call to avoid re-entry issues
+		pendingBatchId = null; // clear BEFORE DB call to prevent re-entry on exception
 
 		if (batchToDelete != null) {
 			try {
+				// FLOW: Composer → BatchService.discardBatch() →
+				// BatchDAO.deleteBatchAndCheques() → DB
 				batchService.discardBatch(batchToDelete);
-				batches.removeIf(b -> b.getBatchId().equals(batchToDelete));
+				batches.removeIf(b -> b.getBatchId().equals(batchToDelete)); // sync in-memory list
 				renderBatches();
 				refreshStats();
 				updateBatchCountLabel();
@@ -1188,7 +1277,9 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
-	// SHARED SUCCESS FINISH (all import paths converge here)
+	// SHARED SUCCESS FINISH — all import paths converge here
+	// FLOW: Path A (direct) / Path B Case 3 (clean) / Path B Accept (mismatch)
+	// → finishSuccessfulImport(ImportResult) → reload DB → refresh UI → toast
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
@@ -1199,20 +1290,26 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	 * <li>Path B mismatch accepted (onMismatchAccept)</li>
 	 * </ul>
 	 *
-	 * <p>
-	 * Reloads all batches from DB (ensures DB-authoritative counts), refreshes the
-	 * table and stat cards, clears {@link #pendingBatchId}, and shows the success
-	 * toast.
+	 * FLOW: finishSuccessfulImport(ImportResult) → loadBatchesFromService() [full
+	 * DB reload for authoritative totals] → renderBatches() [rebuild batch table
+	 * rows] → refreshStats() [update stat card numbers] → updateBatchCountLabel()
+	 * [update "N batches" badge] → pendingBatchId = null [clear bridge state] →
+	 * showSuccessToast(...) [green success toast + ZK notification]
 	 *
-	 * @param importResult the result from ZipImportServiceImpl
+	 * Full DB reload (not optimistic update) is used here because importZip() may
+	 * have updated totalCheques/totalAmount on the batch row, and we need the
+	 * authoritative DB values.
+	 *
+	 * @param importResult the result returned by ZipImportServiceImpl
 	 */
 	private void finishSuccessfulImport(ImportResult importResult) {
-		// Reload from DB to get the persisted state (totalCheques, totalAmount, status)
+		// Full reload from DB — ensures totalCheques, totalAmount, status are
+		// up-to-date
 		loadBatchesFromService();
 		renderBatches();
 		refreshStats();
 		updateBatchCountLabel();
-		pendingBatchId = null;
+		pendingBatchId = null; // clear the Step 1 → Step 2 bridge
 
 		String formattedAmount = importResult.getBatch().getTotalAmount() != null
 				? String.format("%,.2f", importResult.getBatch().getTotalAmount())
@@ -1225,36 +1322,44 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
-	 * Logout: invalidates the ZK session and redirects to the login page. Called
-	 * from: {@code onClick = #btnLogout}
+	 * Logout: invalidates the ZK session and redirects to the login page.
+	 *
+	 * FLOW: btnLogout.onClick → Sessions.invalidate() →
+	 * Executions.sendRedirect("index.zul") Called from:
+	 * {@code onClick = #btnLogout}
+	 *
+	 * @param event ZK click event (unused, required by @Listen signature)
 	 */
 	@Listen("onClick = #btnLogout")
 	public void onLogout(Event event) {
 		Sessions.getCurrent().invalidate();
-		Executions.sendRedirect("/zul/login.zul");
+		Executions.sendRedirect("index.zul");
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
 	// FILTER / SEARCH / PAGINATION LISTENERS
+	// FLOW: user interaction → listener → reset batchPage = 1 → renderBatches()
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
-	 * Live search on batch ID or branch code. {@code onChanging} fires on every
-	 * keystroke; {@code onChange} fires on blur. Both reset to page 1 and
-	 * re-render.
+	 * Live search on batch ID or branch code. Both onChange (blur) and onChanging
+	 * (keystroke) fire so search is instant.
 	 *
-	 * <p>
+	 * FLOW: keystroke/blur → onBatchSearch() → batchPage=1 → renderBatches() →
+	 * getFilteredBatches() applies text filter on in-memory list (no DB call)
 	 * Called from: {@code onChange = #txtBatchSearch; onChanging = #txtBatchSearch}
 	 */
 	@Listen("onChange = #txtBatchSearch; onChanging = #txtBatchSearch")
 	public void onBatchSearch() {
-		batchPage = 1;
+		batchPage = 1; // always reset to page 1 so user sees results, not empty last page
 		renderBatches();
 	}
 
 	/**
-	 * Status combo filter (All Status / Draft / Pending). Called from:
-	 * {@code onSelect = #cmbBatchStatus}
+	 * Status combo filter (All Status / Draft / Pending).
+	 *
+	 * FLOW: user selects → onBatchStatusFilter() → batchPage=1 → renderBatches()
+	 * Called from: {@code onSelect = #cmbBatchStatus}
 	 */
 	@Listen("onSelect = #cmbBatchStatus")
 	public void onBatchStatusFilter() {
@@ -1263,8 +1368,10 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	}
 
 	/**
-	 * Date-range filter on batch createdAt date. Called from:
-	 * {@code onChange = #dtBatchFrom; onChange = #dtBatchTo}
+	 * Date-range filter on batch createdAt date.
+	 *
+	 * FLOW: date selected → onBatchDateFilter() → batchPage=1 → renderBatches()
+	 * Called from: {@code onChange = #dtBatchFrom; onChange = #dtBatchTo}
 	 */
 	@Listen("onChange = #dtBatchFrom; onChange = #dtBatchTo")
 	public void onBatchDateFilter() {
@@ -1273,8 +1380,10 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	}
 
 	/**
-	 * Clears both date pickers and re-renders the table. Called from:
-	 * {@code onClick = #btnBatchClearDate}
+	 * Clears both date pickers and re-renders the table.
+	 *
+	 * FLOW: onClick → clear dtBatchFrom + dtBatchTo → batchPage=1 → renderBatches()
+	 * Called from: {@code onClick = #btnBatchClearDate}
 	 */
 	@Listen("onClick = #btnBatchClearDate")
 	public void onBatchClearDate() {
@@ -1286,12 +1395,14 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 		renderBatches();
 	}
 
+	/** Navigate to first page of batch table. */
 	@Listen("onClick = #btnBatchPgFirst")
 	public void onBatchPgFirst() {
 		batchPage = 1;
 		renderBatches();
 	}
 
+	/** Navigate to previous page (clamps at page 1). */
 	@Listen("onClick = #btnBatchPgPrev")
 	public void onBatchPgPrev() {
 		if (batchPage > 1) {
@@ -1300,12 +1411,14 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 		}
 	}
 
+	/** Navigate to next page. */
 	@Listen("onClick = #btnBatchPgNext")
 	public void onBatchPgNext() {
 		batchPage++;
 		renderBatches();
 	}
 
+	/** Navigate to last page. */
 	@Listen("onClick = #btnBatchPgLast")
 	public void onBatchPgLast() {
 		List<BatchEntity> filteredBatches = getFilteredBatches();
@@ -1316,29 +1429,32 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// BATCH TABLE RENDER
+	// FLOW: renderBatches() → getFilteredBatches() → paginate → appendBatchRow()
+	// per batch
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
 	 * Applies all active filters to the in-memory {@link #batches} list and returns
 	 * only the batches the Maker should see.
 	 *
-	 * <h3>Filter Pipeline</h3>
-	 * <ol>
-	 * <li><b>Maker status gate</b> — only Draft and VerificationInProgressAtMaker.
-	 * Ghost rows (VerificationInProgressAtMaker with zero amount and no cheques)
-	 * are excluded to avoid showing aborted manual creates.</li>
-	 * <li><b>Text search</b> — ILIKE on batchId and branchCode.</li>
-	 * <li><b>Status combo</b> — "Pending" in UI → VerificationInProgressAtMaker in
-	 * DB.</li>
-	 * <li><b>Date range</b> — on batch.createdAt (converted to
-	 * java.util.Date).</li>
-	 * </ol>
+	 * FLOW: renderBatches() → getFilteredBatches() → Filter 1: Maker status gate
+	 * [Draft + VerificationInProgressAtMaker only] → Filter 2: Ghost batch removal
+	 * [exclude empty VerificationInProgressAtMaker rows] → Filter 3: Text search
+	 * [ILIKE on batchId and branchCode, in-memory] → Filter 4: Status combo
+	 * ["Pending" UI = "VerificationInProgressAtMaker" DB] → Filter 5: Date range
+	 * [on batch.createdAt]
+	 *
+	 * Note: All filtering is done in-memory on the cached list — no DB call per
+	 * filter. DB is only reloaded by loadBatchesFromService() on explicit refresh
+	 * triggers.
 	 *
 	 * @return filtered list of batches for the current UI filter state
 	 */
 	private List<BatchEntity> getFilteredBatches() {
 
-		// ── 1. Maker status gate ───────────────────────────────────────────
+		// ── Filter 1: Maker status gate ────────────────────────────────────
+		// Only show Draft and VerificationInProgressAtMaker — hide all others
+		// (e.g. VerifiedByMaker, SentToVerifier1 etc. are not Maker's concern here)
 		List<BatchEntity> makerVisibleBatches = batches.stream().filter(batch -> {
 			String dbStatus = batch.getStatus();
 			boolean isMakerVisible = (dbStatus == null) || "Draft".equalsIgnoreCase(dbStatus)
@@ -1346,13 +1462,17 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 			if (!isMakerVisible)
 				return false;
 
-			// Exclude ghost rows: empty Draft/Pending batches from aborted creates
+			// ── Filter 2: Ghost batch guard ────────────────────────────────
+			// VerificationInProgressAtMaker with zero amount and no cheques =
+			// aborted manual create (Step 1 done, scan modal closed without upload).
+			// Hide these to prevent Maker confusion.
 			return !("VerificationInProgressAtMaker".equalsIgnoreCase(dbStatus)
 					&& (batch.getTotalAmount() == null || batch.getTotalAmount().compareTo(BigDecimal.ZERO) == 0)
 					&& loadChequesForBatch(batch.getBatchId()).isEmpty());
 		}).collect(java.util.stream.Collectors.toList());
 
-		// ── 2. Text search ────────────────────────────────────────────────
+		// ── Filter 3: Text search ─────────────────────────────────────────
+		// Case-insensitive contains match on batchId or branchCode
 		String searchTerm = (txtBatchSearch != null && txtBatchSearch.getValue() != null)
 				? txtBatchSearch.getValue().trim().toLowerCase()
 				: "";
@@ -1363,8 +1483,8 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 					.collect(java.util.stream.Collectors.toList());
 		}
 
-		// ── 3. Status combo ───────────────────────────────────────────────
-		// "Pending" UI label maps to "VerificationInProgressAtMaker" DB value.
+		// ── Filter 4: Status combo ────────────────────────────────────────
+		// "Pending" in UI maps to "VerificationInProgressAtMaker" in DB
 		String comboStatusFilter = (cmbBatchStatus != null && cmbBatchStatus.getValue() != null)
 				? cmbBatchStatus.getValue().trim()
 				: "";
@@ -1380,14 +1500,16 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 			}).collect(java.util.stream.Collectors.toList());
 		}
 
-		// ── 4. Date range ─────────────────────────────────────────────────
+		// ── Filter 5: Date range ──────────────────────────────────────────
+		// Compare batch.createdAt (LocalDateTime) against Datebox values
+		// (java.util.Date)
 		java.util.Date fromDate = (dtBatchFrom != null) ? dtBatchFrom.getValue() : null;
 		java.util.Date toDate = (dtBatchTo != null) ? dtBatchTo.getValue() : null;
 		if (fromDate != null || toDate != null) {
 			makerVisibleBatches = makerVisibleBatches.stream().filter(batch -> {
 				java.util.Date batchCreatedDate = parseBatchDate(batch.getCreatedAt());
 				if (batchCreatedDate == null)
-					return true; // null dates pass through
+					return true; // null dates pass through (no data = no filter)
 				if (fromDate != null && batchCreatedDate.before(fromDate))
 					return false;
 				if (toDate != null && batchCreatedDate.after(toDate))
@@ -1403,7 +1525,9 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	 * Converts a {@link java.time.LocalDateTime} (from BatchEntity.createdAt) to
 	 * {@link java.util.Date} for comparison with ZK Datebox values.
 	 *
-	 * @param localDateTime the batch creation timestamp
+	 * FLOW: getFilteredBatches() Filter 5 → parseBatchDate() → java.util.Date
+	 *
+	 * @param localDateTime the batch creation timestamp from BatchEntity
 	 * @return java.util.Date equivalent, or null if input is null
 	 */
 	private java.util.Date parseBatchDate(java.time.LocalDateTime localDateTime) {
@@ -1416,10 +1540,12 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	 * Rebuilds the Listitem rows in {@code lbBatches} for the current page of
 	 * filtered batches.
 	 *
-	 * <p>
-	 * Clears all existing rows first, then either renders an empty-state row or
-	 * calls {@link #appendBatchRow(BatchEntity)} for each batch on the page. Also
-	 * updates pagination bar button states and the "Page X of Y" label.
+	 * FLOW: renderBatches() → lbBatches.getItems().clear() [wipe existing rows] →
+	 * getFilteredBatches() [apply all active filters] → paginate (batchPage ×
+	 * BATCH_PAGE_SIZE) → updateBatchCountLabel(total) [update "N batches" badge] →
+	 * updateBatchPagination(total, pages) [enable/disable nav buttons] → if empty →
+	 * append empty-state row → else → appendBatchRow(batch) for each batch on
+	 * current page
 	 */
 	private void renderBatches() {
 		if (lbBatches == null)
@@ -1430,18 +1556,19 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 		int totalBatchCount = filteredBatches.size();
 		int totalPages = Math.max(1, (int) Math.ceil((double) totalBatchCount / BATCH_PAGE_SIZE));
 
-		// Clamp current page to valid range after filter changes
+		// Clamp current page to valid range — filter changes can make current page
+		// invalid
 		batchPage = Math.max(1, Math.min(batchPage, totalPages));
 
 		int startIndex = (batchPage - 1) * BATCH_PAGE_SIZE;
 		int endIndex = Math.min(startIndex + BATCH_PAGE_SIZE, totalBatchCount);
-		List<BatchEntity> currentPage = startIndex < totalBatchCount ? filteredBatches.subList(startIndex, endIndex)
+		List<BatchEntity> currentPage = (startIndex < totalBatchCount) ? filteredBatches.subList(startIndex, endIndex)
 				: new ArrayList<>();
 
 		updateBatchCountLabel(totalBatchCount);
 		updateBatchPagination(totalBatchCount, totalPages);
 
-		// Empty state row
+		// Empty state — single row spanning all columns with descriptive message
 		if (currentPage.isEmpty()) {
 			Listitem emptyRow = new Listitem();
 			Listcell emptyCell = new Listcell();
@@ -1455,6 +1582,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 			return;
 		}
 
+		// Render one row per batch on current page
 		for (BatchEntity batch : currentPage) {
 			appendBatchRow(batch);
 		}
@@ -1462,14 +1590,17 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	/**
 	 * Updates the pagination bar: "Page X of Y" label and First/Prev/Next/Last
-	 * states.
+	 * button states.
 	 *
-	 * @param totalBatchCount total matching batches (for display calculation)
-	 * @param totalPages      total page count
+	 * FLOW: renderBatches() → updateBatchPagination() → enable/disable nav buttons
+	 *
+	 * @param totalBatchCount total matching batches (used for display calculation)
+	 * @param totalPages      total page count (minimum 1)
 	 */
 	private void updateBatchPagination(int totalBatchCount, int totalPages) {
 		if (lblBatchPgInfo != null)
 			lblBatchPgInfo.setValue("Page " + batchPage + " of " + totalPages);
+		// Disable First/Prev on page 1; disable Next/Last on last page
 		if (btnBatchPgFirst != null)
 			btnBatchPgFirst.setDisabled(batchPage <= 1);
 		if (btnBatchPgPrev != null)
@@ -1483,40 +1614,41 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	/**
 	 * Builds and appends one Listitem row for a batch to the batch table.
 	 *
-	 * <p>
-	 * Columns: Batch ID (link) | Cheque Count | Total Amount | Created Date |
-	 * Status chip | "View & Edit" action link.
+	 * FLOW: renderBatches() → appendBatchRow(batch) per filtered+paginated batch →
+	 * create Listitem → add 6 Listcell columns → attach onClick listener →
+	 * navigateToBatchDetail(batch) → lbBatches.appendChild(row)
 	 *
-	 * <p>
-	 * Row click → {@link #navigateToBatchDetail(BatchEntity)}.
+	 * Columns: Batch ID (link) | Cheque Count | Total Amount | Created Date |
+	 * Status chip | Action link
 	 *
 	 * @param batch the BatchEntity to render as a table row
 	 */
 	private void appendBatchRow(BatchEntity batch) {
 		Listitem row = new Listitem();
-		row.setValue(batch);
+		row.setValue(batch); // store entity so onClick can retrieve it
 		row.setSclass("mb-row");
 
-		// Column 1: Batch ID — styled as a clickable link
+		// Column 1: Batch ID — styled as a clickable link (visual affordance for row
+		// click)
 		Listcell idCell = new Listcell();
 		Label idLabel = new Label(nullSafe(batch.getBatchId(), "—"));
 		idLabel.setSclass("mb-link");
 		idCell.appendChild(idLabel);
 		row.appendChild(idCell);
 
-		// Column 2: Cheque count
+		// Column 2: Cheque count (plain number)
 		row.appendChild(new Listcell(String.valueOf(batch.getTotalCheques())));
 
-		// Column 3: Total amount (right-aligned monospace)
+		// Column 3: Total amount (right-aligned monospace via amt-cell CSS class)
 		Listcell amtCell = new Listcell();
 		amtCell.setSclass("amt-cell");
 		amtCell.appendChild(new Label(formatAmt(batch.getTotalAmount())));
 		row.appendChild(amtCell);
 
-		// Column 4: Created date (DD/MM/YYYY)
+		// Column 4: Created date (DD/MM/YYYY format)
 		row.appendChild(new Listcell(formatBatchDate(batch.getCreatedAt())));
 
-		// Column 5: Status chip
+		// Column 5: Status chip (colored badge — Draft=amber, Pending=blue-grey)
 		Listcell statusCell = new Listcell();
 		Label statusLabel = new Label(mapDisplayStatus(batch.getStatus()));
 		statusLabel.setSclass(mbStatusChip(batch.getStatus()));
@@ -1539,10 +1671,13 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	 * Maps the raw DB status string to a human-readable display label for the batch
 	 * table status chip.
 	 *
-	 * <ul>
-	 * <li>null / "Draft" → "Draft"</li>
-	 * <li>"VerificationInProgressAtMaker" → "Pending"</li>
-	 * </ul>
+	 * FLOW: appendBatchRow() → mapDisplayStatus() → displayed in status chip Label
+	 *
+	 * Mapping: null / "Draft" → "Draft" "VerificationInProgressAtMaker" → "Pending"
+	 * anything else → returned as-is
+	 *
+	 * @param dbStatus raw status string from cts_batches.status column
+	 * @return display label for the UI status chip
 	 */
 	private String mapDisplayStatus(String dbStatus) {
 		if (dbStatus == null || "Draft".equalsIgnoreCase(dbStatus))
@@ -1555,11 +1690,13 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	/**
 	 * Returns the CSS sclass for the status chip in the batch table.
 	 *
-	 * <ul>
-	 * <li>Draft → {@code "chip ch-amber"} (yellow)</li>
-	 * <li>Pending → {@code "chip ch-pending"} (blue-grey)</li>
-	 * <li>others → {@code "chip ch-slate"}</li>
-	 * </ul>
+	 * FLOW: appendBatchRow() → mbStatusChip() → applied as Label sclass
+	 *
+	 * Mapping: Draft → "chip ch-amber" (yellow) VerificationInProgressAtMaker →
+	 * "chip ch-pending" (blue-grey) others → "chip ch-slate" (grey)
+	 *
+	 * @param dbStatus raw status string from cts_batches.status column
+	 * @return CSS sclass string for the chip Label
 	 */
 	private String mbStatusChip(String dbStatus) {
 		if (dbStatus == null || "Draft".equalsIgnoreCase(dbStatus))
@@ -1573,7 +1710,10 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	 * Formats a {@link java.time.LocalDateTime} as "DD/MM/YYYY" for the batch
 	 * table.
 	 *
+	 * FLOW: appendBatchRow() → formatBatchDate() → displayed in Created Date column
+	 *
 	 * @param localDateTime the batch creation timestamp; null → "—"
+	 * @return formatted date string or "—" for null
 	 */
 	private String formatBatchDate(java.time.LocalDateTime localDateTime) {
 		if (localDateTime == null)
@@ -1584,48 +1724,49 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// BATCH ROW CLICK — NAVIGATE TO BATCH DETAIL
+	// FLOW: appendBatchRow() onClick → navigateToBatchDetail() → batch-detail.zul
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
 	 * Stores the selected batch ID in the HTTP session and navigates to the Batch
 	 * Detail screen via DashboardComposer.
 	 *
-	 * <p>
-	 * Also sets {@code batchDetailBackPage} so the Back button in
-	 * BatchDetailComposer returns to the scan module.
-	 *
-	 * <p>
-	 * Called from: Listitem.onClick listener in
-	 * {@link #appendBatchRow(BatchEntity)}.
+	 * FLOW: Listitem.onClick → navigateToBatchDetail(batch) →
+	 * Sessions.setAttribute("selectedBatchId", batchId) →
+	 * Sessions.setAttribute("batchDetailBackPage", "/zul/outward/cheque-scan.zul")
+	 * [so BatchDetailComposer's Back button returns here] →
+	 * DashboardComposer.getInstance().loadPage("/zul/outward/batch-detail.zul")
 	 *
 	 * @param batch the batch whose detail page should be opened
 	 */
 	private void navigateToBatchDetail(BatchEntity batch) {
 		Sessions.getCurrent().setAttribute("selectedBatchId", batch.getBatchId());
-		Sessions.getCurrent().setAttribute("batchDetailBackPage", "/zul/outward/scanModule.zul");
+		// Tell BatchDetailComposer where to return when Back is clicked
+		Sessions.getCurrent().setAttribute("batchDetailBackPage", "/zul/outward/cheque-scan.zul");
 		com.cts.composer.DashboardComposer.navigateTo("/zul/outward/batch-detail.zul");
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
 	// STAT CARDS
+	// FLOW: refreshStats() → count maker batches/cheques →
+	// chequeService.countPending() → set labels
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
 	 * Recomputes and updates the three dashboard statistics card labels.
 	 *
-	 * <ul>
-	 * <li>{@code lblStatBatches} — count of Draft + VerificationInProgressAtMaker
-	 * batches</li>
-	 * <li>{@code lblStatCheques} — sum of totalCheques across those batches</li>
-	 * <li>{@code lblStatPending} — DB count of cheques with ver_status =
-	 * 'Pending'</li>
-	 * </ul>
+	 * FLOW: refreshStats() → filter in-memory batches for maker-visible statuses →
+	 * count totalBatches + sum totalCheques from in-memory list (fast, no DB) →
+	 * ChequeService.countPending() [DB count — separate query for accuracy] →
+	 * ChequeDAOImpl.countByVerStatus("Pending") → cts_cheques table →
+	 * setLabel(lblStatBatches, count) → setLabel(lblStatCheques, count) →
+	 * setLabel(lblStatPending, count)
 	 *
-	 * <p>
 	 * Called from: doAfterCompose, finishSuccessfulImport, discardPendingBatch,
 	 * onZipUpload, onCreateBatch.
 	 */
 	private void refreshStats() {
+		// Count only maker-visible statuses (same gate as getFilteredBatches Filter 1)
 		List<BatchEntity> makerBatches = batches.stream().filter(batch -> {
 			String dbStatus = batch.getStatus();
 			return dbStatus == null || "Draft".equalsIgnoreCase(dbStatus)
@@ -1637,9 +1778,11 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 		long pendingChequeCount;
 		try {
+			// DB call — cheques pending verification (separate from batch status)
 			pendingChequeCount = chequeService.countPending();
 		} catch (Exception ex) {
-			pendingChequeCount = totalChequeCount; // fallback if DB is temporarily unreachable
+			// Fallback: show totalCheques if DB is temporarily unreachable
+			pendingChequeCount = totalChequeCount;
 		}
 
 		setLabel(lblStatBatches, String.valueOf(totalBatchCount));
@@ -1651,18 +1794,27 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	 * Updates the "N batches" badge in the batch table toolbar and syncs any
 	 * client-side badge elements via the JS helper {@code bce_updateBatchLabel()}.
 	 *
+	 * FLOW: renderBatches() or updateBatchCountLabel() → updateBatchCountLabel(int)
+	 * → set batchCountLabel text →
+	 * Clients.evalJavaScript("bce_updateBatchLabel(N)") → updates JS-rendered badge
+	 *
 	 * @param batchCount the count of maker-visible batches to display
 	 */
 	private void updateBatchCountLabel(int batchCount) {
 		String badgeText = batchCount + " batch" + (batchCount == 1 ? "" : "es");
 		if (batchCountLabel != null)
 			batchCountLabel.setValue(badgeText);
+		// Sync JS-rendered badge (outside ZK tree) — JS function defined in
+		// batch-cheque-entry.js
 		Clients.evalJavaScript("bce_updateBatchLabel(" + batchCount + ");");
 	}
 
 	/**
 	 * Overload: counts maker-visible batches from the in-memory list, then
 	 * delegates to {@link #updateBatchCountLabel(int)}.
+	 *
+	 * FLOW: doAfterCompose / renderBatches (no-arg) → count from in-memory list →
+	 * updateBatchCountLabel(int)
 	 */
 	private void updateBatchCountLabel() {
 		long makerBatchCount = batches.stream().filter(batch -> {
@@ -1675,14 +1827,19 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 
 	// ══════════════════════════════════════════════════════════════════════
 	// HELPERS
+	// Private utility methods used across multiple sections above
 	// ══════════════════════════════════════════════════════════════════════
 
 	/**
 	 * Loads cheques for a batch via ChequeService. Returns an empty list (never
-	 * null) on error to keep callers safe.
+	 * null) on error to keep callers null-safe.
+	 *
+	 * FLOW: getFilteredBatches() Ghost batch guard → loadChequesForBatch() →
+	 * ChequeService.getChequesForBatch(batchId) →
+	 * ChequeDAOImpl.findByBatchId(batchId) → cts_cheques table
 	 *
 	 * @param batchId the batch whose cheques to load
-	 * @return list of ChequeEntity; empty on error or missing batch
+	 * @return list of ChequeEntity; empty on error or no cheques found
 	 */
 	private List<ChequeEntity> loadChequesForBatch(String batchId) {
 		try {
@@ -1698,18 +1855,19 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	 * Deletes the pending (empty) Draft batch from the DB when the scan modal is
 	 * closed before a ZIP is uploaded.
 	 *
-	 * <p>
-	 * Also called by onMismatchDiscard() for the two-step path discard.
-	 *
-	 * <h3>Safety</h3> Clears {@link #pendingBatchId} BEFORE the DB call to prevent
-	 * re-entry if an exception triggers a second discard attempt.
+	 * FLOW: onCloseScanModal() / onScanCancelDiscard() → discardPendingBatch() →
+	 * pendingBatchId check (skip if already null) → pendingBatchId = null [clear
+	 * BEFORE DB call — prevents re-entry on exception] →
+	 * BatchService.discardBatch(batchToDelete) → BatchDAO.deleteBatchAndCheques()
+	 * [CASCADE DELETE] → batches.removeIf(...) [sync in-memory list] →
+	 * renderBatches() → refreshStats() → updateBatchCountLabel()
 	 */
 	private void discardPendingBatch() {
 		if (pendingBatchId == null)
-			return;
+			return; // nothing to discard — idempotent guard
 
 		String batchToDelete = pendingBatchId;
-		pendingBatchId = null; // clear first to prevent re-entry
+		pendingBatchId = null; // clear FIRST to prevent re-entry if exception fires a second discard
 
 		try {
 			batchService.discardBatch(batchToDelete);
@@ -1719,15 +1877,17 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 			updateBatchCountLabel();
 			LOG.info("Discarded empty batch: " + batchToDelete);
 		} catch (Exception ex) {
+			// Log but don't show user error — batch discard is silent cleanup
 			LOG.warning("discardPendingBatch: " + ex.getMessage());
 		}
 	}
 
 	/**
-	 * Null-safe Label.setValue() — shows "—" for null/blank values.
+	 * Null-safe Label.setValue() — shows "—" for null or blank values. Prevents
+	 * NullPointerException and shows a consistent placeholder.
 	 *
-	 * @param labelComponent the ZK Label
-	 * @param value          the value to set; null/blank → "—"
+	 * @param labelComponent the ZK Label to update
+	 * @param value          the value to set; null or blank → "—"
 	 */
 	private void setLabel(Label labelComponent, String value) {
 		if (labelComponent != null)
@@ -1735,14 +1895,14 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	}
 
 	/**
-	 * Formats a BigDecimal amount using Indian denomination shortcuts:
-	 * <ul>
-	 * <li>≥ 1 Crore (1,00,00,000) → "₹X.XX Cr"</li>
-	 * <li>≥ 1 Lakh (1,00,000) → "₹X.XX L"</li>
-	 * <li>Otherwise → "₹X,XXX.XX"</li>
-	 * </ul>
+	 * Formats a BigDecimal amount using Indian denomination shortcuts.
 	 *
-	 * @param amount the amount to format; null / zero → "₹0.00"
+	 * FLOW: appendBatchRow() → formatAmt() → displayed in Total Amount column
+	 *
+	 * Thresholds (Indian notation): ≥ 1 Crore (1,00,00,000) → "₹X.XX Cr" ≥ 1 Lakh
+	 * (1,00,000) → "₹X.XX L" Otherwise → "₹X,XXX.XX"
+	 *
+	 * @param amount the amount to format; null or zero → "₹0.00"
 	 */
 	private String formatAmt(BigDecimal amount) {
 		if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0)
@@ -1760,7 +1920,9 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	 * Returns a plain comma-formatted amount string (no ₹ symbol, no L/Cr suffix).
 	 * Used in dialog labels where the ₹ symbol is added by the caller.
 	 *
-	 * @param amount the amount to format; null / zero → "0.00"
+	 * FLOW: openMismatchDialog() / openDuplicateDialog() → formatAmtRaw()
+	 *
+	 * @param amount the amount to format; null or zero → "0.00"
 	 */
 	private String formatAmtRaw(BigDecimal amount) {
 		if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0)
@@ -1771,30 +1933,22 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	/**
 	 * Reads a String attribute from the current ZK session.
 	 *
-	 * @param attributeKey the session attribute name
+	 * @param attributeKey the session attribute name (use SESS_* constants)
 	 * @param defaultValue fallback if the attribute is absent or null
-	 * @return the attribute value, or {@code defaultValue}
+	 * @return the attribute value as String, or {@code defaultValue}
 	 */
 	private String sessionStr(String attributeKey, String defaultValue) {
-		com.cts.uam.model.User currentUser = com.cts.util.SecurityUtil.getCurrentUser();
-		if (currentUser == null) return defaultValue;
-		if (SESS_USER_NAME.equals(attributeKey)) {
-			String fullName = currentUser.getFullName();
-			return (fullName != null && !fullName.isBlank()) ? fullName : currentUser.getUsername();
-		}
-		if (SESS_USER_ROLE.equals(attributeKey)) {
-			String roleLabel = currentUser.getRoleLabel();
-			return roleLabel != null ? roleLabel : defaultValue;
-		}
-		// SESS_USER_BRANCH has no equivalent on the UAM User model yet; keep default.
-		return defaultValue;
+		Object attributeValue = Sessions.getCurrent().getAttribute(attributeKey);
+		return attributeValue != null ? attributeValue.toString() : defaultValue;
 	}
 
 	/**
 	 * Returns {@code value} if non-null and non-blank, otherwise {@code fallback}.
+	 * Used for null-safe display in labels and toast messages.
 	 *
 	 * @param value    potentially null or blank string
-	 * @param fallback string to return if value is absent
+	 * @param fallback string to return when value is absent or blank
+	 * @return value if present, fallback otherwise
 	 */
 	private String nullSafe(String value, String fallback) {
 		return (value != null && !value.isBlank()) ? value : fallback;
@@ -1803,10 +1957,12 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	/**
 	 * Reads all bytes from an InputStream into a byte array.
 	 *
-	 * <p>
-	 * Used to convert the ZK UploadEvent media stream to a {@code byte[]} required
-	 * by the ZIP parser. Buffer size of 8 KB per read is efficient for typical CTS
-	 * ZIP files (1–50 cheques, ~5–20 MB).
+	 * FLOW: onZipUpload() / onScanZipUpload() → readAllBytes(media.getStreamData())
+	 * → buffers stream in 8 KB blocks → returns complete byte[] → byte[] passed to
+	 * ZipImportServiceImpl.importZip()
+	 *
+	 * Buffer size of 8 KB per read is efficient for typical CTS ZIP files (1–50
+	 * cheques, approximately 5–20 MB total).
 	 *
 	 * @param inputStream the stream from ZK Media.getStreamData()
 	 * @return complete byte array of the stream content
@@ -1814,7 +1970,7 @@ public class BatchChequeEntryComposer extends SelectorComposer<Component> {
 	 */
 	private byte[] readAllBytes(InputStream inputStream) throws Exception {
 		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-		byte[] readBlock = new byte[8192]; // 8 KB read block
+		byte[] readBlock = new byte[8192]; // 8 KB read block — good balance for CTS ZIP sizes
 		int bytesRead;
 		while ((bytesRead = inputStream.read(readBlock)) != -1) {
 			buffer.write(readBlock, 0, bytesRead);

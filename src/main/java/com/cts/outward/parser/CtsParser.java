@@ -4,7 +4,7 @@
  *  File        : CtsParser.java
  *  Package     : com.cts.outward.parser
  *  Author      : Umesh M.
- *  Created     : June 2026
+ *  Date        : 24-06-2026
  *  Description : Base interface / utility class for CTS file
  *                parsing. Defines shared field constants and
  *                helper methods (amount parsing, MICR cleaning)

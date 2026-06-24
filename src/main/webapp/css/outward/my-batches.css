@@ -1,18 +1,67 @@
 /* =============================================================
-   my-batches.css  —  My Batches + Batch Detail pages
-   ClearPay CTS / Nav Bharat Bank
-   ============================================================= */
+ * File     : my-batches.css
+ * Scope    : My Batches page (my-batches.zul / MyBatchesComposer)
+ *            + Batch Detail page (batch-detail.zul / BatchDetailComposer)
+ * Author   : Umesh M.
+ * Date     : 24-06-2026
+ * Project  : NavBharat CTS — Outward Clearing Module
+ *
+ * Layout map:
+ *   MY BATCHES PAGE
+ *     #mbRoot
+ *       .pg-head          ← page title + Create Batch button
+ *       .mb-card          ← outer card wrapper
+ *         .mb-card-head   ← card title + batch count badge (deferred)
+ *         .mb-toolbar     ← search + status + date filter bar
+ *         .mb-listbox     ← ZK listbox: batch rows
+ *         .mb-pg-bar      ← pagination: First|Prev|N of M|Next|Last
+ *
+ *   BATCH DETAIL PAGE
+ *     #bdRoot
+ *       .bd-layout
+ *         .bd-sidebar     ← summary card + IQA card (dark navy panels)
+ *         .bd-main        ← cheque listbox card
+ *           .pop-overlay  ← cheque detail modal (full-screen overlay)
+ *             .pop-box    ← modal container
+ *               .pop-head / .pop-body / .pop-footer
+ *
+ *   SHARED OVERLAYS (used by both pages)
+ *     .upload-success-overlay  ← ZIP upload success popup
+ *     .bce-toast               ← bottom-right success toast
+ *     .scan-modal-box          ← scan/upload step modal
+ *
+ * ZK override strategy:
+ *   All ZK component rules use !important to beat ZK's inline
+ *   theme styles. Selectors target both the ZK class (e.g.
+ *   .z-listbox) AND the custom sclass (e.g. .mb-listbox) so
+ *   the rule survives ZK theme regeneration.
+ *
+ * CSS variable dependencies (defined in cheque-scan.css):
+ *   --navy, --navy2, --cyan, --border, --border-light,
+ *   --gray-50, --gray-100, --gray-300, --gray-400,
+ *   --text-main, --text-sub, --red, --amber
+ * =============================================================*/
 
-/* ── MY BATCHES PAGE ────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 1 — MY BATCHES PAGE: CARD WRAPPER
+   .mb-card wraps the entire batch listing area (toolbar +
+   listbox + pagination) as a single white rounded card.
+   box-shadow: subtle depth lift against page background.
+   overflow:hidden clips child border-radii cleanly.
+   ═══════════════════════════════════════════════════════════════ */
 
 .mb-card {
     background: #fff;
     border-radius: 10px;
     border: 1px solid var(--border);
-    box-shadow: 0 1px 8px rgba(15,35,71,.06);
+    box-shadow: 0 1px 8px rgba(15,35,71,.06); /* navy-tinted shadow, very light */
     overflow: hidden;
 }
 
+/* Card header — title row + batch count badge
+   NOTE: currently commented out in ZUL (deferred feature).
+   CSS kept here so it renders correctly when re-enabled. */
 .mb-card-head {
     display: flex;
     align-items: center;
@@ -21,6 +70,7 @@
     border-bottom: 1px solid var(--border-light);
 }
 
+/* "ALL BATCHES" section label — uppercase small caps style */
 .mb-card-title {
     font-size: 13px;
     font-weight: 700;
@@ -28,6 +78,8 @@
     color: var(--text-main);
 }
 
+/* Pill badge showing total batch count e.g. "12 batches"
+   Rendered as ZK <label> with sclass="mb-count-badge" */
 .mb-count-badge {
     font-size: 12px;
     font-weight: 600;
@@ -37,7 +89,15 @@
     padding: 2px 10px;
 }
 
-/* Search + filter toolbar */
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 2 — SEARCH + FILTER TOOLBAR
+   Horizontal row containing:
+     [🔍 search input] [Status ▾] [From 📅] [To 📅] [Clear]
+   gray-50 background distinguishes toolbar from listbox below.
+   border-bottom separates toolbar from listbox.
+   ═══════════════════════════════════════════════════════════════ */
+
 .mb-toolbar {
     display: flex;
     align-items: center;
@@ -47,12 +107,16 @@
     background: var(--gray-50);
 }
 
+/* Search wrapper — positions the magnifier icon absolutely
+   inside the textbox pill using position:relative as anchor */
 .mb-search-wrap {
     position: relative;
-    flex: 1;
-    max-width: 340px;
+    flex: 1;            /* grows to fill available space */
+    max-width: 340px;   /* cap so it doesn't push filter controls off screen */
 }
 
+/* Magnifier emoji/icon — absolutely positioned left of input text
+   pointer-events:none so it doesn't block click-through to textbox */
 .mb-search-icon {
     position: absolute;
     left: 10px;
@@ -63,27 +127,36 @@
     pointer-events: none;
 }
 
-/* ── Search input — pill style ── */
+/* ── Search textbox pill ──────────────────────────────────────
+   ZK renders <textbox> as a wrapper div + inner <input>.
+   Must override BOTH the wrapper (.z-textbox) and inner input.
+   pill shape: border-radius:20px
+   left padding:30px makes room for the magnifier icon.
+   ──────────────────────────────────────────────────────────── */
 .mb-search-input.z-textbox {
     height: 32px !important;
     width: 100% !important;
-    padding: 0 12px 0 30px !important;
+    padding: 0 12px 0 30px !important;   /* 30px left = space for magnifier */
     border: 1.5px solid #d0dae8 !important;
-    border-radius: 20px !important;
+    border-radius: 20px !important;       /* full pill */
     font-size: 12px !important;
     font-family: 'Inter', sans-serif !important;
     background: #fff !important;
     color: #1e293b !important;
-    box-shadow: none !important;
+    box-shadow: none !important;          /* suppress ZK default shadow */
     transition: border-color .15s, box-shadow .15s !important;
 }
+
+/* Focus ring — blue glow matches form standard across all inputs */
 .mb-search-input.z-textbox:focus,
 .mb-search-input.z-textbox:focus-within {
     border-color: #3b82f6 !important;
     box-shadow: 0 0 0 3px rgba(59,130,246,.12) !important;
     outline: none !important;
 }
-/* ZK inner input — inherit pill shape */
+
+/* ZK inner <input> element — must reset border/bg because ZK
+   styles the inner input separately from the wrapper div */
 .mb-search-input.z-textbox input {
     border: none !important;
     background: transparent !important;
@@ -97,40 +170,50 @@
     box-shadow: none !important;
 }
 
+/* Filter label + control pair (Status: [combo], From: [date], etc.)
+   Each .mb-filter-group is a flex row of label + ZK component */
 .mb-filter-group {
     display: flex;
     align-items: center;
     gap: 6px;
 }
 
+/* Small uppercase label before each filter control */
 .mb-filter-lbl {
     font-size: 11px;
     font-weight: 600;
     color: var(--text-sub);
-    white-space: nowrap;
+    white-space: nowrap; /* prevents label wrapping on narrow screens */
 }
 
-/* ── Status combo — pill style ── */
-/* ── Status combo — split pill ── */
+
+/* ── Status Combobox — split-pill design ─────────────────────
+   ZK combobox = wrapper div + inner input + dropdown button.
+   "Split pill": input has left-side radius, button has right-side
+   radius; the shared border between them is removed for seamless
+   look. border-right:none on input + border-left:none on button.
+   ──────────────────────────────────────────────────────────── */
 .mb-filter-combo.z-combobox {
     height: 32px !important;
     width: auto !important;
     display: inline-flex !important;
     align-items: center !important;
-    border: none !important;
+    border: none !important;            /* reset ZK wrapper border — individual parts handle their own */
     background: transparent !important;
     box-shadow: none !important;
     box-sizing: border-box !important;
     vertical-align: middle !important;
 }
+
+/* Input half of split pill — left-rounded, no right border */
 .mb-filter-combo.z-combobox input,
 .mb-filter-combo.z-combobox .z-combobox-input {
     width: 90px !important;
     flex: 0 0 90px !important;
     height: 32px !important;
     border: 1.5px solid #d0dae8 !important;
-    border-right: none !important;
-    border-radius: 20px 0 0 20px !important;
+    border-right: none !important;              /* joins seamlessly with button */
+    border-radius: 20px 0 0 20px !important;    /* left pill half */
     background: #fff !important;
     font-size: 12px !important;
     font-family: 'Inter', sans-serif !important;
@@ -139,6 +222,8 @@
     box-shadow: none !important;
     box-sizing: border-box !important;
 }
+
+/* Dropdown button half of split pill — right-rounded, no left border */
 .mb-filter-combo.z-combobox .z-combobox-button,
 .mb-filter-combo.z-combobox button {
     flex: 0 0 28px !important;
@@ -147,9 +232,9 @@
     max-width: 28px !important;
     height: 32px !important;
     border: 1.5px solid #d0dae8 !important;
-    border-left: none !important;
-    border-radius: 0 20px 20px 0 !important;
-    background: #f1f5f9 !important;
+    border-left: none !important;               /* joins seamlessly with input */
+    border-radius: 0 20px 20px 0 !important;    /* right pill half */
+    background: #f1f5f9 !important;             /* slightly gray to indicate it's a button */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -159,35 +244,48 @@
     box-shadow: none !important;
     overflow: hidden !important;
 }
-/* hide ZK sprite, replace with ▾ via ::after */
+
+/* Hide ZK's built-in caret sprite/icon — we replace with CSS ::after ▾
+   ZK injects an <i> or <img> for the dropdown arrow; we zero it out */
 .mb-filter-combo.z-combobox .z-combobox-button i,
 .mb-filter-combo.z-combobox .z-combobox-button .z-icon-caret-down,
 .mb-filter-combo.z-combobox .z-combobox-button img,
 .mb-filter-combo.z-combobox button i {
     display: none !important;
-    width: 0 !important; height: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
 }
+
+/* Reset background-image (ZK sprite) and prepare for ::after pseudo-element */
 .mb-filter-combo.z-combobox .z-combobox-button,
 .mb-filter-combo.z-combobox button {
     background-image: none !important;
-    font-size: 0 !important;
+    font-size: 0 !important;       /* hide any text node in button */
     text-indent: -9999px !important;
-    position: relative !important;
+    position: relative !important; /* anchor for ::after absolute positioning */
 }
+
+/* Custom caret ▾ via ::after — centered inside button using absolute+translate */
 .mb-filter-combo.z-combobox .z-combobox-button::after,
 .mb-filter-combo.z-combobox button::after {
-    content: "\25BE" !important;
+    content: "\25BE" !important;    /* ▾ small downward triangle */
     font-size: 10px !important;
     line-height: 1 !important;
     color: #64748b !important;
     position: absolute !important;
-    top: 50% !important; left: 50% !important;
+    top: 50% !important;
+    left: 50% !important;
     transform: translate(-50%, -50%) !important;
-    text-indent: 0 !important;
+    text-indent: 0 !important;      /* undo the -9999px from parent */
     pointer-events: none !important;
 }
 
-/* ── Datebox — split pill ── */
+
+/* ── Datebox — split-pill design (same pattern as combobox) ──
+   ZK datebox = wrapper + input + calendar trigger button.
+   Split-pill: input left-radius, button right-radius.
+   Uses monospace font for date digits for alignment.
+   ──────────────────────────────────────────────────────────── */
 .mb-filter-date.z-datebox {
     height: 32px !important;
     width: auto !important;
@@ -199,6 +297,8 @@
     box-sizing: border-box !important;
     vertical-align: middle !important;
 }
+
+/* Date input half — wider than combo (108px) to fit dd/MM/yyyy */
 .mb-filter-date.z-datebox input,
 .mb-filter-date.z-datebox .z-datebox-input {
     width: 108px !important;
@@ -208,7 +308,7 @@
     border-right: none !important;
     border-radius: 20px 0 0 20px !important;
     background: #fff !important;
-    font-family: 'Roboto Mono', monospace !important;
+    font-family: 'Roboto Mono', monospace !important;  /* monospace keeps dd/MM/yyyy digits aligned */
     font-size: 12px !important;
     color: #0f2347 !important;
     padding: 0 8px 0 12px !important;
@@ -217,11 +317,15 @@
     box-sizing: border-box !important;
     transition: border-color .15s !important;
 }
+
+/* Focus: highlight border when user is editing date */
 .mb-filter-date.z-datebox input:focus,
 .mb-filter-date.z-datebox .z-datebox-input:focus {
     border-color: #3b82f6 !important;
     background: #f8fbff !important;
 }
+
+/* Calendar picker button half — same 28px as combo dropdown button */
 .mb-filter-date.z-datebox .z-datebox-button,
 .mb-filter-date.z-datebox button {
     flex: 0 0 28px !important;
@@ -243,18 +347,24 @@
     overflow: hidden !important;
     transition: background .15s !important;
 }
+
+/* Hover: darken button to indicate it's clickable */
 .mb-filter-date.z-datebox .z-datebox-button:hover,
 .mb-filter-date.z-datebox button:hover {
     background: #e2e8f0 !important;
 }
-/* hide ZK sprite, replace with 📅 via ::after */
+
+/* Hide ZK calendar icon sprite (same pattern as combo caret) */
 .mb-filter-date.z-datebox .z-datebox-button i,
 .mb-filter-date.z-datebox .z-datebox-button .z-icon-calendar,
 .mb-filter-date.z-datebox .z-datebox-button img,
 .mb-filter-date.z-datebox button i {
     display: none !important;
-    width: 0 !important; height: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
 }
+
+/* Prepare button for ::after calendar emoji */
 .mb-filter-date.z-datebox .z-datebox-button,
 .mb-filter-date.z-datebox button {
     background-image: none !important;
@@ -262,20 +372,29 @@
     text-indent: -9999px !important;
     position: relative !important;
 }
+
+/* Replace ZK sprite with 📅 calendar emoji centered in button */
 .mb-filter-date.z-datebox .z-datebox-button::after,
 .mb-filter-date.z-datebox button::after {
-    content: "\1F4C5" !important;
+    content: "\1F4C5" !important;   /* 📅 calendar emoji */
     font-size: 11px !important;
     line-height: 1 !important;
     color: #64748b !important;
     position: absolute !important;
-    top: 50% !important; left: 50% !important;
+    top: 50% !important;
+    left: 50% !important;
     transform: translate(-50%, -50%) !important;
     text-indent: 0 !important;
     pointer-events: none !important;
 }
 
-/* ── mb-filter-combo used on datebox (scanModule) — same as mb-filter-date ── */
+
+/* ── mb-filter-combo used on a <datebox> (ChequeScanComposer) ──
+   ChequeScanComposer uses sclass="mb-filter-combo" on datebox
+   components (dtBatchFrom, dtBatchTo). The .mb-filter-combo.z-datebox
+   block below mirrors the .mb-filter-date.z-datebox rules above
+   so both sclass patterns produce the same split-pill look.
+   ──────────────────────────────────────────────────────────── */
 .mb-filter-combo.z-datebox {
     height: 32px !important;
     width: auto !important;
@@ -335,12 +454,14 @@
 .mb-filter-combo.z-datebox button:hover {
     background: #e2e8f0 !important;
 }
+/* Hide ZK icon, replace with 📅 via ::after */
 .mb-filter-combo.z-datebox .z-datebox-button i,
 .mb-filter-combo.z-datebox .z-datebox-button .z-icon-calendar,
 .mb-filter-combo.z-datebox .z-datebox-button img,
 .mb-filter-combo.z-datebox button i {
     display: none !important;
-    width: 0 !important; height: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 .mb-filter-combo.z-datebox .z-datebox-button,
 .mb-filter-combo.z-datebox button {
@@ -356,21 +477,29 @@
     line-height: 1 !important;
     color: #64748b !important;
     position: absolute !important;
-    top: 50% !important; left: 50% !important;
+    top: 50% !important;
+    left: 50% !important;
     transform: translate(-50%, -50%) !important;
     text-indent: 0 !important;
     pointer-events: none !important;
 }
 
-/* ── Arrow separator between dates ── */
+/* Arrow separator between From and To date pickers e.g. "→"
+   Rendered as a native <span> between the two datebox groups */
 .mb-date-sep {
     font-size: 11px;
     color: #94a3b8;
     font-weight: 700;
-    flex-shrink: 0;
+    flex-shrink: 0; /* prevents collapsing when toolbar is narrow */
 }
 
-/* ── Clear / Secondary button — pill style ── */
+/* ── Clear / Secondary button pill ───────────────────────────
+   Used for "Clear" (reset date filter) and other secondary
+   actions. Hover changes to red-tinted style as a visual cue
+   that clearing removes data (destructive-ish action).
+   Must override BOTH .z-button wrapper AND .z-button-cm inner
+   span that ZK uses for label rendering.
+   ──────────────────────────────────────────────────────────── */
 .btn-secondary.z-button,
 .btn-secondary.z-button .z-button-cm {
     display: inline-flex !important;
@@ -383,7 +512,7 @@
     font-family: 'Inter', sans-serif !important;
     color: #64748b !important;
     background: #fff !important;
-    background-image: none !important;
+    background-image: none !important;   /* suppress ZK gradient */
     border: 1.5px solid #d0dae8 !important;
     border-radius: 20px !important;
     cursor: pointer !important;
@@ -393,6 +522,8 @@
     letter-spacing: .02em !important;
     transition: all .15s !important;
 }
+
+/* Hover: red tint signals "this will clear/remove something" */
 .btn-secondary.z-button:hover,
 .btn-secondary.z-button:hover .z-button-cm {
     background: #fee2e2 !important;
@@ -401,13 +532,25 @@
     color: #dc2626 !important;
 }
 
-/* Batch listbox */
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 3 — BATCH LISTBOX
+   ZK listbox that shows one row per batch.
+   Rows (Listitem + Listcell) are injected at runtime by
+   MyBatchesComposer.renderCurrentPage() — not declared in ZUL.
+   overflow:visible on .z-listbox-body disables ZK's internal
+   scroll so the card controls height naturally (pagination
+   below the table handles navigation).
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Reset ZK listbox wrapper border — card handles the border */
 .mb-listbox.z-listbox {
     border: none !important;
     height: auto !important;
 }
 
-/* ZK internal scroll container — disable scroll, auto height */
+/* ZK internal scrollable body — disable scroll so table grows
+   to fit all rows (pagination limits row count to 5) */
 .mb-listbox .z-listbox-body {
     overflow: visible !important;
     overflow-y: unset !important;
@@ -415,6 +558,9 @@
     max-height: none !important;
 }
 
+/* Listhead (column header row) — navy background, white text
+   Must style both .z-listhead wrapper AND .z-listheader cells
+   because ZK applies styles at both levels */
 .mb-listhead.z-listhead,
 .mb-listhead .z-listheader {
     background: var(--navy) !important;
@@ -427,6 +573,8 @@
     text-align: center !important;
 }
 
+/* Individual header cell — adds subtle right divider between columns
+   rgba white border blends into navy background */
 .mb-th.z-listheader {
     background: var(--navy) !important;
     color: #fff !important;
@@ -434,7 +582,8 @@
     text-align: center !important;
 }
 
-/* Center the label text + sort-arrow box inside each ZK listheader */
+/* ZK listheader inner content wrapper — force center alignment
+   ZK defaults to left-align; must override via inner wrapper too */
 .mb-th.z-listheader .z-listheader-content,
 .mb-listhead .z-listheader-content {
     width: 100% !important;
@@ -442,16 +591,20 @@
     justify-content: center !important;
 }
 
+/* Batch row (Listitem) — pointer cursor signals row is clickable
+   (clicking a row opens batch detail via MyBatchesComposer) */
 .mb-row.z-listitem {
     cursor: pointer !important;
     transition: background .15s !important;
     border-bottom: 1px solid var(--border-light) !important;
 }
 
+/* Row hover highlight — light blue tint for interactivity feedback */
 .mb-row.z-listitem:hover {
     background: #eff6ff !important;
 }
 
+/* Listcell (individual data cell in each row) */
 .mb-row .z-listcell {
     padding: 7px 14px !important;
     font-size: 13px !important;
@@ -461,7 +614,8 @@
     text-align: center !important;
 }
 
-/* Center the inner content wrapper ZK puts inside each listcell */
+/* ZK listcell inner content wrapper — must also be centered
+   ZK wraps cell content in .z-listcell-content; needs flex center */
 .mb-row .z-listcell-content {
     width: 100% !important;
     text-align: center !important;
@@ -470,6 +624,8 @@
     align-items: center !important;
 }
 
+/* Batch ID link label — cyan underline, clickable appearance
+   onClick → MyBatchesComposer navigates to batch-detail page */
 .mb-link.z-label {
     color: var(--cyan) !important;
     font-weight: 700 !important;
@@ -478,6 +634,8 @@
     text-decoration: underline !important;
 }
 
+/* Action column link (e.g. "Edit", "View") — amber color
+   Amber = secondary action, distinct from cyan batch-ID link */
 .mb-action-link.z-label {
     color: var(--amber) !important;
     font-weight: 600 !important;
@@ -486,27 +644,60 @@
     text-decoration: underline !important;
 }
 
+/* Amount column — monospace for digit alignment (₹ amounts) */
 .amt-cell.z-listcell {
     font-family: 'JetBrains Mono', monospace !important;
     font-size: 13px !important;
     color: var(--text-main) !important;
 }
 
-/* Status chips */
-.chip { display:inline-block; border-radius:20px; padding:2px 12px;
-        font-size:11px; font-weight:700; letter-spacing:.04em; }
-.ch-pending   { background:#fef3c7; color:#92400e; }
-.ch-submitted { background:#dbeafe; color:#1e40af; }
-.ch-progress  { background:#ffedd5; color:#9a3412; }
-.ch-approved  { background:#dcfce7; color:#166534; }
-.ch-rejected  { background:#fee2e2; color:#991b1b; }
-.ch-pass      { background:#dcfce7; color:#166534; }
-.ch-fail      { background:#fee2e2; color:#991b1b; }
-.ch-amber     { background:#fef3c7; color:#92400e; }
 
-/* ── BATCH LIST PAGINATION BAR ──────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 4 — STATUS CHIPS
+   Inline pill badges showing batch/cheque status.
+   Base .chip class + modifier class for each status color.
+   Used in both My Batches listbox and Batch Detail popup.
 
-/* ── Pagination bar ── */
+   Status → CSS class mapping:
+     PENDING   → .ch-pending   (amber/yellow)
+     SUBMITTED → .ch-submitted (blue)
+     IN PROGRESS → .ch-progress (orange)
+     APPROVED  → .ch-approved  (green)
+     REJECTED  → .ch-rejected  (red)
+     PASS      → .ch-pass      (green — IQA result)
+     FAIL      → .ch-fail      (red   — IQA result)
+     (amber)   → .ch-amber     (amber — generic warning state)
+   ═══════════════════════════════════════════════════════════════ */
+
+.chip {
+    display: inline-block;
+    border-radius: 20px;
+    padding: 2px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+.ch-pending   { background: #fef3c7; color: #92400e; } /* amber — awaiting action */
+.ch-submitted { background: #dbeafe; color: #1e40af; } /* blue  — submitted to clearing */
+.ch-progress  { background: #ffedd5; color: #9a3412; } /* orange — processing in progress */
+.ch-approved  { background: #dcfce7; color: #166534; } /* green — verified and approved */
+.ch-rejected  { background: #fee2e2; color: #991b1b; } /* red   — rejected by verifier */
+.ch-pass      { background: #dcfce7; color: #166534; } /* green — IQA check passed */
+.ch-fail      { background: #fee2e2; color: #991b1b; } /* red   — IQA check failed */
+.ch-amber     { background: #fef3c7; color: #92400e; } /* amber — generic warning state */
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 5 — PAGINATION BAR
+   Horizontal bar below the listbox.
+   Controls: « First | ‹ Prev | Page N of M | Next › | Last »
+   State (enabled/disabled) managed by MyBatchesComposer
+   based on currentPage and totalPages fields.
+   ZK disabled state uses BOTH .z-button-disd class AND
+   [disabled] attribute — must cover both selectors.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Outer bar — centered, top-bordered, gray background */
 .mb-pg-bar {
     display: flex;
     align-items: center;
@@ -516,13 +707,16 @@
     background: #f8f9fb;
 }
 
+/* Inner flex row — keeps button group tightly together */
 .mb-pg-inner {
     display: inline-flex;
     align-items: center;
     gap: 6px;
 }
 
-/* ── Pagination buttons — full ZK override ── */
+/* Pagination button — standard outlined style
+   Must override BOTH .z-button wrapper AND .z-button-cm
+   inner label span (ZK splits label rendering across two elements) */
 .mb-pg-btn.z-button,
 .mb-pg-btn.z-button .z-button-cm {
     display: inline-flex !important;
@@ -535,7 +729,7 @@
     font-family: 'Inter', sans-serif !important;
     color: #374151 !important;
     background: #ffffff !important;
-    background-image: none !important;
+    background-image: none !important;   /* suppress ZK gradient sprite */
     border: 1.5px solid #d1d5db !important;
     border-radius: 6px !important;
     cursor: pointer !important;
@@ -544,6 +738,9 @@
     text-shadow: none !important;
 }
 
+/* Hover: blue highlight — only when NOT disabled
+   :not(.z-button-disd):not([disabled]) guards against
+   styling disabled buttons on hover (ZK adds both) */
 .mb-pg-btn.z-button:hover:not(.z-button-disd):not([disabled]),
 .mb-pg-btn.z-button:hover:not(.z-button-disd):not([disabled]) .z-button-cm {
     background: #eff6ff !important;
@@ -552,7 +749,9 @@
     color: #2563eb !important;
 }
 
-/* ZK disabled state — class-based AND attribute-based */
+/* Disabled state — ZK adds .z-button-disd class AND [disabled] attr
+   Must cover both because ZK is inconsistent across versions.
+   opacity:0.4 fades the button; pointer-events:none blocks clicks */
 .mb-pg-btn.z-button.z-button-disd,
 .mb-pg-btn.z-button[disabled],
 .mb-pg-btn.z-button.z-button-disd .z-button-cm,
@@ -568,6 +767,8 @@
     text-shadow: none !important;
 }
 
+/* "Page N of M" label — fixed min-width prevents bar from
+   shifting width as page number changes (e.g. "1" vs "10") */
 .mb-pg-info.z-label {
     min-width: 90px !important;
     text-align: center !important;
@@ -578,26 +779,38 @@
     font-family: 'Inter', sans-serif !important;
 }
 
-/* ── BATCH DETAIL PAGE ──────────────────────────────────────── */
 
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 6 — BATCH DETAIL PAGE
+   Layout: sidebar (260px fixed) + main content (flex:1)
+   Sidebar has two dark navy cards: Summary + IQA results.
+   Main area has the cheque listbox card.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Page-level title — larger font for detail page heading */
 .bd-page-title {
     font-size: 20px;
     font-weight: 700;
     color: var(--text-main);
 }
 
+/* Batch ID portion of title — navy color for visual emphasis */
 .bd-batch-id-title {
     color: var(--navy);
 }
 
+/* Two-column layout: sidebar left, cheque list right */
 .bd-layout {
     display: flex;
     gap: 18px;
-    align-items: flex-start;
+    align-items: flex-start; /* sidebar and main don't stretch to equal height */
     margin-top: 16px;
 }
 
-/* Summary sidebar */
+/* ── Sidebar (left panel) ──────────────────────────────────────
+   Fixed 260px width; stacks Summary card + IQA card vertically.
+   flex-shrink:0 prevents sidebar from squeezing when main is wide.
+   ──────────────────────────────────────────────────────────── */
 .bd-sidebar {
     width: 260px;
     flex-shrink: 0;
@@ -606,6 +819,8 @@
     gap: 14px;
 }
 
+/* Summary card + IQA card — both use navy background with white text
+   Dark card creates visual contrast against the white main area */
 .bd-summary-card,
 .bd-iqa-card {
     background: var(--navy);
@@ -614,6 +829,7 @@
     color: #fff;
 }
 
+/* Section header inside dark card — dimmed white (70% opacity) */
 .bd-summary-title,
 .bd-iqa-title {
     font-size: 12px;
@@ -625,9 +841,11 @@
 }
 
 .bd-iqa-title {
-    color: rgba(255,255,255,.6);
+    color: rgba(255,255,255,.6); /* slightly more dimmed for IQA sub-section */
 }
 
+/* Each data row in sidebar card — label:value pair with bottom divider
+   border-bottom uses semi-transparent white so it blends with navy */
 .bd-summary-row,
 .bd-iqa-row {
     display: flex;
@@ -637,17 +855,20 @@
     border-bottom: 1px solid rgba(255,255,255,.08);
 }
 
+/* Last row: no bottom border (avoids double-border with card padding) */
 .bd-summary-row:last-child,
 .bd-iqa-row:last-child {
     border-bottom: none;
 }
 
+/* Label side of each row — dimmed text (60% opacity) */
 .bd-summary-lbl,
 .bd-iqa-lbl {
     font-size: 12px;
     color: rgba(255,255,255,.6);
 }
 
+/* Value side — ZK <label> component, forced white */
 .bd-summary-val.z-label,
 .bd-iqa-val.z-label {
     font-size: 13px;
@@ -655,15 +876,30 @@
     color: #fff !important;
 }
 
+/* Amount values — monospace for ₹ digit alignment */
 .bd-val-mono.z-label {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
-.iqa-pass.z-label { color: #86efac !important; }
+/* IQA pass result value — green tint (against navy bg, #86efac visible) */
+.iqa-pass.z-label {
+    color: #86efac !important; /* light green — readable on dark navy background */
+}
 
-/* Main cheque list */
-.bd-main { flex: 1; min-width: 0; }
 
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 7 — BATCH DETAIL: CHEQUE LISTBOX CARD
+   Main area (right of sidebar). White card with cheque rows.
+   Each row is a cheque; clicking opens the cheque detail modal.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Main area — flex:1 fills remaining width after sidebar */
+.bd-main {
+    flex: 1;
+    min-width: 0; /* prevents flex child overflow past container */
+}
+
+/* Cheque list card — same card pattern as .mb-card */
 .bd-cheque-card {
     background: #fff;
     border-radius: 10px;
@@ -672,6 +908,7 @@
     overflow: hidden;
 }
 
+/* Card header row — cheque count title + range label */
 .bd-cheque-head {
     display: flex;
     justify-content: space-between;
@@ -680,6 +917,7 @@
     border-bottom: 1px solid var(--border-light);
 }
 
+/* "CHEQUES" section label */
 .bd-cheque-title {
     font-size: 13px;
     font-weight: 700;
@@ -687,13 +925,18 @@
     color: var(--text-main);
 }
 
+/* Shows range e.g. "Showing 1–10 of 24" — subdued text */
 .bd-cheque-range.z-label {
     font-size: 12px !important;
     color: var(--text-sub) !important;
 }
 
-.bd-listbox.z-listbox { border: none !important; }
+/* Cheque listbox — no border (card provides border) */
+.bd-listbox.z-listbox {
+    border: none !important;
+}
 
+/* Cheque listbox header row — same navy treatment as .mb-listhead */
 .bd-listhead.z-listhead,
 .bd-listhead .z-listheader {
     background: var(--navy) !important;
@@ -704,6 +947,7 @@
     border: none !important;
 }
 
+/* Individual cheque column header cell */
 .bd-lh.z-listheader {
     background: var(--navy) !important;
     color: #fff !important;
@@ -711,58 +955,80 @@
     border-right: 1px solid rgba(255,255,255,.1) !important;
 }
 
+/* Cheque row — clickable; opens cheque detail popup modal */
 .chq-row.z-listitem {
     cursor: pointer !important;
     transition: background .15s !important;
     border-bottom: 1px solid var(--border-light) !important;
 }
 
-.chq-row.z-listitem:hover { background: #f0f7ff !important; }
+/* Row hover — slightly deeper blue than .mb-row hover */
+.chq-row.z-listitem:hover {
+    background: #f0f7ff !important;
+}
 
+/* Cheque data cell — more padding than batch list (more data per row) */
 .chq-row .z-listcell {
     padding: 12px 14px !important;
     font-size: 13px !important;
     font-family: 'Inter', sans-serif !important;
 }
 
+/* Small cyan arrow prefix before cheque number — decorative indicator */
 .chq-arrow.z-label {
     color: var(--cyan) !important;
     font-size: 11px !important;
     margin-right: 6px !important;
 }
 
+/* Cheque number link — clickable, opens cheque detail modal */
 .chq-no-link.z-label {
     color: var(--cyan) !important;
     font-weight: 700 !important;
     font-size: 13px !important;
 }
 
-/* ── CHEQUE DETAIL POPUP MODAL ──────────────────────────────── */
 
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 8 — CHEQUE DETAIL POPUP MODAL
+   Full-screen overlay + centered modal box.
+   Opened by BatchDetailComposer when user clicks a cheque row.
+   ZK visibility: sclass="pop-overlay open" + visible toggling.
+   Contains: cheque images (front/back/UV/IR) + IQA flags
+             + editable data fields + Save/Reject footer buttons.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Full-screen semi-transparent backdrop
+   position:fixed ensures it covers viewport regardless of scroll
+   z-index:9999 keeps it above all ZK components */
 .pop-overlay {
     position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.55);
+    inset: 0;                            /* shorthand for top/right/bottom/left:0 */
+    background: rgba(0,0,0,.55);         /* 55% black — dark enough to focus on modal */
     z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 20px;                       /* prevents modal from touching screen edges */
 }
 
+/* Modal box — white rounded container
+   max-height:92vh + overflow-y:auto allows scrolling within modal
+   if cheque data is tall (many fields, large images) */
 .pop-box {
     background: #fff;
     border-radius: 14px;
     box-shadow: 0 20px 60px rgba(0,0,0,.3);
     width: 100%;
-    max-width: 1100px;
+    max-width: 1100px;   /* wide enough for 4-column image grid */
     max-height: 92vh;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
 }
 
-/* Popup header */
+/* Modal header — title + batch/cheque info + close button
+   flex-shrink:0 prevents header from compressing when body scrolls */
 .pop-head {
     display: flex;
     align-items: flex-start;
@@ -774,8 +1040,13 @@
     flex-shrink: 0;
 }
 
-.pop-head-left { display: flex; flex-direction: column; gap: 3px; }
+.pop-head-left {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
 
+/* Modal title — "Cheque Details" — ZK <label> */
 .pop-title.z-label {
     font-size: 17px !important;
     font-weight: 700 !important;
@@ -783,11 +1054,14 @@
     font-family: 'Inter', sans-serif !important;
 }
 
+/* Subtitle — "Batch #XXXXX · Cheque #YY" — native HTML element */
 .pop-subtitle {
     font-size: 12px;
     color: var(--text-sub);
 }
 
+/* Close button (×) — top right of modal header
+   Hover: red tint signals this dismisses/closes the modal */
 .pop-close-btn.z-button {
     background: transparent !important;
     border: 1.5px solid var(--border) !important;
@@ -799,14 +1073,14 @@
     cursor: pointer !important;
     font-family: 'Inter', sans-serif !important;
 }
-
 .pop-close-btn.z-button:hover {
     background: #fee2e2 !important;
     border-color: var(--red) !important;
     color: var(--red) !important;
 }
 
-/* Popup body */
+/* Modal body — scrollable content area
+   gap:18px between image row, IQA bar, and fields grid */
 .pop-body {
     padding: 20px 22px;
     flex: 1;
@@ -816,20 +1090,23 @@
     gap: 18px;
 }
 
-/* Images row */
+/* Images row — horizontal strip of up to 4 image panels
+   (Front, Back, UV, IR sides of the cheque) */
 .pop-images-row {
     display: flex;
     gap: 16px;
 }
 
+/* Each image panel: label header + image box stacked vertically */
 .pop-img-panel {
     flex: 1;
-    min-width: 0;
+    min-width: 0; /* prevents overflow when 4 panels share row width */
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
+/* Image panel header label e.g. "📷 FRONT SIDE" */
 .pop-img-label {
     display: flex;
     align-items: center;
@@ -845,6 +1122,8 @@
 
 .pop-img-icon { font-size: 13px; }
 
+/* Image container — fixed min-height reserves space while loading
+   Shows empty state or spinner before image data arrives */
 .pop-img-box {
     border: 1.5px solid var(--border);
     border-radius: 8px;
@@ -856,6 +1135,7 @@
     overflow: hidden;
 }
 
+/* Empty state — no image available for this side */
 .img-empty {
     display: flex;
     flex-direction: column;
@@ -864,10 +1144,10 @@
     padding: 24px;
     color: var(--gray-400);
 }
-
 .img-empty-icon { font-size: 32px; opacity: .5; }
 .img-empty-text { font-size: 12px; font-weight: 500; }
 
+/* Loading state — spinner shown while JPEG fetches from servlet */
 .img-loading {
     display: flex;
     flex-direction: column;
@@ -877,17 +1157,25 @@
     font-size: 12px;
 }
 
+/* CSS spinner — uses border-top trick for single-color rotation */
 .img-spinner {
-    width: 28px; height: 28px;
+    width: 28px;
+    height: 28px;
     border: 3px solid var(--border);
-    border-top-color: var(--cyan);
+    border-top-color: var(--cyan); /* only top segment colored = spinning arc */
     border-radius: 50%;
     animation: spin .7s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
 
-/* IQA inline flags */
+/* ── IQA result bar ───────────────────────────────────────────
+   Horizontal strip showing IQA (Image Quality Analysis) results
+   for each cheque side: Amount match, Payee match, MICR, etc.
+   Dark navy background with white text; dividers between items.
+   ──────────────────────────────────────────────────────────── */
 .pop-iqa-row {
     display: flex;
     gap: 0;
@@ -896,6 +1184,7 @@
     overflow: hidden;
 }
 
+/* Each IQA check item — flex:1 distributes equal width */
 .pop-iqa-item {
     flex: 1;
     display: flex;
@@ -904,9 +1193,9 @@
     padding: 12px 16px;
     border-right: 1px solid rgba(255,255,255,.1);
 }
-
 .pop-iqa-item:last-child { border-right: none; }
 
+/* IQA check label e.g. "AMOUNT MATCH", "MICR CODE" */
 .pop-iqa-lbl {
     font-size: 10px;
     font-weight: 700;
@@ -915,6 +1204,7 @@
     text-transform: uppercase;
 }
 
+/* IQA result value e.g. "PASS", "FAIL", "N/A" */
 .pop-iqa-val.z-label {
     font-size: 14px !important;
     font-weight: 700 !important;
@@ -922,7 +1212,10 @@
     font-family: 'Inter', sans-serif !important;
 }
 
-/* Fields grid */
+/* ── Cheque data fields grid ──────────────────────────────────
+   4-column grid of editable fields: Amount, Payee, MICR, etc.
+   Each .pop-field = label + ZK textbox/combobox stacked vertically.
+   ──────────────────────────────────────────────────────────── */
 .pop-fields-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -935,6 +1228,7 @@
     gap: 6px;
 }
 
+/* Field label — uppercase small caps style */
 .pop-field-lbl {
     font-size: 10px;
     font-weight: 700;
@@ -943,6 +1237,7 @@
     text-transform: uppercase;
 }
 
+/* Editable field inputs — textbox and combobox share same style */
 .pop-input.z-textbox,
 .pop-combo.z-combobox {
     width: 100% !important;
@@ -955,14 +1250,14 @@
     background: #fff !important;
     transition: border-color .15s !important;
 }
-
 .pop-input.z-textbox:focus,
 .pop-combo.z-combobox:focus {
     border-color: var(--cyan) !important;
     outline: none !important;
 }
 
-/* Popup footer */
+/* Modal footer — action buttons (Save, Reject) + spacer
+   flex-shrink:0 keeps footer visible even when body is scrolled */
 .pop-footer {
     display: flex;
     align-items: center;
@@ -974,6 +1269,7 @@
     flex-shrink: 0;
 }
 
+/* Save / Accept button — green (positive/confirm action) */
 .btn-success.z-button {
     background: #16a34a !important;
     color: #fff !important;
@@ -985,9 +1281,9 @@
     font-family: 'Inter', sans-serif !important;
     cursor: pointer !important;
 }
-
 .btn-success.z-button:hover { background: #15803d !important; }
 
+/* Reject / Flag button — amber (caution/warn action) */
 .btn-amber.z-button {
     background: #f59e0b !important;
     color: #fff !important;
@@ -999,10 +1295,16 @@
     font-family: 'Inter', sans-serif !important;
     cursor: pointer !important;
 }
-
 .btn-amber.z-button:hover { background: #d97706 !important; }
 
-/* ── UPLOAD SUCCESS POPUP ────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 9 — UPLOAD SUCCESS POPUP
+   Shown after ZIP import completes successfully.
+   Centered overlay → white box with batch ID + cheque stats.
+   z-index:9998 — one below cheque detail modal (9999) so it
+   doesn't stack on top of an open cheque popup.
+   ═══════════════════════════════════════════════════════════════ */
 
 .upload-success-overlay {
     position: fixed;
@@ -1014,6 +1316,7 @@
     justify-content: center;
 }
 
+/* Success popup box — narrower than cheque modal (460px) */
 .upload-success-box {
     background: #fff;
     border-radius: 14px;
@@ -1027,14 +1330,10 @@
     gap: 10px;
 }
 
-.us-icon { font-size: 48px; margin-bottom: 4px; }
+.us-icon  { font-size: 48px; margin-bottom: 4px; } /* ✅ or 🎉 success icon */
+.us-title { font-size: 20px; font-weight: 700; color: var(--navy); }
 
-.us-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--navy);
-}
-
+/* Batch ID displayed in large monospace cyan — key info to copy */
 .us-batchid {
     font-size: 22px;
     font-weight: 800;
@@ -1043,6 +1342,7 @@
     letter-spacing: .04em;
 }
 
+/* Stats row — "Cheques: 24 | Amount: ₹1,20,000" side by side */
 .us-meta-row {
     display: flex;
     gap: 24px;
@@ -1065,6 +1365,7 @@
     text-transform: uppercase;
 }
 
+/* Stat value — large monospace for numeric data */
 .us-meta-val {
     font-size: 18px;
     font-weight: 800;
@@ -1072,6 +1373,7 @@
     font-family: 'JetBrains Mono', monospace;
 }
 
+/* Horizontal rule separator between stats and action buttons */
 .us-divider {
     width: 100%;
     border: none;
@@ -1079,6 +1381,7 @@
     margin: 8px 0;
 }
 
+/* Action button row — e.g. "View Batch" + "Close" */
 .us-actions {
     display: flex;
     gap: 10px;
@@ -1087,28 +1390,39 @@
     margin-top: 4px;
 }
 
-/* ── SCAN MODAL (Step 2) ──────────────────────────────────────── */
 
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 10 — SCAN / ZIP UPLOAD MODAL (Step 2)
+   Modal shown when user clicks "+ Create Batch" → upload ZIP.
+   Reuses .pop-overlay/.pop-box structure but with narrower
+   max-width (.scan-modal-box overrides .pop-box width).
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Narrower modal — 540px fits upload form without excess whitespace */
 .scan-modal-box {
     max-width: 540px;
 }
 
+/* Subtitle below modal title — shows batch ID being created */
 .modal-subtitle {
     font-size: 11px;
     color: rgba(255,255,255,.6);
     margin-top: 2px;
 }
 
+/* Batch ID shown in modal header — monospace + blue tint on dark bg */
 .scan-batch-id {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
-    color: #93c5fd;
+    color: #93c5fd; /* light blue — readable on dark pop-head background */
 }
 
 .scan-body {
     padding: 24px 20px 20px;
 }
 
+/* ZIP dropzone — dashed border signals drag-and-drop target
+   Hover transition provides interactive feedback */
 .scan-dropzone {
     border: 2px dashed var(--border);
     border-radius: 10px;
@@ -1122,16 +1436,17 @@
     transition: border-color .2s, background .2s;
     text-align: center;
 }
-
 .scan-dropzone:hover {
     border-color: var(--cyan);
-    background: #eff6ff;
+    background: #eff6ff; /* subtle blue tint on hover */
 }
 
-.scan-dz-icon  { font-size: 40px; opacity: .6; }
+/* Dropzone icon + text hierarchy */
+.scan-dz-icon  { font-size: 40px; opacity: .6; }           /* 📁 or 🗜️ */
 .scan-dz-title { font-size: 14px; font-weight: 700; color: var(--text-main); }
-.scan-dz-sub   { font-size: 12px; color: var(--text-sub); }
+.scan-dz-sub   { font-size: 12px; color: var(--text-sub); } /* "ZIP files only" */
 
+/* "ZIP" format badge below dropzone text */
 .scan-dz-badge {
     margin-top: 4px;
     background: #dbeafe;
@@ -1143,6 +1458,7 @@
     padding: 2px 10px;
 }
 
+/* Upload action button — primary cyan style */
 .scan-upload-btn.z-button {
     background: var(--cyan) !important;
     color: #fff !important;
@@ -1155,12 +1471,13 @@
     cursor: pointer !important;
     box-shadow: 0 2px 8px rgba(11,116,209,.25) !important;
 }
+.scan-upload-btn.z-button:hover { background: #0964b8 !important; }
 
-.scan-upload-btn.z-button:hover {
-    background: #0964b8 !important;
-}
-
-/* Progress bar */
+/* ── Upload progress bar ──────────────────────────────────────
+   Shown during ZIP processing.
+   .scan-progress-fill width is updated via JS/Clients.evalJavaScript
+   from the composer as import progress events arrive.
+   ──────────────────────────────────────────────────────────── */
 .scan-progress {
     margin-top: 18px;
     display: flex;
@@ -1168,6 +1485,7 @@
     gap: 8px;
 }
 
+/* Track — thin gray bar */
 .scan-progress-bar {
     height: 6px;
     background: var(--border-light);
@@ -1175,31 +1493,35 @@
     overflow: hidden;
 }
 
+/* Fill — animated cyan bar; width set dynamically via JS */
 .scan-progress-fill {
     height: 100%;
     background: var(--cyan);
     border-radius: 3px;
     width: 0%;
-    transition: width .08s linear;
+    transition: width .08s linear; /* smooth incremental progress */
 }
 
+/* "Processing 12 of 24 cheques…" status text below progress bar */
 .scan-progress-text {
     font-size: 12px;
     color: var(--text-sub);
     text-align: center;
 }
 
+/* Scan modal footer layout — note text left, buttons right */
 .scan-footer {
     justify-content: space-between;
     align-items: center;
 }
 
+/* Footer note e.g. "Max file size: 50MB" — small informational text */
 .scan-footer-note {
     font-size: 11px;
     color: var(--text-sub);
 }
 
-/* Combo input style override for modal */
+/* Combo input inside modal (e.g. bank/branch selector) */
 .mf-combo.z-combobox {
     width: 100% !important;
     padding: 9px 12px !important;
@@ -1211,19 +1533,28 @@
     background: #fff !important;
     transition: border-color .15s !important;
 }
-
 .mf-combo.z-combobox:focus {
     border-color: var(--cyan) !important;
     outline: none !important;
 }
 
-/* ── BATCH SUCCESS TOAST ──────────────────────────────────────── */
 
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 11 — BATCH SUCCESS TOAST
+   Bottom-right fixed toast notification shown after a batch
+   action completes (e.g. batch submitted successfully).
+   Uses CSS transform + opacity for slide-up entrance animation.
+   .bce-toast-show class added by MyBatchesComposer via
+   Clients.evalJavaScript to trigger the animation.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Toast base — hidden (opacity:0, shifted down 24px)
+   pointer-events:none prevents clicks while hidden */
 .bce-toast {
     position: fixed;
     bottom: 28px;
     right: 28px;
-    z-index: 99999;
+    z-index: 99999;             /* above all overlays and modals */
     min-width: 360px;
     max-width: 440px;
     background: #fff;
@@ -1233,20 +1564,23 @@
     align-items: flex-start;
     gap: 0;
     overflow: hidden;
-    transform: translateY(24px);
+    transform: translateY(24px);  /* initial position: 24px below final */
     opacity: 0;
-    transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .3s ease;
+    transition: transform .35s cubic-bezier(.34,1.56,.64,1), /* spring bounce */
+                opacity .3s ease;
     pointer-events: none;
 }
 
+/* .bce-toast-show added via JS to trigger slide-up entrance */
 .bce-toast-show {
-    transform: translateY(0);
+    transform: translateY(0);   /* final position */
     opacity: 1;
-    pointer-events: all;
+    pointer-events: all;        /* re-enable clicks on action buttons */
 }
 
+/* Left accent bar — colored strip indicating toast type (green = success) */
 .bce-toast-success .bce-toast-left {
-    background: #16a34a;
+    background: #16a34a;    /* green — success state */
     width: 52px;
     min-height: 100%;
     display: flex;
@@ -1255,8 +1589,9 @@
     flex-shrink: 0;
 }
 
-.bce-toast-icon { font-size: 22px; }
+.bce-toast-icon { font-size: 22px; } /* ✅ success checkmark */
 
+/* Toast content area — title + meta info + action buttons */
 .bce-toast-body {
     flex: 1;
     padding: 14px 12px 14px 14px;
@@ -1265,12 +1600,14 @@
     gap: 5px;
 }
 
+/* Toast headline e.g. "Batch Submitted Successfully" */
 .bce-toast-title {
     font-size: 14px;
     font-weight: 700;
     color: var(--text-main);
 }
 
+/* Metadata row — "Batch #XXXXX · 24 cheques · ₹1,20,000" */
 .bce-toast-meta {
     font-size: 12px;
     color: var(--text-sub);
@@ -1280,6 +1617,7 @@
     flex-wrap: wrap;
 }
 
+/* Batch ID in toast meta — cyan monospace to stand out */
 .bce-toast-bid {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
@@ -1287,14 +1625,17 @@
     font-size: 12px;
 }
 
+/* Separator dot between meta items */
 .bce-toast-sep { color: var(--gray-300); }
 
+/* Toast action buttons row */
 .bce-toast-actions {
     display: flex;
     gap: 8px;
     margin-top: 6px;
 }
 
+/* Primary toast action e.g. "View Batch" */
 .bce-toast-btn-primary {
     background: var(--navy);
     color: #fff;
@@ -1307,9 +1648,9 @@
     cursor: pointer;
     transition: background .15s;
 }
-
 .bce-toast-btn-primary:hover { background: var(--navy2); }
 
+/* Secondary toast action "Dismiss" — outlined style */
 .bce-toast-btn-dismiss {
     background: transparent;
     color: var(--text-sub);
@@ -1322,12 +1663,12 @@
     cursor: pointer;
     transition: border-color .15s;
 }
-
 .bce-toast-btn-dismiss:hover {
     border-color: var(--gray-400);
     color: var(--text-main);
 }
 
+/* × close icon button — top right of toast */
 .bce-toast-close {
     background: none;
     border: none;
@@ -1339,14 +1680,23 @@
     flex-shrink: 0;
     line-height: 1;
 }
-
 .bce-toast-close:hover { color: var(--text-main); }
-/* ══════════════════════════════════════════════════════
-   SCAN MODULE — datebox pill fix (IDs scoped to #bceRoot)
-   scanModule uses sclass="mb-filter-combo" on <datebox>.
-   mb-filter-combo.z-datebox above handles it via class.
-   This ID block is a fallback with higher specificity.
-══════════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 12 — ID-SCOPED DATEBOX FALLBACK (#bceRoot)
+   ChequeScanComposer root is #bceRoot.
+   dtBatchFrom and dtBatchTo inside #bceRoot use sclass=
+   "mb-filter-combo" but render as datebox components.
+   The class-level rules above (.mb-filter-combo.z-datebox)
+   should handle them, but ZK specificity can be unpredictable.
+   These ID-scoped rules provide higher-specificity fallback
+   targeting the exact component IDs to guarantee correct rendering.
+   Pattern: same split-pill as .mb-filter-date, re-stated with
+   #bceRoot #dtBatchFrom / #bceRoot #dtBatchTo prefix.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Datebox wrapper — reset to inline-flex for split-pill layout */
 #bceRoot #dtBatchFrom.z-datebox,
 #bceRoot #dtBatchTo.z-datebox {
     height: 32px !important;
@@ -1359,6 +1709,8 @@
     box-sizing: border-box !important;
     vertical-align: middle !important;
 }
+
+/* Input half — left pill, monospace date text */
 #bceRoot #dtBatchFrom.z-datebox input,
 #bceRoot #dtBatchFrom.z-datebox .z-datebox-input,
 #bceRoot #dtBatchTo.z-datebox input,
@@ -1378,6 +1730,9 @@
     box-shadow: none !important;
     box-sizing: border-box !important;
 }
+
+/* Calendar button half — includes <a> selector because ZK 10
+   sometimes renders the datebox trigger as an anchor tag */
 #bceRoot #dtBatchFrom.z-datebox .z-datebox-button,
 #bceRoot #dtBatchFrom.z-datebox button,
 #bceRoot #dtBatchFrom.z-datebox a,
@@ -1406,6 +1761,8 @@
     text-indent: -9999px !important;
     position: relative !important;
 }
+
+/* Hide ZK calendar icon inside button/anchor */
 #bceRoot #dtBatchFrom.z-datebox .z-datebox-button i,
 #bceRoot #dtBatchFrom.z-datebox .z-datebox-button img,
 #bceRoot #dtBatchFrom.z-datebox button i,
@@ -1418,6 +1775,8 @@
     width: 0 !important;
     height: 0 !important;
 }
+
+/* Replace ZK icon with 📅 via ::after on all button/anchor variants */
 #bceRoot #dtBatchFrom.z-datebox .z-datebox-button::after,
 #bceRoot #dtBatchFrom.z-datebox button::after,
 #bceRoot #dtBatchFrom.z-datebox a::after,

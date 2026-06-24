@@ -1,9 +1,13 @@
-/*
- * ============================================================
- *  Project     : Navbharat CTS Outward
- *  File        : CtsXmlParserImpl.java
- *  Package     : com.cts.outward.parser
- * ============================================================
+/**
+ * File    : CtsXmlParserImpl.java
+ * Package : com.cts.outward.parser
+ * Purpose : Parses CTS cheque XML into ChequeModel list.
+ *           Supports two XML schemas: <Cheque> (vendor A) and
+ *           <Instrument> (vendor B). Auto-detects which schema
+ *           is present and routes to the correct parse path.
+ *           XXE-hardened: DOCTYPE decl and external entities disabled.
+ * Author  : Umesh M.
+ * Date    : 24-06-2026
  */
 package com.cts.outward.parser;
 
@@ -27,6 +31,15 @@ public class CtsXmlParserImpl implements CtsXmlParser {
 
 	private static final Logger LOG = Logger.getLogger(CtsXmlParserImpl.class.getName());
 
+	/**
+	 * Parses CTS cheque XML from the given stream.
+	 * Auto-detects root schema: <Cheque> nodes (vendor A) or
+	 * <Instrument> nodes (vendor B). XXE-hardened factory used.
+	 *
+	 * @param is      XML InputStream (caller responsible for closing)
+	 * @param batchId batch ID to stamp on every parsed ChequeModel
+	 * @return non-null, possibly empty list of ChequeModel
+	 */
 	@Override
 	public List<ChequeModel> parse(InputStream is, String batchId) {
 		List<ChequeModel> cheques = new ArrayList<>();
@@ -66,6 +79,15 @@ public class CtsXmlParserImpl implements CtsXmlParser {
 
 	// ── <Cheque> schema ───────────────────────────────────────
 
+	/**
+	 * Maps <Cheque> NodeList to ChequeModel list (vendor A schema).
+	 * Extracts MICR fields, decomposes sort code into city/bank/branch,
+	 * checks amount-words mismatch via AmountToWords.
+	 *
+	 * @param nodes   NodeList of <Cheque> elements from parsed XML
+	 * @param batchId batch ID to assign to each cheque
+	 * @return list of ChequeModel; malformed nodes skipped with warning
+	 */
 	private List<ChequeModel> parseChequeNodes(NodeList nodes, String batchId) {
 		List<ChequeModel> list = new ArrayList<>();
 		for (int i = 0; i < nodes.getLength(); i++) {
@@ -145,6 +167,15 @@ public class CtsXmlParserImpl implements CtsXmlParser {
 
 	// ── <Instrument> schema ───────────────────────────────────
 
+	/**
+	 * Maps <Instrument> NodeList to ChequeModel list (vendor B schema).
+	 * Field names differ from vendor A (InstrNo, AcctNo, MICRCode etc.);
+	 * firstNonNull() used to try alternate tag names before giving up.
+	 *
+	 * @param nodes   NodeList of <Instrument> elements from parsed XML
+	 * @param batchId batch ID to assign to each cheque
+	 * @return list of ChequeModel; malformed nodes skipped with warning
+	 */
 	private List<ChequeModel> parseInstrumentNodes(NodeList nodes, String batchId) {
 		List<ChequeModel> list = new ArrayList<>();
 		for (int i = 0; i < nodes.getLength(); i++) {
@@ -205,6 +236,15 @@ public class CtsXmlParserImpl implements CtsXmlParser {
 
 	// ── XML helpers ───────────────────────────────────────────
 
+	/**
+	 * Returns trimmed text content of the first matching tag name.
+	 * Tries each tag name in order; returns null if none found or all blank.
+	 * Supports alternate tag names across vendor XML schemas.
+	 *
+	 * @param parent element to search within
+	 * @param tags   one or more tag names to try in order
+	 * @return trimmed text or null
+	 */
 	private String text(Element parent, String... tags) {
 		for (String tag : tags) {
 			NodeList nl = parent.getElementsByTagName(tag);
@@ -217,11 +257,26 @@ public class CtsXmlParserImpl implements CtsXmlParser {
 		return null;
 	}
 
+	/**
+	 * Returns text content of tag, or def if tag is absent or blank.
+	 *
+	 * @param parent element to search within
+	 * @param tag    tag name to look up
+	 * @param def    fallback value when tag is missing or blank
+	 * @return tag text or def
+	 */
 	private String textOrDefault(Element parent, String tag, String def) {
 		String v = text(parent, tag);
 		return v != null ? v : def;
 	}
 
+	/**
+	 * Returns first non-null, non-blank string from varargs.
+	 * Used where vendor B uses different field names than vendor A.
+	 *
+	 * @param values candidate strings in priority order
+	 * @return first non-blank value, or null if all are blank
+	 */
 	private String firstNonNull(String... values) {
 		for (String v : values)
 			if (v != null && !v.isBlank())

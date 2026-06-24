@@ -4,7 +4,7 @@
  *  File        : ZipImportServiceImpl.java
  *  Package     : com.cts.outward.service
  *  Author      : Umesh M.
- *  Created     : June 2026
+ *  Date        : 24-06-2026
  *  Description : Concrete implementation of ZipImportService.
  *                Converts BatchModel → BatchEntity and each
  *                ChequeModel → ChequeEntity, then delegates to
@@ -55,6 +55,18 @@ public class ZipImportServiceImpl implements ZipImportService {
     // PRIMARY IMPORT — with existing batch id (Step-2 scan modal path)
     // ══════════════════════════════════════════════════════════════════
 
+    /**
+     * Primary import path (Step 2 of scan modal).
+     * Parses ZIP, deduplicates against DB, maps models to entities,
+     * persists to cts_batches + cts_cheques.
+     *
+     * @param zipBytes        raw bytes from ZK UploadEvent
+     * @param zipName         original filename e.g. MUM01_20260610.zip
+     * @param branchCode      branch code from session e.g. MUM01
+     * @param createdBy       logged-in Maker username from session
+     * @param existingBatchId batchId of the Draft batch from Step 1
+     * @return ImportResult with parsed counts, skipped duplicates, success flag
+     */
     @Override
     public ImportResult importZip(byte[] zipBytes, String zipName,
                                   String branchCode, String createdBy,
@@ -144,6 +156,16 @@ public class ZipImportServiceImpl implements ZipImportService {
     // CONVENIENCE OVERLOAD — no existing batch (direct upload path)
     // ══════════════════════════════════════════════════════════════════
 
+    /**
+     * Convenience overload - delegates to 5-param variant with existingBatchId=null.
+     * Used when no pre-created batch exists (legacy/direct import path).
+     *
+     * @param zipBytes   raw bytes from ZK UploadEvent
+     * @param zipName    original filename; used for logging
+     * @param branchCode branch code from session
+     * @param createdBy  logged-in Maker username from session
+     * @return ImportResult - see 5-param overload for details
+     */
     @Override
     public ImportResult importZip(byte[] zipBytes, String zipName,
                                   String branchCode, String createdBy) {

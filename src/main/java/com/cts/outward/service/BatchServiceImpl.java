@@ -5,7 +5,7 @@
  *  File        : BatchServiceImpl.java
  *  Package     : com.cts.outward.service
  *  Author      : Umesh M.
- *  Created     : June 2026
+ *  Date        : 24-06-2026
  *
  * ──────────────────────────────────────────────────────────────
  *  PURPOSE
@@ -173,9 +173,7 @@ public class BatchServiceImpl implements BatchService {
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
-	// BATCH LIFECYCLE — CREATE
-	// ══════════════════════════════════════════════════════════════════════
-
+	// BATCH LIFECYCLE — CREATE BATCH
 	/**
 	 * Creates a new empty Draft batch, generates a sequential batchId, and persists
 	 * it to the DB.
