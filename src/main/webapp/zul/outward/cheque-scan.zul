@@ -80,18 +80,24 @@
          my-batches.css        : mb-card, mb-toolbar, mb-listbox, mb-th,
                                   mb-row, mb-pg-bar — batch table styles.
     ═══════════════════════════════════════════════════════════════════════ -->
-    <n:script src="/navbharat/js/batch-cheque-entry.js"/>
-    <n:script src="/navbharat/js/batch-detail.js"/>
-    <n:link rel="stylesheet" href="/navbharat/css/outward/cheque-scan.css"/>
-    <n:link rel="stylesheet" href="/navbharat/css/outward/batch-detail.css"/>
-    <n:link rel="stylesheet" href="/navbharat/css/outward/my-batches.css"/>
+  
+    <script src="/js/batch-cheque-entry.js"/>
+<script src="/js/batch-detail.js"/>
+
+<style src="/css/outward/cheque-scan.css"/>
+<style src="/css/outward/batch-detail.css"/>
+<style src="/css/outward/my-batches.css"/>
 
     <!--
       ROOT DIV — bceRoot
       apply: wires this ZUL page to ChequeScanComposer.
       All @Wire fields in the composer reference components inside this div.
     -->
-    <div id="bceRoot" apply="com.cts.outward.composer.ChequeScanComposer">
+    
+    <div id="bceRoot" apply="com.cts.outward.composer.ChequeScanComposer"
+     style="padding: 20px;">
+    
+    
 
         <!-- ═══════════════════════════════════════════════════════════════
              SECTION 1 — PAGE HEADER
