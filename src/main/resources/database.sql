@@ -2,9 +2,19 @@
 -- NavbharatCTS — Full Database Schema + Seed Data
 -- Simplified Maker-Checker Workflow for User & Role Management
 -- Target: PostgreSQL
--- FIXED: added missing OUTWARD_CXBF_REPORT permission key
---        (was referenced by OUTWARD_OPS / VIEWER but never defined,
---         which would throw a FK violation on insert)
+-- UPDATED: Inward module realigned to sidebar v2
+--   - Removed: INWARD_UPLOAD_SERVICE, INWARD_MICR_SERVICE,
+--              INWARD_RETURN_QUEUE, INWARD_CHECKER_QUEUE,
+--              INWARD_ESCALATION_QUEUE, INWARD_MAKER_REPORT,
+--              INWARD_CHECKER_REPORT_1/2/3
+--   - Added:   INWARD_MAKER_DASHBOARD_VIEW, INWARD_VERIFIER1_DASHBOARD_VIEW,
+--              INWARD_VERIFIER2_DASHBOARD_VIEW, INWARD_UPLOAD_CHEQUES,
+--              INWARD_RETURNED_CHEQUES, INWARD_RESUBMITTED_VI,
+--              INWARD_RESUBMITTED_V2, INWARD_REFERRED_CHEQUES,
+--              INWARD_REPORT_SUMMARY
+--   - All role_permission rows referencing removed keys updated,
+--     to avoid FK violation (same class of bug as earlier
+--     OUTWARD_CXBF_REPORT fix).
 -- ================================================================
 
 -- ================================================================
@@ -90,41 +100,47 @@ CREATE INDEX idx_audit_time     ON cts_audit_log(event_time);
 -- ================================================================
 -- 4. SEED DATA — PERMISSIONS
 -- These keys are the authoritative list — they must exactly match
--- com.cts.util.SecurityUtil#createPagePermissions(), which maps
+-- com.cts.util.SecurityUtil#buildPagePermissions(), which maps
 -- each .zul page to one permission key for access control.
 -- ================================================================
 INSERT INTO cts_permissions (permission_key, display_name, module) VALUES
 -- Shell
 ('DASHBOARD_VIEW',           'View Dashboard',              'Dashboard'),
 ('OUTWARD_DASHBOARD_VIEW',   'View Outward Dashboard',      'Outward'),
-('INWARD_DASHBOARD_VIEW',    'View Inward Dashboard',       'Inward'),
+
+
+-- Inward Dashboard accordion (role-specific dashboards)
+('INWARD_MAKER_DASHBOARD_VIEW',     'Inward Maker Dashboard',       'Inward'),
+('INWARD_VERIFIER1_DASHBOARD_VIEW', 'Inward Verifier-I Dashboard',  'Inward'),
+('INWARD_VERIFIER2_DASHBOARD_VIEW', 'Inward Verifier-II Dashboard', 'Inward'),
+
 -- Outward
 ('OUTWARD_BATCH_SCANNING',   'Batch Scanning',              'Outward'),
 ('OUTWARD_BATCH_MANAGEMENT', 'Batch Management',            'Outward'),
 ('OUTWARD_VERIFICATION_ONE', 'Verification I',              'Outward'),
 ('OUTWARD_VERIFICATION_TWO', 'Verification II',             'Outward'),
 ('OUTWARD_CBS_EXPORT',       'CXF / CXBF Export',           'Outward'),
+
 -- Outward Reports
 ('OUTWARD_CXF_REPORT',       'CXF Report',                  'Outward'),
-('OUTWARD_BATCH_SUMMARY',      'Batch_Summary',             'Outward'),
-('OUTWARD_CHEQUE_LEVEL',      'Cheque_Level',             'Outward'),
+('OUTWARD_BATCH_SUMMARY',    'Batch Summary',                'Outward'),
+('OUTWARD_CHEQUE_LEVEL',     'Cheque Level Report',          'Outward'),
 
--- Inward
-('INWARD_UPLOAD_SERVICE',    'Upload Service',              'Inward'),
-('INWARD_MICR_SERVICE',      'MICR Service',                'Inward'),
-('INWARD_RETURN_QUEUE',      'Return Cheques Queue',        'Inward'),
-('INWARD_CHECKER_QUEUE',     'Checker Queue',                'Inward'),
-('INWARD_ESCALATION_QUEUE',  'Escalation Queue',             'Inward'),
--- Inward Reports
-('INWARD_MAKER_REPORT',      'Maker Report',                 'Inward'),
-('INWARD_CHECKER_REPORT_1',  'Checker Report 1',             'Inward'),
-('INWARD_CHECKER_REPORT_2',  'Checker Report 2',             'Inward'),
-('INWARD_CHECKER_REPORT_3',  'Checker Report 3',             'Inward'),
+-- Inward Clearing (new flow)
+('INWARD_UPLOAD_CHEQUES',    'Upload Cheques',               'Inward'),
+('INWARD_RETURNED_CHEQUES',  'Returned Cheques',             'Inward'),
+('INWARD_RESUBMITTED_VI',    'Resubmitted Cheques by VI',    'Inward'),
+('INWARD_RESUBMITTED_V2',    'Resubmitted Cheques by V2',    'Inward'),
+('INWARD_REFERRED_CHEQUES',  'Referred Cheques',             'Inward'),
+
+-- Inward Reports (consolidated)
+('INWARD_REPORT_SUMMARY',    'Inward Report Summary',        'Inward'),
+
 -- UAM
 ('UAM_ROLE_MGMT',            'Role Management',              'User Administration'),
-('UAM_USER_MGMT',             'User Management',              'User Administration'),
-('UAM_PENDING_APPROVAL',      'Pending User Approvals',       'User Administration'),
-('UAM_PENDING_ROLE_APPROVAL', 'Pending Role Approvals',       'User Administration');
+('UAM_USER_MGMT',            'User Management',              'User Administration'),
+('UAM_PENDING_APPROVAL',     'Pending User Approvals',       'User Administration'),
+('UAM_PENDING_ROLE_APPROVAL','Pending Role Approvals',       'User Administration');
 
 -- ================================================================
 -- 5. SEED DATA — ROLES
@@ -150,19 +166,18 @@ INSERT INTO cts_role_permissions (role_id, permission_key) VALUES
 ((SELECT id FROM cts_roles WHERE role_name = 'UAM_ADMIN'), 'UAM_PENDING_APPROVAL'),
 ((SELECT id FROM cts_roles WHERE role_name = 'UAM_ADMIN'), 'UAM_PENDING_ROLE_APPROVAL');
 
--- Permissions for INWARD_OPS
+-- Permissions for INWARD_OPS (realigned to sidebar v2)
 INSERT INTO cts_role_permissions (role_id, permission_key) VALUES
 ((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'DASHBOARD_VIEW'),
-((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_DASHBOARD_VIEW'),
-((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_UPLOAD_SERVICE'),
-((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_MICR_SERVICE'),
-((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_CHECKER_QUEUE'),
-((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_ESCALATION_QUEUE'),
-((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_RETURN_QUEUE'),
-((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_MAKER_REPORT'),
-((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_CHECKER_REPORT_1'),
-((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_CHECKER_REPORT_2'),
-((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_CHECKER_REPORT_3');
+((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_MAKER_DASHBOARD_VIEW'),
+((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_VERIFIER1_DASHBOARD_VIEW'),
+((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_VERIFIER2_DASHBOARD_VIEW'),
+((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_UPLOAD_CHEQUES'),
+((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_RETURNED_CHEQUES'),
+((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_RESUBMITTED_VI'),
+((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_RESUBMITTED_V2'),
+((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_REFERRED_CHEQUES'),
+((SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), 'INWARD_REPORT_SUMMARY');
 
 -- Permissions for OUTWARD_OPS
 INSERT INTO cts_role_permissions (role_id, permission_key) VALUES
@@ -177,20 +192,19 @@ INSERT INTO cts_role_permissions (role_id, permission_key) VALUES
 ((SELECT id FROM cts_roles WHERE role_name = 'OUTWARD_OPS'), 'OUTWARD_BATCH_SUMMARY'),
 ((SELECT id FROM cts_roles WHERE role_name = 'OUTWARD_OPS'), 'OUTWARD_CHEQUE_LEVEL');
 
--- Permissions for VIEWER — dashboards + reports only
+-- Permissions for VIEWER — dashboards + reports only (realigned)
 INSERT INTO cts_role_permissions (role_id, permission_key) VALUES
 ((SELECT id FROM cts_roles WHERE role_name = 'VIEWER'), 'DASHBOARD_VIEW'),
-((SELECT id FROM cts_roles WHERE role_name = 'VIEWER'), 'INWARD_DASHBOARD_VIEW'),
 ((SELECT id FROM cts_roles WHERE role_name = 'VIEWER'), 'OUTWARD_DASHBOARD_VIEW'),
-((SELECT id FROM cts_roles WHERE role_name = 'VIEWER'), 'INWARD_MAKER_REPORT'),
+((SELECT id FROM cts_roles WHERE role_name = 'VIEWER'), 'INWARD_REPORT_SUMMARY'),
 ((SELECT id FROM cts_roles WHERE role_name = 'VIEWER'), 'OUTWARD_CXF_REPORT'),
 ((SELECT id FROM cts_roles WHERE role_name = 'VIEWER'), 'OUTWARD_BATCH_SUMMARY'),
 ((SELECT id FROM cts_roles WHERE role_name = 'VIEWER'), 'OUTWARD_CHEQUE_LEVEL');
 
--- Permissions submitted with the PENDING role (visible to checker on approval)
+-- Permissions submitted with the PENDING role (visible to checker on approval) — realigned
 INSERT INTO cts_role_permissions (role_id, permission_key) VALUES
 ((SELECT id FROM cts_roles WHERE role_name = 'TEMP_AUDITOR'), 'DASHBOARD_VIEW'),
-((SELECT id FROM cts_roles WHERE role_name = 'TEMP_AUDITOR'), 'INWARD_MAKER_REPORT'),
+((SELECT id FROM cts_roles WHERE role_name = 'TEMP_AUDITOR'), 'INWARD_REPORT_SUMMARY'),
 ((SELECT id FROM cts_roles WHERE role_name = 'TEMP_AUDITOR'), 'OUTWARD_CXF_REPORT');
 
 -- ================================================================
@@ -270,7 +284,8 @@ WHERE username = 'plal';
 UPDATE cts_roles
 SET status = 'PENDING'
 WHERE role_name = 'TEMP_AUDITOR';
-
+ALTER TABLE cts_users
+ADD COLUMN requested_by VARCHAR(100);
 -- ================================================================
 -- 7. SEED DATA — AUDIT LOG (sample entries)
 -- ================================================================

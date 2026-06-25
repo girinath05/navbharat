@@ -5,7 +5,7 @@
  *  File        : ChequeServiceImpl.java
  *  Package     : com.cts.outward.service
  *  Author      : Umesh M.
- *  Created     : June 2026
+ *  Date        : 24-06-2026
  *
  * ──────────────────────────────────────────────────────────────
  *  PURPOSE
@@ -422,24 +422,5 @@ public class ChequeServiceImpl implements ChequeService {
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    // VERIFICATION QUEUE OPERATIONS — thin pass-through to ChequeDAO
-    // Added by: Anusha M.
-    // ══════════════════════════════════════════════════════════════════════
-
-    @Override
-    public List<ChequeEntity> getChequesByVerLevel(String verLevel, String status) {
-        return chequeDAO.loadChequesByVerLevel(verLevel, status);
-    }
-
-    @Override
-    public void applyVerifierAction(Long chequeId, String status, String verLevel,
-            String verAction, String verBy, String verRemarks) {
-        chequeDAO.applyVerifierAction(chequeId, status, verLevel, verAction, verBy, verRemarks);
-    }
-
-    @Override
-    public void referToVerificationTwo(Long chequeId, String verBy, String verRemarks) {
-        chequeDAO.referToVerificationTwo(chequeId, verBy, verRemarks);
-    }
+    
 }

@@ -8,67 +8,71 @@ import java.util.List;
 /**
  * VerificationIIDAO
  *
- * Interface for Verification-II data access.
- * Follows the same pattern as BatchDAO / ChequeDAO in this project.
+ * Data-access interface for Verification Level II operations.
+ * Follows the same pattern as BatchDAO and ChequeDAO in this project.
  *
  * Queries target:
- *   public.cts_batches   — batch header
- *   public.cts_cheques   — cheque rows  (high_value = true filter)
+ *   public.cts_batches  — batch header records
+ *   public.cts_cheques  — cheque detail rows  (filtered by high_value = TRUE)
  */
 public interface VerificationIIDAO {
 
     /**
-     * Fetch all batches that contain at least one high-value cheque
+     * Fetches all batches that contain at least one high-value cheque
      * (cts_cheques.high_value = TRUE).
-     * Includes aggregated counts: hvChequeCount, pendingCount, processedCount.
-     * Ordered by created_at DESC (newest batch first).
+     * Includes aggregated counts: highValueChequeCount, pendingCount, processedCount.
+     * Results are ordered by created_at DESC (most recent batch first).
      *
-     * @return List of BatchModel; empty list if none found.
+     * @return List of BatchModel; empty list if no high-value batches exist.
      */
-    List<BatchModel> getHighValueBatches();
+    List<BatchModel> fetchHighValueBatches();
 
     /**
-     * Fetch all high-value cheques for a given batch,
+     * Fetches all high-value cheques associated with the specified batch,
      * ordered by cheque_no ASC.
      *
-     * @param batchId  cts_batches.batch_id  e.g. "BATCH0106"
-     * @return List of ChequeModel; empty list if none found.
+     * @param batchIdentifier  The unique batch identifier from cts_batches.batch_id,
+     *                         e.g. "BATCH0106"
+     * @return List of ChequeModel; empty list if no matching cheques are found.
      */
-    List<ChequeModel> getHighValueChequesForBatch(String batchId);
+    List<ChequeModel> fetchHighValueChequesForBatch(String batchIdentifier);
 
     /**
-     * Fetch a single cheque by its primary key (cts_cheques.id bigserial).
-     * Used for popup detail view.
+     * Fetches a single cheque record by its primary key (cts_cheques.id bigserial).
+     * Used for the popup detail view.
      *
-     * @param id  cts_cheques.id
-     * @return ChequeModel or null if not found.
+     * @param chequeId  The primary key value from cts_cheques.id
+     * @return ChequeModel for the specified identifier, or null if not found.
      */
-    ChequeModel getChequeById(long id);
+    ChequeModel fetchChequeById(long chequeId);
 
     /**
-     * Persist the V2 verification decision for a single cheque.
+     * Persists the Verification Level II decision for a single cheque.
      *
-     * Updates in cts_cheques:
-     *   ver_action  → action ("ACCEPTED" or "REJECTED")
-     *   ver_by      → verifier's login name
-     *   ver_remarks → remarks entered by verifier (may be blank)
-     *   ver_status  → "Accepted" or "Rejected"
-     *   status      → "Accepted" or "Rejected"
+     * Updates the following columns in cts_cheques:
+     *   ver_action  → verificationAction  ("VERIFIED" or "REJECTED")
+     *   ver_by      → verifierUsername    (logged-in user's login name)
+     *   ver_remarks → verificationRemarks (optional remarks entered in the UI)
+     *   ver_status  → resolved status     ("Verified" or "Rejected")
+     *   status      → resolved status     ("Verified" or "Rejected")
      *   updated_at  → NOW()
      *
-     * @param id       cts_cheques.id (bigserial PK)
-     * @param action   "ACCEPTED" or "REJECTED"
-     * @param verBy    logged-in verifier username
-     * @param remarks  optional remarks from UI textbox
+     * @param chequeId             Primary key of the cheque (cts_cheques.id, bigserial)
+     * @param verificationAction   The verification decision: "VERIFIED" or "REJECTED"
+     * @param verifierUsername     The logged-in verifier's login name
+     * @param verificationRemarks  Optional remarks from the UI remarks textbox
      */
-    void updateVerification(long id, String action, String verBy, String remarks);
+    void persistVerificationDecision(long chequeId, String verificationAction,
+                                     String verifierUsername, String verificationRemarks);
 
-	/**
-	 * Checks cts_cheques.status for ALL cheques in the batch (V1 + V2)
-	 * and updates cts_batches.status accordingly:
-	 *
-	 *   All actioned  → "Verified"               (BatchStatus.VERIFIED.db())
-	 *   Partially done → "VerificationInProgress" (BatchStatus.VERIFICATION_IN_PROGRESS.db())
-	 */
-	void checkAndUpdateBatchStatus(String batchId);
+    /**
+     * Evaluates cts_cheques.status for all cheques in the specified batch (V1 and V2 combined)
+     * and updates cts_batches.status accordingly:
+     *
+     *   All cheques actioned  → "Verified"               (BatchStatus.VERIFIED.db())
+     *   Partially actioned    → "VerificationInProgress" (BatchStatus.VERIFICATION_IN_PROGRESS.db())
+     *
+     * @param batchIdentifier  The unique batch identifier from cts_batches.batch_id
+     */
+    void evaluateAndUpdateBatchVerificationStatus(String batchIdentifier);
 }

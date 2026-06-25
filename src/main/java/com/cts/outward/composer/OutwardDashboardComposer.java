@@ -69,7 +69,7 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
 
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = Logger.getLogger(OutwardDashboardComposer.class.getName());
-    private static final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter BATCH_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     // Default batches shown per page in the batch list — user can override
     // via the "Rows per page" combobox: pick a preset (5/10/25/50) or type
@@ -97,11 +97,11 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
     @Wire private Label lblDispatchedBatches;     // Card 4 — dispatched batches
 
     // ── Filter bar ────────────────────────────────────────────────────────
-    @Wire private Textbox  txtBatchId;
-    @Wire private Combobox cmbStatus;
-    @Wire private Datebox  filterDateFrom;
-    @Wire private Datebox  filterDateTo;
-    @Wire private Button   btnClear;
+    @Wire private Textbox  txtBatchIdSearch;
+    @Wire private Combobox cmbBatchStatus;
+    @Wire private Datebox  dteBatchDateFrom;
+    @Wire private Datebox  dteBatchDateTo;
+    @Wire private Button   btnClearBatchFilters;
 
     // ── Batch list / pagination ─────────────────────────────────────────────
     @Wire private Label    lblBatchCount;
@@ -109,18 +109,18 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
     @Wire private Button   btnBatchPagePrev;
     @Wire private Label    lblBatchPageInfo;
     @Wire private Button   btnBatchPageNext;
-    @Wire private Intbox   intPageSize;
+    @Wire private Intbox   intBatchPageSize;
 
     // ── In-memory data + filter state ───────────────────────────────────────
-    private List<BatchModel> allBatches      = new ArrayList<>();
-    private List<BatchModel> filteredBatches = new ArrayList<>();
+    private List<BatchModel> allBatchList      = new ArrayList<>();
+    private List<BatchModel> filteredBatchList = new ArrayList<>();
 
-    private String    searchText   = "";
-    private String    statusFilter = "All";
-    private LocalDate dateFrom;
-    private LocalDate dateTo;
-    private int       currentPage  = 1;
-    private int       pageSize     = DEFAULT_PAGE_SIZE;
+    private String    batchSearchKeyword  = "";
+    private String    batchStatusFilter   = "All";
+    private LocalDate batchFilterDateFrom;
+    private LocalDate batchFilterDateTo;
+    private int       batchCurrentPage    = 1;
+    private int       batchPageSize       = DEFAULT_PAGE_SIZE;
 
     // ════════════════════════════════════════════════════════════════════
     //  LIFECYCLE
@@ -133,12 +133,12 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
 
         restoreFiltersFromSession();
 
-        if (txtBatchId    != null) txtBatchId.setValue(searchText);
-        if (cmbStatus     != null) selectComboByValue(cmbStatus, statusFilter);
-        if (filterDateFrom != null) filterDateFrom.setValue(dateFrom != null ? toDate(dateFrom) : null);
-        if (filterDateTo   != null) filterDateTo.setValue(dateTo   != null ? toDate(dateTo)   : null);
+        if (txtBatchIdSearch != null) txtBatchIdSearch.setValue(batchSearchKeyword);
+        if (cmbBatchStatus   != null) selectComboByValue(cmbBatchStatus, batchStatusFilter);
+        if (dteBatchDateFrom != null) dteBatchDateFrom.setValue(batchFilterDateFrom != null ? toUtilDate(batchFilterDateFrom) : null);
+        if (dteBatchDateTo   != null) dteBatchDateTo.setValue(batchFilterDateTo     != null ? toUtilDate(batchFilterDateTo)   : null);
         updateDateConstraints();
-        if (intPageSize    != null) intPageSize.setValue(pageSize);
+        if (intBatchPageSize != null) intBatchPageSize.setValue(batchPageSize);
 
         Events.postEvent("onLater", comp, null);
     }
@@ -158,10 +158,10 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
     // ════════════════════════════════════════════════════════════════════
 
     /** Instant search — fires on every keystroke (textbox has instant="true") */
-    @Listen("onChange = #txtBatchId")
-    public void onSearchChange() {
-        searchText = (txtBatchId != null && txtBatchId.getValue() != null)
-                ? txtBatchId.getValue() : "";
+    @Listen("onChange = #txtBatchIdSearch")
+    public void onBatchSearchChange() {
+        batchSearchKeyword = (txtBatchIdSearch != null && txtBatchIdSearch.getValue() != null)
+                ? txtBatchIdSearch.getValue() : "";
         saveFiltersToSession();
         applyFilters();
     }
@@ -173,14 +173,14 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
      * invalid "From after To" combination sitting in the filter), and the To
      * box's constraint is refreshed so it can't be set earlier than From.
      */
-    @Listen("onChange = #filterDateFrom")
-    public void onDateFromChange() {
-        Date d = filterDateFrom != null ? filterDateFrom.getValue() : null;
-        dateFrom = (d == null) ? null : toLocalDate(d);
+    @Listen("onChange = #dteBatchDateFrom")
+    public void onBatchDateFromChange() {
+        Date inputDate = dteBatchDateFrom != null ? dteBatchDateFrom.getValue() : null;
+        batchFilterDateFrom = (inputDate == null) ? null : toLocalDateFromUtil(inputDate);
 
-        if (dateFrom != null && dateTo != null && dateFrom.isAfter(dateTo)) {
-            dateTo = dateFrom;
-            if (filterDateTo != null) filterDateTo.setValue(toDate(dateTo));
+        if (batchFilterDateFrom != null && batchFilterDateTo != null && batchFilterDateFrom.isAfter(batchFilterDateTo)) {
+            batchFilterDateTo = batchFilterDateFrom;
+            if (dteBatchDateTo != null) dteBatchDateTo.setValue(toUtilDate(batchFilterDateTo));
         }
         updateDateConstraints();
 
@@ -194,14 +194,14 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
      * current From, From is pulled back to match, and From's constraint is
      * refreshed so it can't be set later than To.
      */
-    @Listen("onChange = #filterDateTo")
-    public void onDateToChange() {
-        Date d = filterDateTo != null ? filterDateTo.getValue() : null;
-        dateTo = (d == null) ? null : toLocalDate(d);
+    @Listen("onChange = #dteBatchDateTo")
+    public void onBatchDateToChange() {
+        Date inputDate = dteBatchDateTo != null ? dteBatchDateTo.getValue() : null;
+        batchFilterDateTo = (inputDate == null) ? null : toLocalDateFromUtil(inputDate);
 
-        if (dateFrom != null && dateTo != null && dateTo.isBefore(dateFrom)) {
-            dateFrom = dateTo;
-            if (filterDateFrom != null) filterDateFrom.setValue(toDate(dateFrom));
+        if (batchFilterDateFrom != null && batchFilterDateTo != null && batchFilterDateTo.isBefore(batchFilterDateFrom)) {
+            batchFilterDateFrom = batchFilterDateTo;
+            if (dteBatchDateFrom != null) dteBatchDateFrom.setValue(toUtilDate(batchFilterDateFrom));
         }
         updateDateConstraints();
 
@@ -211,20 +211,20 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
     }
 
     /** Status dropdown — filters in-memory only, no DB hit */
-    @Listen("onSelect = #cmbStatus")
-    public void onStatusChange() {
-        Comboitem sel = cmbStatus != null ? cmbStatus.getSelectedItem() : null;
-        Object val = (sel != null) ? sel.getValue() : null;
-        statusFilter = (val != null) ? val.toString() : "All";
+    @Listen("onSelect = #cmbBatchStatus")
+    public void onBatchStatusChange() {
+        Comboitem selectedComboItem = cmbBatchStatus != null ? cmbBatchStatus.getSelectedItem() : null;
+        Object selectedStatusValue = (selectedComboItem != null) ? selectedComboItem.getValue() : null;
+        batchStatusFilter = (selectedStatusValue != null) ? selectedStatusValue.toString() : "All";
         saveFiltersToSession();
         applyFilters();
     }
 
     /** Clear — resets search/status/date range back to "today" */
-    @Listen("onClick = #btnClear")
-    public void onClear() {
-        if (txtBatchId != null) txtBatchId.setValue("");
-        if (cmbStatus  != null) cmbStatus.setSelectedIndex(0); // "All"
+    @Listen("onClick = #btnClearBatchFilters")
+    public void onClearBatchFilters() {
+        if (txtBatchIdSearch != null) txtBatchIdSearch.setValue("");
+        if (cmbBatchStatus   != null) cmbBatchStatus.setSelectedIndex(0); // "All"
 
         LocalDate today = LocalDate.now();
 
@@ -232,16 +232,16 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
         // resetting the values — otherwise resetting to "today" can itself
         // get rejected by a stale "before <old To date>" / "after <old From
         // date>" bound that hasn't been refreshed yet.
-        if (filterDateFrom != null) filterDateFrom.setConstraint((String) null);
-        if (filterDateTo   != null) filterDateTo.setConstraint((String) null);
+        if (dteBatchDateFrom != null) dteBatchDateFrom.setConstraint((String) null);
+        if (dteBatchDateTo   != null) dteBatchDateTo.setConstraint((String) null);
 
-        if (filterDateFrom != null) filterDateFrom.setValue(toDate(today));
-        if (filterDateTo   != null) filterDateTo.setValue(toDate(today));
+        if (dteBatchDateFrom != null) dteBatchDateFrom.setValue(toUtilDate(today));
+        if (dteBatchDateTo   != null) dteBatchDateTo.setValue(toUtilDate(today));
 
-        searchText   = "";
-        statusFilter = "All";
-        dateFrom     = today;
-        dateTo       = today;
+        batchSearchKeyword  = "";
+        batchStatusFilter   = "All";
+        batchFilterDateFrom = today;
+        batchFilterDateTo   = today;
         updateDateConstraints();
 
         saveFiltersToSession();
@@ -255,25 +255,19 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
      * empty/cleared box falls back to the current page size rather than
      * resetting to the default, so a stray clear doesn't surprise the user.
      */
-    @Listen("onChange = #intPageSize")
-    public void onPageSizeChange() {
+    @Listen("onChange = #intBatchPageSize")
+    public void onBatchPageSizeChange() {
         applyPageSizeFromBox();
     }
 
-    /**
-     * Rows-per-page number box — Enter key pressed while the box still has
-     * focus. ZK's onChange alone only fires on blur, so without this the
-     * value would only apply once the user clicks elsewhere; onOK makes
-     * pressing Enter apply it immediately.
-     */
-    @Listen("onOK = #intPageSize")
-    public void onPageSizeEnter() {
+    @Listen("onOK = #intBatchPageSize")
+    public void onBatchPageSizeEnter() {
         applyPageSizeFromBox();
     }
 
     private void applyPageSizeFromBox() {
-        Integer val = (intPageSize != null) ? intPageSize.getValue() : null;
-        applyPageSize(val);
+        Integer rawPageSize = (intBatchPageSize != null) ? intBatchPageSize.getValue() : null;
+        applyPageSize(rawPageSize);
     }
 
     /**
@@ -281,17 +275,17 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
      * persists to session, snaps the box back to the value actually
      * applied (in case it was clamped), then re-renders.
      */
-    private void applyPageSize(Integer raw) {
-        int newSize = (raw != null)
-                ? Math.max(MIN_PAGE_SIZE, Math.min(MAX_PAGE_SIZE, raw))
-                : pageSize; // fallback: keep current size on empty input
+    private void applyPageSize(Integer rawPageSize) {
+        int clampedPageSize = (rawPageSize != null)
+                ? Math.max(MIN_PAGE_SIZE, Math.min(MAX_PAGE_SIZE, rawPageSize))
+                : batchPageSize; // fallback: keep current size on empty input
 
-        pageSize    = newSize;
-        currentPage = 1;
+        batchPageSize   = clampedPageSize;
+        batchCurrentPage = 1;
         saveFiltersToSession();
 
         // Reflect the (possibly clamped) value back into the box
-        if (intPageSize != null) intPageSize.setValue(pageSize);
+        if (intBatchPageSize != null) intBatchPageSize.setValue(batchPageSize);
 
         renderPage();
     }
@@ -302,19 +296,19 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
 
     @Listen("onClick = #btnBatchPagePrev")
     public void onBatchPagePrev() {
-        if (currentPage > 1) {
-            currentPage--;
-            Sessions.getCurrent().setAttribute(SESS_CURRENT_PAGE, currentPage);
+        if (batchCurrentPage > 1) {
+            batchCurrentPage--;
+            Sessions.getCurrent().setAttribute(SESS_CURRENT_PAGE, batchCurrentPage);
             renderPage();
         }
     }
 
     @Listen("onClick = #btnBatchPageNext")
     public void onBatchPageNext() {
-        int totalPages = getTotalPages(filteredBatches.size());
-        if (currentPage < totalPages) {
-            currentPage++;
-            Sessions.getCurrent().setAttribute(SESS_CURRENT_PAGE, currentPage);
+        int totalPages = getTotalPages(filteredBatchList.size());
+        if (batchCurrentPage < totalPages) {
+            batchCurrentPage++;
+            Sessions.getCurrent().setAttribute(SESS_CURRENT_PAGE, batchCurrentPage);
             renderPage();
         }
     }
@@ -330,28 +324,28 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
      * today.
      */
     private void reloadBatchesForRange() {
-        List<BatchModel> combined = new ArrayList<>();
+        List<BatchModel> combinedBatchList = new ArrayList<>();
 
-        LocalDate from = dateFrom;
-        LocalDate to   = dateTo;
+        LocalDate rangeStartDate = batchFilterDateFrom;
+        LocalDate rangeEndDate   = batchFilterDateTo;
 
-        if (from == null && to == null) {
-            combined = dashboardService.getBatchesFilteredAsModels(null, null, LocalDate.now());
+        if (rangeStartDate == null && rangeEndDate == null) {
+            combinedBatchList = dashboardService.getBatchesFilteredAsModels(null, null, LocalDate.now());
         } else {
-            if (from == null) from = to;
-            if (to   == null) to   = from;
-            if (from.isAfter(to)) {
-                LocalDate tmp = from;
-                from = to;
-                to   = tmp;
+            if (rangeStartDate == null) rangeStartDate = rangeEndDate;
+            if (rangeEndDate   == null) rangeEndDate   = rangeStartDate;
+            if (rangeStartDate.isAfter(rangeEndDate)) {
+                LocalDate temporarySwapDate = rangeStartDate;
+                rangeStartDate = rangeEndDate;
+                rangeEndDate   = temporarySwapDate;
             }
-            for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
-                List<BatchModel> dayBatches = dashboardService.getBatchesFilteredAsModels(null, null, d);
-                if (dayBatches != null) combined.addAll(dayBatches);
+            for (LocalDate currentDate = rangeStartDate; !currentDate.isAfter(rangeEndDate); currentDate = currentDate.plusDays(1)) {
+                List<BatchModel> dailyBatchList = dashboardService.getBatchesFilteredAsModels(null, null, currentDate);
+                if (dailyBatchList != null) combinedBatchList.addAll(dailyBatchList);
             }
         }
 
-        allBatches = (combined != null) ? combined : new ArrayList<>();
+        allBatchList = (combinedBatchList != null) ? combinedBatchList : new ArrayList<>();
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -360,68 +354,60 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
 
     /** Called whenever a filter control changes — new filter criteria, so jump back to page 1 */
     private void applyFilters() {
-        filteredBatches = getFilteredBatches();
-        currentPage = 1;
-        Sessions.getCurrent().setAttribute(SESS_CURRENT_PAGE, currentPage);
-        updateStats(filteredBatches);
+        filteredBatchList = getFilteredBatches();
+        batchCurrentPage = 1;
+        Sessions.getCurrent().setAttribute(SESS_CURRENT_PAGE, batchCurrentPage);
+        updateStats(filteredBatchList);
         renderPage();
     }
 
     /** Called on initial page load / restore from session — keeps the restored page number */
     private void applyFiltersPreservingPage() {
-        filteredBatches = getFilteredBatches();
-        updateStats(filteredBatches);
+        filteredBatchList = getFilteredBatches();
+        updateStats(filteredBatchList);
         renderPage();
     }
 
     private List<BatchModel> getFilteredBatches() {
-        List<BatchModel> out = new ArrayList<>();
-        for (BatchModel b : allBatches) {
-            if (!matchesSearch(b))    continue;
-            if (!matchesStatus(b))    continue;
-            if (!matchesDateRange(b)) continue;
-            out.add(b);
+        List<BatchModel> filteredResult = new ArrayList<>();
+        for (BatchModel batchModel : allBatchList) {
+            if (!matchesSearch(batchModel))    continue;
+            if (!matchesStatus(batchModel))    continue;
+            if (!matchesDateRange(batchModel)) continue;
+            filteredResult.add(batchModel);
         }
-        return out;
+        return filteredResult;
     }
 
     /** Search box filter — matches if Batch ID contains the typed text (case-insensitive) */
-    private boolean matchesSearch(BatchModel b) {
-        if (searchText == null || searchText.isBlank()) return true;
-        String id = b.getBatchId();
-        if (id == null) return false;
-        return id.toLowerCase().contains(searchText.trim().toLowerCase());
+    private boolean matchesSearch(BatchModel batchModel) {
+        if (batchSearchKeyword == null || batchSearchKeyword.isBlank()) return true;
+        String batchId = batchModel.getBatchId();
+        if (batchId == null) return false;
+        return batchId.toLowerCase().contains(batchSearchKeyword.trim().toLowerCase());
     }
 
-    /** Status dropdown filter — "All" or exact BatchStatus dbValue match.
-     *  Special case: selecting "CxfGenerated" in the dropdown matches ALL
-     *  post-verified statuses (CxfGenerated, Dispatched, ACK_PENDING, ACK_RECEIVED)
-     *  because from the dashboard perspective they are all "post-verification" batches.
-     */
-    private boolean matchesStatus(BatchModel b) {
-        if (statusFilter == null || "All".equalsIgnoreCase(statusFilter)) return true;
-        // "CxfGenerated" dropdown option covers all post-verified statuses
-        if ("Dispatched".equals(statusFilter) || "CxfGenerated".equals(statusFilter)) return isPostVerified(b.getStatus());
-        return BatchStatus.fromDb(statusFilter) == BatchStatus.fromDb(b.getStatus());
+    /** Status dropdown filter — "All" or exact BatchStatus dbValue match. */
+    private boolean matchesStatus(BatchModel batchModel) {
+        if (batchStatusFilter == null || "All".equalsIgnoreCase(batchStatusFilter)) return true;
+        if ("Dispatched".equals(batchStatusFilter) || "CxfGenerated".equals(batchStatusFilter))
+            return isPostVerified(batchModel.getStatus());
+        return BatchStatus.fromDb(batchStatusFilter) == BatchStatus.fromDb(batchModel.getStatus());
     }
 
-    /**
-     * Returns true for any status that comes AFTER Verified in the batch lifecycle
-     * (CXF generated or fully dispatched).
-     */
-    private boolean isPostVerified(String s) {
-        BatchStatus bs = BatchStatus.fromDb(s);
-        return bs == BatchStatus.CXF_CIBF_GENERATED || bs == BatchStatus.DISPATCHED;
+    private boolean isPostVerified(String statusDbValue) {
+        BatchStatus batchStatusEnum = BatchStatus.fromDb(statusDbValue);
+        return batchStatusEnum == BatchStatus.CXF_CIBF_GENERATED || batchStatusEnum == BatchStatus.DISPATCHED;
     }
 
-    /** Date range filter — matches if batch's created date falls within [from, to] (inclusive) */
-    private boolean matchesDateRange(BatchModel b) {
-        if (dateFrom == null && dateTo == null) return true;
-        if (b.getCreatedAt() == null) return false;
+    /** Date range filter — matches if batch's created date falls within [batchFilterDateFrom, batchFilterDateTo] (inclusive) */
+    private boolean matchesDateRange(BatchModel batchModel) {
+        if (batchFilterDateFrom == null && batchFilterDateTo == null) return true;
+        if (batchModel.getCreatedAt() == null) return false;
 
-        LocalDate created = b.getCreatedAt().toLocalDate();
-        if (dateFrom != null && created.isBefore(dateFrom)) return false;
-        if (dateTo   != null && created.isAfter(dateTo))   return false;
+        LocalDate batchCreatedDate = batchModel.getCreatedAt().toLocalDate();
+        if (batchFilterDateFrom != null && batchCreatedDate.isBefore(batchFilterDateFrom)) return false;
+        if (batchFilterDateTo   != null && batchCreatedDate.isAfter(batchFilterDateTo))    return false;
         return true;
     }
 
@@ -429,28 +415,27 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
     //  LIVE STAT CARDS — computed from the FILTERED list
     // ════════════════════════════════════════════════════════════════════
 
-    private void updateStats(List<BatchModel> filtered) {
-        int total            = filtered.size();
-        int verificationStage = 0;
-        int verified          = 0;
-        int dispatched        = 0;
+    private void updateStats(List<BatchModel> filteredBatchList) {
+        int totalBatchCount           = filteredBatchList.size();
+        int verificationStageBatchCount = 0;
+        int verifiedBatchCount          = 0;
+        int dispatchedBatchCount        = 0;
 
-        for (BatchModel b : filtered) {
-            BatchStatus bs = BatchStatus.fromDb(b.getStatus());
-            if (bs == BatchStatus.READY_FOR_VERIFICATION || bs == BatchStatus.VERIFICATION_IN_PROGRESS) {
-                verificationStage++;
-            } else if (bs == BatchStatus.VERIFIED) {
-                verified++;
-            } else if (bs == BatchStatus.CXF_CIBF_GENERATED || bs == BatchStatus.DISPATCHED) {
-                // CxfGenerated, Dispatched — both count toward the "Dispatched" card
-                dispatched++;
+        for (BatchModel batchModel : filteredBatchList) {
+            BatchStatus batchStatusEnum = BatchStatus.fromDb(batchModel.getStatus());
+            if (batchStatusEnum == BatchStatus.READY_FOR_VERIFICATION || batchStatusEnum == BatchStatus.VERIFICATION_IN_PROGRESS) {
+                verificationStageBatchCount++;
+            } else if (batchStatusEnum == BatchStatus.VERIFIED) {
+                verifiedBatchCount++;
+            } else if (batchStatusEnum == BatchStatus.CXF_CIBF_GENERATED || batchStatusEnum == BatchStatus.DISPATCHED) {
+                dispatchedBatchCount++;
             }
         }
 
-        safe(lblTotalBatches,        String.valueOf(total));
-        safe(lblVerificationBatches, String.valueOf(verificationStage));
-        safe(lblVerifiedBatches,     String.valueOf(verified));
-        safe(lblDispatchedBatches,   String.valueOf(dispatched));
+        setLabelValue(lblTotalBatches,        String.valueOf(totalBatchCount));
+        setLabelValue(lblVerificationBatches, String.valueOf(verificationStageBatchCount));
+        setLabelValue(lblVerifiedBatches,     String.valueOf(verifiedBatchCount));
+        setLabelValue(lblDispatchedBatches,   String.valueOf(dispatchedBatchCount));
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -462,109 +447,108 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
     // ════════════════════════════════════════════════════════════════════
 
     private void renderPage() {
-        int totalPages = getTotalPages(filteredBatches.size());
-        if (currentPage > totalPages) currentPage = totalPages;
-        if (currentPage < 1) currentPage = 1;
+        int totalPages = getTotalPages(filteredBatchList.size());
+        if (batchCurrentPage > totalPages) batchCurrentPage = totalPages;
+        if (batchCurrentPage < 1) batchCurrentPage = 1;
 
-        int from = (currentPage - 1) * pageSize;
-        int to   = Math.min(from + pageSize, filteredBatches.size());
-        List<BatchModel> pageItems = filteredBatches.subList(from, to);
+        int pageStartIndex = (batchCurrentPage - 1) * batchPageSize;
+        int pageEndIndex   = Math.min(pageStartIndex + batchPageSize, filteredBatchList.size());
+        List<BatchModel> currentPageBatchList = filteredBatchList.subList(pageStartIndex, pageEndIndex);
 
-        renderBatches(pageItems);
+        renderBatches(currentPageBatchList);
 
         if (lblBatchPageInfo != null) {
-            lblBatchPageInfo.setValue("Page " + currentPage + " of " + totalPages);
+            lblBatchPageInfo.setValue("Page " + batchCurrentPage + " of " + totalPages);
         }
-        if (btnBatchPagePrev != null) btnBatchPagePrev.setDisabled(currentPage <= 1);
-        if (btnBatchPageNext != null) btnBatchPageNext.setDisabled(currentPage >= totalPages);
+        if (btnBatchPagePrev != null) btnBatchPagePrev.setDisabled(batchCurrentPage <= 1);
+        if (btnBatchPageNext != null) btnBatchPageNext.setDisabled(batchCurrentPage >= totalPages);
 
         if (lblBatchCount != null) {
-            int totalFiltered = filteredBatches.size();
-            if (totalFiltered == 0) {
+            int totalFilteredCount = filteredBatchList.size();
+            if (totalFilteredCount == 0) {
                 lblBatchCount.setValue("Showing 0 batches");
             } else {
-                int displayFrom = from + 1;          // 1-based start row on this page
-                int displayTo   = to;                // last row on this page
+                int displayStartRow = pageStartIndex + 1;
+                int displayEndRow   = pageEndIndex;
                 lblBatchCount.setValue(
-                    "Showing " + displayFrom + "–" + displayTo
-                    + " of " + totalFiltered + " batches");
+                    "Showing " + displayStartRow + "–" + displayEndRow
+                    + " of " + totalFilteredCount + " batches");
             }
         }
     }
 
     private int getTotalPages(int listSize) {
         if (listSize == 0) return 1;
-        return (int) Math.ceil((double) listSize / pageSize);
+        return (int) Math.ceil((double) listSize / batchPageSize);
     }
 
-    private void renderBatches(List<BatchModel> list) {
+    private void renderBatches(List<BatchModel> batchPageList) {
         if (batchListbox == null) return;
         batchListbox.getItems().clear();
 
-        for (BatchModel b : list) {
-            Listitem row = new Listitem();
-            row.setSclass("od-batch-row");
+        for (BatchModel batchModel : batchPageList) {
+            Listitem batchListItem = new Listitem();
+            batchListItem.setSclass("od-batch-row");
 
             // Col 1 : BATCH ID
-            Listcell idCell = new Listcell();
-            Label idLbl = new Label(nvl(b.getBatchId(), "—"));
-            idLbl.setSclass("od-batch-link");
-            idCell.appendChild(idLbl);
-            row.appendChild(idCell);
+            Listcell batchIdCell = new Listcell();
+            Label batchIdLabel = new Label(resolveDisplayValue(batchModel.getBatchId(), "—"));
+            batchIdLabel.setSclass("od-batch-link");
+            batchIdCell.appendChild(batchIdLabel);
+            batchListItem.appendChild(batchIdCell);
 
             // Col 2 : CREATED DATE
-            String dateStr = "—";
-            if (b.getCreatedAt() != null) {
-                dateStr = b.getCreatedAt().format(DTF);
+            String formattedCreatedDate = "—";
+            if (batchModel.getCreatedAt() != null) {
+                formattedCreatedDate = batchModel.getCreatedAt().format(BATCH_DATE_FORMATTER);
             }
-            row.appendChild(new Listcell(dateStr));
+            batchListItem.appendChild(new Listcell(formattedCreatedDate));
 
             // Col 3 : TOTAL CHEQUES
-            row.appendChild(new Listcell(String.valueOf(b.getTotalCheques())));
+            batchListItem.appendChild(new Listcell(String.valueOf(batchModel.getTotalCheques())));
 
-            // Col 4 : VERIFIED cheques (previously called "PROCESSED")
-            int submitted = b.getSubmittedCheques();
-            row.appendChild(new Listcell(submitted > 0 ? String.valueOf(submitted) : "0"));
+            // Col 4 : VERIFIED cheques
+            int verifiedChequeCount = batchModel.getSubmittedCheques();
+            batchListItem.appendChild(new Listcell(verifiedChequeCount > 0 ? String.valueOf(verifiedChequeCount) : "0"));
 
             // Col 5 : PENDING cheques
-            int pending = b.getPendingCheques();
-            row.appendChild(new Listcell(pending > 0 ? String.valueOf(pending) : "0"));
+            int pendingChequeCount = batchModel.getPendingCheques();
+            batchListItem.appendChild(new Listcell(pendingChequeCount > 0 ? String.valueOf(pendingChequeCount) : "0"));
 
             // Col 6 : TOTAL AMOUNT
-            Listcell amtCell = new Listcell(fmtAmt(b.getTotalAmount()));
-            amtCell.setSclass("od-amt-cell");
-            row.appendChild(amtCell);
+            Listcell totalAmountCell = new Listcell(formatAmount(batchModel.getTotalAmount()));
+            totalAmountCell.setSclass("od-amt-cell");
+            batchListItem.appendChild(totalAmountCell);
 
             // Col 7 : STATUS chip
-            Listcell stCell = new Listcell();
-            Label stLbl = new Label(statusLabel(b.getStatus()));
-            stLbl.setSclass(statusChip(b.getStatus()));
-            stCell.appendChild(stLbl);
-            row.appendChild(stCell);
+            Listcell statusCell = new Listcell();
+            Label statusLabel = new Label(statusLabel(batchModel.getStatus()));
+            statusLabel.setSclass(statusChip(batchModel.getStatus()));
+            statusCell.appendChild(statusLabel);
+            batchListItem.appendChild(statusCell);
 
             // Col 8 : ACTION — View button
-            Listcell actCell = new Listcell();
-            Button viewBtn = new Button("View");
-            viewBtn.setSclass("od-btn-view");
-            final String bId = b.getBatchId();
-            viewBtn.addEventListener("onClick", e -> openBatch(bId));
-            actCell.appendChild(viewBtn);
-            row.appendChild(actCell);
+            Listcell actionCell = new Listcell();
+            Button viewBatchButton = new Button("View");
+            viewBatchButton.setSclass("od-btn-view");
+            final String batchIdentifier = batchModel.getBatchId();
+            viewBatchButton.addEventListener("onClick", e -> openBatch(batchIdentifier));
+            actionCell.appendChild(viewBatchButton);
+            batchListItem.appendChild(actionCell);
 
-            row.addEventListener("onClick", e -> openBatch(bId));
+            batchListItem.addEventListener("onClick", e -> openBatch(batchIdentifier));
 
-            batchListbox.appendChild(row);
+            batchListbox.appendChild(batchListItem);
         }
     }
 
     // ════════════════════════════════════════════════════════════════════
     //  NAVIGATION
-    // ════════════════════════════════════════════════════════════════════
-
     private void openBatch(String batchId) {
         if (batchId == null) return;
         Sessions.getCurrent().setAttribute("selectedBatchId", batchId);
-        Sessions.getCurrent().setAttribute(DashboardComposer.LAST_VISITED_PAGE_KEY,
+        Sessions.getCurrent().setAttribute(
+            DashboardComposer.LAST_VISITED_PAGE_KEY,
             "/zul/outward/batch-detail.zul");
         DashboardComposer.navigateTo("/zul/outward/batch-detail.zul");
     }
@@ -585,41 +569,42 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
     // ════════════════════════════════════════════════════════════════════
 
     private void restoreFiltersFromSession() {
-        Object savedSearch = Sessions.getCurrent().getAttribute(SESS_SEARCH_TEXT);
-        Object savedStatus = Sessions.getCurrent().getAttribute(SESS_STATUS_FILTER);
-        Object savedFrom   = Sessions.getCurrent().getAttribute(SESS_DATE_FROM);
-        Object savedTo     = Sessions.getCurrent().getAttribute(SESS_DATE_TO);
-        Object savedPage   = Sessions.getCurrent().getAttribute(SESS_CURRENT_PAGE);
-        Object savedSize   = Sessions.getCurrent().getAttribute(SESS_PAGE_SIZE);
+        Object savedBatchSearch     = Sessions.getCurrent().getAttribute(SESS_SEARCH_TEXT);
+        Object savedBatchStatus     = Sessions.getCurrent().getAttribute(SESS_STATUS_FILTER);
+        Object savedBatchDateFrom   = Sessions.getCurrent().getAttribute(SESS_DATE_FROM);
+        Object savedBatchDateTo     = Sessions.getCurrent().getAttribute(SESS_DATE_TO);
+        Object savedBatchCurrentPage = Sessions.getCurrent().getAttribute(SESS_CURRENT_PAGE);
+        Object savedBatchPageSize   = Sessions.getCurrent().getAttribute(SESS_PAGE_SIZE);
 
-        if (savedSearch == null && savedStatus == null && savedFrom == null && savedTo == null) {
+        if (savedBatchSearch == null && savedBatchStatus == null
+                && savedBatchDateFrom == null && savedBatchDateTo == null) {
             // First time landing on this page this session — default to today
             LocalDate today = LocalDate.now();
-            searchText   = "";
-            statusFilter = "All";
-            dateFrom     = today;
-            dateTo       = today;
-            currentPage  = 1;
-            pageSize     = DEFAULT_PAGE_SIZE;
+            batchSearchKeyword  = "";
+            batchStatusFilter   = "All";
+            batchFilterDateFrom = today;
+            batchFilterDateTo   = today;
+            batchCurrentPage    = 1;
+            batchPageSize       = DEFAULT_PAGE_SIZE;
             saveFiltersToSession();
             return;
         }
 
-        searchText   = (savedSearch != null) ? savedSearch.toString() : "";
-        statusFilter = (savedStatus != null) ? savedStatus.toString() : "All";
-        dateFrom     = (savedFrom   != null) ? (LocalDate) savedFrom : null;
-        dateTo       = (savedTo     != null) ? (LocalDate) savedTo   : null;
-        currentPage  = (savedPage   != null) ? (Integer) savedPage   : 1;
-        pageSize     = (savedSize   != null) ? (Integer) savedSize   : DEFAULT_PAGE_SIZE;
+        batchSearchKeyword  = (savedBatchSearch      != null) ? savedBatchSearch.toString()        : "";
+        batchStatusFilter   = (savedBatchStatus      != null) ? savedBatchStatus.toString()        : "All";
+        batchFilterDateFrom = (savedBatchDateFrom    != null) ? (LocalDate) savedBatchDateFrom     : null;
+        batchFilterDateTo   = (savedBatchDateTo      != null) ? (LocalDate) savedBatchDateTo       : null;
+        batchCurrentPage    = (savedBatchCurrentPage != null) ? (Integer)   savedBatchCurrentPage  : 1;
+        batchPageSize       = (savedBatchPageSize    != null) ? (Integer)   savedBatchPageSize     : DEFAULT_PAGE_SIZE;
     }
 
     private void saveFiltersToSession() {
-        Sessions.getCurrent().setAttribute(SESS_SEARCH_TEXT, searchText);
-        Sessions.getCurrent().setAttribute(SESS_STATUS_FILTER, statusFilter);
-        Sessions.getCurrent().setAttribute(SESS_DATE_FROM, dateFrom);
-        Sessions.getCurrent().setAttribute(SESS_DATE_TO, dateTo);
-        Sessions.getCurrent().setAttribute(SESS_CURRENT_PAGE, currentPage);
-        Sessions.getCurrent().setAttribute(SESS_PAGE_SIZE, pageSize);
+        Sessions.getCurrent().setAttribute(SESS_SEARCH_TEXT,   batchSearchKeyword);
+        Sessions.getCurrent().setAttribute(SESS_STATUS_FILTER, batchStatusFilter);
+        Sessions.getCurrent().setAttribute(SESS_DATE_FROM,     batchFilterDateFrom);
+        Sessions.getCurrent().setAttribute(SESS_DATE_TO,       batchFilterDateTo);
+        Sessions.getCurrent().setAttribute(SESS_CURRENT_PAGE,  batchCurrentPage);
+        Sessions.getCurrent().setAttribute(SESS_PAGE_SIZE,     batchPageSize);
     }
 
     /** Selects the comboitem whose value matches, falling back to index 0 ("All") */
@@ -627,8 +612,8 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
         if (combo == null) return;
         for (Object child : combo.getItems()) {
             Comboitem item = (Comboitem) child;
-            Object v = item.getValue();
-            if (v != null && v.toString().equals(value)) {
+            Object comboItemValue = item.getValue();
+            if (comboItemValue != null && comboItemValue.toString().equals(value)) {
                 combo.setSelectedItem(item);
                 return;
             }
@@ -638,44 +623,38 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
         }
     }
 
-    private void safe(Label l, String v) {
-        if (l != null) l.setValue(v != null ? v : "0");
+    private void setLabelValue(Label label, String value) {
+        if (label != null) label.setValue(value != null ? value : "0");
     }
 
-    private String nvl(String v, String fallback) {
-        return (v != null && !v.isBlank()) ? v : fallback;
+    private String resolveDisplayValue(String value, String fallback) {
+        return (value != null && !value.isBlank()) ? value : fallback;
     }
 
-    private String fmtAmt(BigDecimal amt) {
-        if (amt == null) return "₹0.00";
-        return "₹" + String.format("%,.2f", amt);
+    private String formatAmount(BigDecimal amount) {
+        if (amount == null) return "₹0.00";
+        return "₹" + String.format("%,.2f", amount);
     }
 
-    private Date toDate(LocalDate d) {
-        return Date.from(d.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    private Date toUtilDate(LocalDate inputDate) {
+        return Date.from(inputDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 
-    private LocalDate toLocalDate(Date d) {
-        return d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    private LocalDate toLocalDateFromUtil(Date inputDate) {
+        return inputDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
     }
 
-    /**
-     * Keeps the From/To dateboxes from accepting an invalid range: To can't
-     * be set earlier than From, and From can't be set later than To. Uses
-     * ZK Datebox's built-in "after yyyyMMdd" / "before yyyyMMdd" constraint
-     * syntax (both bounds inclusive of the given date).
-     */
     private void updateDateConstraints() {
-        if (filterDateTo != null) {
-            filterDateTo.setConstraint(dateFrom != null ? "after " + yyyymmdd(dateFrom) : (String) null);
+        if (dteBatchDateTo != null) {
+            dteBatchDateTo.setConstraint(batchFilterDateFrom != null ? "after " + formatDateConstraint(batchFilterDateFrom) : (String) null);
         }
-        if (filterDateFrom != null) {
-            filterDateFrom.setConstraint(dateTo != null ? "before " + yyyymmdd(dateTo) : (String) null);
+        if (dteBatchDateFrom != null) {
+            dteBatchDateFrom.setConstraint(batchFilterDateTo != null ? "before " + formatDateConstraint(batchFilterDateTo) : (String) null);
         }
     }
 
-    private String yyyymmdd(LocalDate d) {
-        return d.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+    private String formatDateConstraint(LocalDate inputDate) {
+        return inputDate.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
     }
 
     /**
@@ -692,24 +671,20 @@ public class OutwardDashboardComposer extends SelectorComposer<Component> {
      * recognize — the `bs.db().equalsIgnoreCase(s)` check below guards against
      * that silently mislabeling a genuinely unknown/future status as "Draft".
      */
-    private String statusLabel(String s) {
-        if (s == null) return "—";
-        BatchStatus bs = BatchStatus.fromDbValue(s);
-        if (bs == BatchStatus.PENDING) return "Pending (Maker)";
-        if (bs == BatchStatus.DRAFT && !bs.db().equalsIgnoreCase(s)) return s; // unrecognized — show raw value
-        return bs.getLabel();
+    private String statusLabel(String statusDbValue) {
+        if (statusDbValue == null) return "—";
+        BatchStatus batchStatusEnum = BatchStatus.fromDbValue(statusDbValue);
+        if (batchStatusEnum == BatchStatus.PENDING) return "Pending (Maker)";
+        if (batchStatusEnum == BatchStatus.DRAFT && !batchStatusEnum.db().equalsIgnoreCase(statusDbValue)) return statusDbValue;
+        return batchStatusEnum.getLabel();
     }
 
-    /**
-     * CSS sclass for the status chip.
-     * Switches on the BatchStatus enum constant rather than raw strings.
-     */
-    private String statusChip(String s) {
-        if (s == null) return "chip ch-pending";
-        BatchStatus bs = BatchStatus.fromDbValue(s);
-        if (bs == BatchStatus.DRAFT && !bs.db().equalsIgnoreCase(s)) return "chip ch-pending"; // unrecognized status
+    private String statusChip(String statusDbValue) {
+        if (statusDbValue == null) return "chip ch-pending";
+        BatchStatus batchStatusEnum = BatchStatus.fromDbValue(statusDbValue);
+        if (batchStatusEnum == BatchStatus.DRAFT && !batchStatusEnum.db().equalsIgnoreCase(statusDbValue)) return "chip ch-pending";
 
-        return switch (bs) {
+        return switch (batchStatusEnum) {
             case READY_FOR_VERIFICATION   -> "chip ch-verification";
             case VERIFICATION_IN_PROGRESS -> "chip ch-in-progress";
             case VERIFIED                 -> "chip ch-verified";

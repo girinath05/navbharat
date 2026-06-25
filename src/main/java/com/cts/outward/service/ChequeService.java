@@ -5,7 +5,7 @@
  *  File        : ChequeService.java
  *  Package     : com.cts.outward.service
  *  Author      : Umesh M.
- *  Created     : June 2026
+ *  Date        : 24-06-2026
  *
  * ──────────────────────────────────────────────────────────────
  *  PURPOSE
@@ -279,53 +279,5 @@ public interface ChequeService {
      */
     String[] lookupAccount(String accountNo);
 
-    // ══════════════════════════════════════════════════════════════════════
-    // VERIFICATION QUEUE OPERATIONS
-    // Author : Anusha M. (V1) / Girinath (V2)
-    // ══════════════════════════════════════════════════════════════════════
-
-    /**
-     * Returns all cheques routed to the given verification level and currently
-     * sitting in the given status — the queue a Verifier screen renders.
-     *
-     * <p>Thin pass-through to {@link com.cts.outward.dao.ChequeDAO#loadChequesByVerLevel}.
-     * Kept in the service layer so composers never call the DAO directly.
-     *
-     * <h3>Called by</h3>
-     * {@code VerificationOneComposer.loadBatchList()} — verLevel="V1", status="V1_PENDING"
-     * {@code VerificationTwoComposer.loadBatchList()} — verLevel="V2", status="V2_PENDING"
-     *
-     * @param verLevel routing bucket — "V1" or "V2"
-     * @param status   cheque status to match — use {@link com.cts.outward.enums.ChequeStatus#db()}
-     * @return matching cheques (no BLOB images); empty list if none
-     */
-    List<ChequeEntity> getChequesByVerLevel(String verLevel, String status);
-
-    /**
-     * Persists a Verifier's action (Accept / Reject / Send Back) on a single cheque.
-     * Thin pass-through to {@link com.cts.outward.dao.ChequeDAO#applyVerifierAction}.
-     *
-     * <h3>Called by</h3>
-     * {@code VerificationOneComposer.onDlgAccept/onDlgReject/onDlgSendBack()}
-     *
-     * @param chequeId   cheque PK
-     * @param status     new cheque status — use {@link com.cts.outward.enums.ChequeStatus#db()}
-     * @param verLevel   routing bucket — "V1" or "V2"
-     * @param verAction  action taken — "Accept" / "Reject" / "SendBack"
-     * @param verBy      username of the verifier
-     * @param verRemarks reason (mandatory for Reject / Send Back)
-     */
-    void applyVerifierAction(Long chequeId, String status, String verLevel,
-            String verAction, String verBy, String verRemarks);
-
-    /**
-     * V1 → V2 escalation (Refer).
-     * Sets status/ver_status = 'V2_PENDING', ver_level = 'V2', is_referred = true.
-     * Thin pass-through to {@link com.cts.outward.dao.ChequeDAO#referToVerificationTwo}.
-     *
-     * @param chequeId   cheque PK
-     * @param verBy      V1 username performing the refer
-     * @param verRemarks reason (mandatory in UI)
-     */
-    void referToVerificationTwo(Long chequeId, String verBy, String verRemarks);
+    
 }

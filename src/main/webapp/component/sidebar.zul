@@ -45,15 +45,49 @@
         </div>
     </div>
 
-    <div id="menuInwardDashboard" sclass="cts-menu-item">
-        <custom-attributes perm="INWARD_DASHBOARD_VIEW"
-            page="/zul/inward/inwardDashboard.zul" />
+    <!--
+        Inward Dashboard accordion — expands to show role-specific dashboards.
+        Composer wires: inwardDashboardHeader / inwardDashboardMenu / inwardDashboardArrow
+    -->
+    <div id="inwardDashboardHeader" sclass="cts-menu-header">
         <div sclass="cts-row">
             <div sclass="cts-icon-badge cts-icon-inward">
                 <label value="↙" />
             </div>
             <label sclass="cts-item-label" value="Inward Dashboard" />
+            <label id="inwardDashboardArrow" sclass="cts-arrow" value="▶" />
         </div>
+    </div>
+
+    <div id="inwardDashboardMenu" sclass="cts-submenu" visible="false">
+
+        <!-- Maker role dashboard — data entry / upload summary view -->
+        <div id="menuInwardMakerDashboard" sclass="cts-menu-item">
+            <custom-attributes perm="INWARD_MAKER_DASHBOARD_VIEW"
+                page="/zul/inward/dashboard/makerDashboard.zul" />
+            <div sclass="cts-sub-row">
+                <label sclass="cts-sub-label" value="Maker Dashboard" />
+            </div>
+        </div>
+
+        <!-- Verifier-I role dashboard — first-level verification summary -->
+        <div id="menuInwardVerifierIDashboard" sclass="cts-menu-item">
+            <custom-attributes perm="INWARD_VERIFIER1_DASHBOARD_VIEW"
+                page="/zul/inward/dashboard/verifierIDashboard.zul" />
+            <div sclass="cts-sub-row">
+                <label sclass="cts-sub-label" value="Verifier-I Dashboard" />
+            </div>
+        </div>
+
+        <!-- Verifier-II role dashboard — second-level verification summary -->
+        <div id="menuInwardVerifierIIDashboard" sclass="cts-menu-item">
+            <custom-attributes perm="INWARD_VERIFIER2_DASHBOARD_VIEW"
+                page="/zul/inward/dashboard/verifierIIDashboard.zul" />
+            <div sclass="cts-sub-row">
+                <label sclass="cts-sub-label" value="Verifier-II Dashboard" />
+            </div>
+        </div>
+
     </div>
 
     <!-- ══ CLEARING ═══════════════════════════════ -->
@@ -75,14 +109,14 @@
     <div id="outwardMenu" sclass="cts-submenu" visible="false">
         <div id="menuScanModule" sclass="cts-menu-item">
             <custom-attributes perm="OUTWARD_BATCH_SCANNING"
-                page="/zul/outward/scanModule.zul" />
+                page="/zul/outward/cheque-scan.zul" />
             <div sclass="cts-sub-row">
                 <label sclass="cts-sub-label" value="Scan Module" />
             </div>
         </div>
         <div id="menuBatchManagement" sclass="cts-menu-item">
             <custom-attributes perm="OUTWARD_BATCH_MANAGEMENT"
-                page="/zul/outward/batchManagement.zul" />
+                page="/zul/outward/my-batches.zul" />
             <div sclass="cts-sub-row">
                 <label sclass="cts-sub-label" value="Batch Management" />
             </div>
@@ -110,7 +144,10 @@
         </div>
     </div>
 
-    <!-- Inward header -->
+    <!--
+        Inward Clearing accordion — expands to show all inward cheque processing queues.
+        Composer wires: inwardHeader / inwardMenu / inwardArrow
+    -->
     <div id="inwardHeader" sclass="cts-menu-header">
         <div sclass="cts-row">
             <div sclass="cts-icon-badge cts-icon-inward">
@@ -122,41 +159,52 @@
     </div>
 
     <div id="inwardMenu" sclass="cts-submenu" visible="false">
-        <div id="menuUploadService" sclass="cts-menu-item">
-            <custom-attributes perm="INWARD_UPLOAD_SERVICE"
-                page="/zul/inward/uploadService.zul" />
+
+        <!-- Initial cheque upload — maker uploads inward cheque files from RBI/clearing house -->
+        <div id="menuInwardUploadCheques" sclass="cts-menu-item">
+            <custom-attributes perm="INWARD_UPLOAD_CHEQUES"
+                page="/zul/inward/clearing/uploadCheques.zul" />
             <div sclass="cts-sub-row">
-                <label sclass="cts-sub-label" value="Upload Service" />
+                <label sclass="cts-sub-label" value="Upload Cheques" />
             </div>
         </div>
-        <div id="menuMicrService" sclass="cts-menu-item">
-            <custom-attributes perm="INWARD_MICR_SERVICE"
-                page="/zul/inward/micrService.zul" />
+
+        <!-- Cheques returned by the paying bank — queue for return processing -->
+        <div id="menuInwardReturnedCheques" sclass="cts-menu-item">
+            <custom-attributes perm="INWARD_RETURNED_CHEQUES"
+                page="/zul/inward/clearing/returnedCheques.zul" />
             <div sclass="cts-sub-row">
-                <label sclass="cts-sub-label" value="MICR Service" />
+                <label sclass="cts-sub-label" value="Returned Cheques" />
             </div>
         </div>
-        <div id="menuReturnCheques" sclass="cts-menu-item">
-            <custom-attributes perm="INWARD_RETURN_QUEUE"
-                page="/zul/inward/returnCheques.zul" />
+
+        <!-- Cheques resubmitted after being referred/returned at Verifier-I stage -->
+        <div id="menuInwardResubmittedByVI" sclass="cts-menu-item">
+            <custom-attributes perm="INWARD_RESUBMITTED_VI"
+                page="/zul/inward/clearing/resubmittedByVI.zul" />
             <div sclass="cts-sub-row">
-                <label sclass="cts-sub-label" value="Return Cheques" />
+                <label sclass="cts-sub-label" value="Resubmitted Cheques at V-I" />
             </div>
         </div>
-        <div id="menuCheckerQueue" sclass="cts-menu-item">
-            <custom-attributes perm="INWARD_CHECKER_QUEUE"
-                page="/zul/inward/checkerQueue.zul" />
+
+        <!-- Cheques resubmitted after being referred/returned at Verifier-II stage -->
+        <div id="menuInwardResubmittedByV2" sclass="cts-menu-item">
+            <custom-attributes perm="INWARD_RESUBMITTED_V2"
+                page="/zul/inward/clearing/resubmittedByV2.zul" />
             <div sclass="cts-sub-row">
-                <label sclass="cts-sub-label" value="Checker Queue" />
+                <label sclass="cts-sub-label" value="Resubmitted Cheques at V-II" />
             </div>
         </div>
-        <div id="menuEscalationQueue" sclass="cts-menu-item">
-            <custom-attributes perm="INWARD_ESCALATION_QUEUE"
-                page="/zul/inward/escalationQueue.zul" />
+
+        <!-- Cheques flagged as referred — pending manual review before final decision -->
+        <div id="menuInwardReferredCheques" sclass="cts-menu-item">
+            <custom-attributes perm="INWARD_REFERRED_CHEQUES"
+                page="/zul/inward/clearing/referredCheques.zul" />
             <div sclass="cts-sub-row">
-                <label sclass="cts-sub-label" value="Escalation Queue" />
+                <label sclass="cts-sub-label" value="Referred Cheques" />
             </div>
         </div>
+
     </div>
 
     <!-- ══ REPORTS ═════════════════════════════════ -->
@@ -179,7 +227,7 @@
             <custom-attributes perm="OUTWARD_CXF_REPORT"
                 page="/zul/outward/reports/cxfReport.zul" />
             <div sclass="cts-sub-row">
-                <label sclass="cts-sub-label" value="CXF Report" />
+                <label sclass="cts-sub-label" value="CXF-CIBF Report" />
             </div>
         </div>
         <div id="menuBatchSummaryReport" sclass="cts-menu-item">
@@ -209,34 +257,16 @@
     </div>
 
     <div id="inwardReportsMenu" sclass="cts-submenu" visible="false">
-        <div id="menuMakerReport" sclass="cts-menu-item">
-            <custom-attributes perm="INWARD_MAKER_REPORT"
-                page="/zul/inward/reports/makerReport.zul" />
+
+        <!-- Consolidated inward clearing report — summary across all stages -->
+        <div id="menuInwardReportSummary" sclass="cts-menu-item">
+            <custom-attributes perm="INWARD_REPORT_SUMMARY"
+                page="/zul/inward/reports/reportSummary.zul" />
             <div sclass="cts-sub-row">
-                <label sclass="cts-sub-label" value="Maker Report" />
+                <label sclass="cts-sub-label" value="Report Summary" />
             </div>
         </div>
-        <div id="menuCheckerReport1" sclass="cts-menu-item">
-            <custom-attributes perm="INWARD_CHECKER_REPORT_1"
-                page="/zul/inward/reports/checkerReport1.zul" />
-            <div sclass="cts-sub-row">
-                <label sclass="cts-sub-label" value="Checker Report 1" />
-            </div>
-        </div>
-        <div id="menuCheckerReport2" sclass="cts-menu-item">
-            <custom-attributes perm="INWARD_CHECKER_REPORT_2"
-                page="/zul/inward/reports/checkerReport2.zul" />
-            <div sclass="cts-sub-row">
-                <label sclass="cts-sub-label" value="Checker Report 2" />
-            </div>
-        </div>
-        <div id="menuCheckerReport3" sclass="cts-menu-item">
-            <custom-attributes perm="INWARD_CHECKER_REPORT_3"
-                page="/zul/inward/reports/checkerReport3.zul" />
-            <div sclass="cts-sub-row">
-                <label sclass="cts-sub-label" value="Checker Report 3" />
-            </div>
-        </div>
+
     </div>
 
     <!-- ══ SETTINGS ════════════════════════════════ -->

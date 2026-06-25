@@ -5,7 +5,7 @@
  *  File        : BatchServiceImpl.java
  *  Package     : com.cts.outward.service
  *  Author      : Umesh M.
- *  Created     : June 2026
+ *  Date        : 24-06-2026
  *
  * ──────────────────────────────────────────────────────────────
  *  PURPOSE
@@ -20,8 +20,8 @@
  *         - No submission if cheques are still Pending
  *         - No submission if any cheque needs MICR Repair
  *    3. Route each cheque to the correct verification level on
- *       batch submission (V1 for amount ≤ ₹50,000; V2 for
- *       amount > ₹50,000).
+ *       batch submission (V1 for amount < ₹50,000; V2 for
+ *       amount ≥ ₹50,000).
  *    4. Finalize a batch automatically when the last cheque in
  *       it is actioned by a verifier.
  *    5. Delegate all persistence to BatchDAO and ChequeDAO —
@@ -59,12 +59,12 @@
  *  On submission, every cheque in the batch is individually
  *  routed to a verification level based on its amount:
  *
- *    Cheque amount ≤ ₹50,000  →  verLevel = "V1"
+*    Cheque amount < ₹50,000  →  verLevel = "V1"
  *                                 status   = "V1_Pending"
  *
- *    Cheque amount > ₹50,000  →  verLevel = "V2"
+ *    Cheque amount ≥ ₹50,000  →  verLevel = "V2"
  *                                 status   = "V2_Pending"
- *
+ *                                 
  *  The ₹50,000 threshold is defined by HV_THRESHOLD (High Value).
  *  V2-routed cheques bypass the V1 verifier queue entirely.
  *
@@ -127,10 +127,11 @@ public class BatchServiceImpl implements BatchService {
 	private static final Logger LOG = Logger.getLogger(BatchServiceImpl.class.getName());
 
 	/**
-	 * High-Value cheque threshold: ₹50,000. Cheques above this amount are routed to
-	 * V2 verification; all others to V1. Defined here as a constant so it can be
-	 * changed in one place without touching the routing logic.
+	 * High-Value cheque threshold: ₹50,000. Cheques at or above this amount are
+	 * routed to V2 verification; all others to V1. Defined here as a constant so
+	 * it can be changed in one place without touching the routing logic.
 	 */
+	
 	private static final BigDecimal HIGH_VALUE_THRESHOLD = new BigDecimal("50000");
 
 	// ══════════════════════════════════════════════════════════════════════
@@ -173,9 +174,7 @@ public class BatchServiceImpl implements BatchService {
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
-	// BATCH LIFECYCLE — CREATE
-	// ══════════════════════════════════════════════════════════════════════
-
+	// BATCH LIFECYCLE — CREATE BATCH
 	/**
 	 * Creates a new empty Draft batch, generates a sequential batchId, and persists
 	 * it to the DB.
@@ -307,10 +306,14 @@ public class BatchServiceImpl implements BatchService {
 	 * <h3>Phase 2 — Verification routing</h3> Each cheque is individually routed
 	 * based on its amount:
 	 * <ul>
-	 * <li>Amount ≤ {@link #HIGH_VALUE_THRESHOLD} (₹50,000): routed to V1 (verLevel
-	 * = "V1", status = "V1_Pending")</li>
-	 * <li>Amount > ₹50,000: routed to V2 (verLevel = "V2", status =
-	 * "V2_Pending")</li>
+	 * 
+	 * 
+	 * 
+* <li>Amount &lt; {@link #HIGH_VALUE_THRESHOLD} (₹50,000): routed to V1 (verLevel
+ * = "V1", status = "V1_Pending")</li>
+ * <li>Amount &ge; ₹50,000: routed to V2 (verLevel = "V2", status =
+ * "V2_Pending")</li>
+	 * 
 	 * </ul>
 	 * Routing fields (status, verLevel, verStatus) are persisted via
 	 * {@code ChequeDAO.updateVerRouting()} for each cheque.
@@ -372,7 +375,7 @@ public class BatchServiceImpl implements BatchService {
 
 		// ── Phase 2: Route each cheque to V1 or V2 based on amount ──────────
 		for (ChequeEntity cheque : batchCheques) {
-			if (cheque.getAmount() != null && cheque.getAmount().compareTo(HIGH_VALUE_THRESHOLD) > 0) {
+			if (cheque.getAmount() != null && cheque.getAmount().compareTo(HIGH_VALUE_THRESHOLD) >= 0) {
 				// High-value cheque: must pass through V2 (senior verifier)
 				cheque.setVerLevel("V2");
 				cheque.setStatus(ChequeStatus.V2_PENDING.db());

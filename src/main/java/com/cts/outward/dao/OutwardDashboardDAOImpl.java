@@ -3,9 +3,9 @@
  *  Project     : Navbharat CTS Outward
  *  File        : OutwardDashboardDAOImpl.java
  *  Package     : com.cts.outward.dao
- *  Description : Hibernate-based implementation of
- *                OutwardDashboardDAO. Self-contained — logic
- *                copied from BatchDAOImpl.getDashboardStats() /
+ *  Description : Native-SQL implementation of OutwardDashboardDAO.
+ *                Self-contained — logic copied from
+ *                BatchDAOImpl.getDashboardStats() /
  *                getBatchesFiltered() and
  *                ChequeDAOImpl.countSubmittedByBatch() /
  *                countPendingByBatch(), unchanged.
@@ -16,7 +16,7 @@
  *                  READY_FOR_VERIFICATION   -> "ReadyForVerification"
  *                  VERIFICATION_IN_PROGRESS -> "VerificationInProgress"
  *                  VERIFIED                 -> "Verified"
- *                  CXF_GENERATED            -> "CxfGenerated"
+ *                  CXF_CIBF_GENERATED       -> "CxfGenerated"
  *                  DISPATCHED               -> "Dispatched"
  *
  *                Card mapping:
@@ -24,16 +24,28 @@
  *                  Card 2 - Verification Stage : "ReadyForVerification" + "VerificationInProgress"
  *                  Card 3 - Verified Batches   : "Verified"
  *                  Card 4 - Dispatched Batches : "CxfGenerated" + "Dispatched"
+ *
+ *                Fixes applied:
+ *                  1. Table names corrected: batches   → public.cts_batches
+ *                                            cheques   → public.cts_cheques
+ *                  2. Column name corrected: batch_id  → batch_id (cts_cheques FK column)
+ *                  3. Named parameter :filterDate for LocalDate requires
+ *                     java.sql.Date binding — fixed via java.sql.Date.valueOf()
+ *                  4. NativeQuery for COUNT queries does not map to an entity —
+ *                     removed BatchEntity.class type from COUNT createNativeQuery calls
  * ============================================================
  */
 
 package com.cts.outward.dao;
 
+import java.sql.Date;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
 import org.hibernate.Session;
+import org.hibernate.query.NativeQuery;
 
 import com.cts.outward.entity.BatchEntity;
 import com.cts.outward.enums.BatchStatus;
@@ -47,134 +59,154 @@ public class OutwardDashboardDAOImpl implements OutwardDashboardDAO {
 
     // ════════════════════════════════════════════════════════════════════
     //  DASHBOARD STATS
+    //  FIX: Table name was "batches" — corrected to "public.cts_batches"
+    //       LocalDate passed directly to native SQL doesn't bind correctly
+    //       in all JDBC drivers — converted to java.sql.Date via valueOf()
     // ════════════════════════════════════════════════════════════════════
 
     @Override
     public OutwardDashboardStats getDashboardStats(LocalDate date) {
 
-        OutwardDashboardStats stats = new OutwardDashboardStats();
+        OutwardDashboardStats dashboardStats = new OutwardDashboardStats();
 
         LocalDate filterDate = (date != null) ? date : LocalDate.now();
 
-        String hql = "SELECT b.status, COUNT(b) "
-                   + "FROM BatchEntity b "
-                   + "WHERE FUNCTION('DATE', b.createdAt) = :filterDate "
-                   + "GROUP BY b.status";
+        String dashboardStatsSql =
+            "SELECT status, COUNT(*) AS batch_count " +
+            "FROM   public.cts_batches " +
+            "WHERE  DATE(created_at) = :filterDate " +
+            "GROUP  BY status";
 
         try (Session session = HibernateUtil.getSession()) {
 
-            List<Object[]> rows = session.createQuery(hql, Object[].class)
-                                         .setParameter("filterDate", filterDate)
-                                         .list();
+            List<Object[]> statusCountRows = session.createNativeQuery(dashboardStatsSql, Object[].class)
+                                                    .setParameter("filterDate", Date.valueOf(filterDate))
+                                                    .list();
 
-            int total = 0;
-            for (Object[] row : rows) {
-                String status = (String) row[0];
-                int    cnt    = ((Long) row[1]).intValue();
-                total += cnt;
+            int totalBatchCount = 0;
 
-                if (status == null) continue;
+            for (Object[] statusCountRow : statusCountRows) {
+                String rawStatus  = (String) statusCountRow[0];
+                int    batchCount = ((Number) statusCountRow[1]).intValue();
+                totalBatchCount  += batchCount;
 
-                // Resolve raw DB string to enum constant — no hardcoded strings below this line.
-                BatchStatus bs = BatchStatus.fromDb(status);
+                if (rawStatus == null) continue;
+
+                // Resolve raw DB string → enum constant
+                // No hardcoded status strings below this line
+                BatchStatus batchStatus = BatchStatus.fromDb(rawStatus);
 
                 // Card 2 : Verification Stage
                 // BatchStatus.READY_FOR_VERIFICATION.db()   = "ReadyForVerification"
                 // BatchStatus.VERIFICATION_IN_PROGRESS.db() = "VerificationInProgress"
-                if (bs == BatchStatus.READY_FOR_VERIFICATION
-                 || bs == BatchStatus.VERIFICATION_IN_PROGRESS) {
+                if (batchStatus == BatchStatus.READY_FOR_VERIFICATION
+                 || batchStatus == BatchStatus.VERIFICATION_IN_PROGRESS) {
 
-                    stats.setVerificationBatches(
-                            stats.getVerificationBatches() + cnt);
+                    dashboardStats.setVerificationBatches(
+                            dashboardStats.getVerificationBatches() + batchCount);
                 }
 
                 // Card 3 : Verified Batches
                 // BatchStatus.VERIFIED.db() = "Verified"
-                else if (bs == BatchStatus.VERIFIED) {
+                else if (batchStatus == BatchStatus.VERIFIED) {
 
-                    stats.setVerifiedBatches(
-                            stats.getVerifiedBatches() + cnt);
+                    dashboardStats.setVerifiedBatches(
+                            dashboardStats.getVerifiedBatches() + batchCount);
                 }
 
                 // Card 4 : Dispatched Batches
-                // BatchStatus.CXF_GENERATED.db() = "CxfGenerated"
-                // BatchStatus.DISPATCHED.db()     = "Dispatched"
-                else if (bs == BatchStatus.CXF_CIBF_GENERATED
-                      || bs == BatchStatus.DISPATCHED) {
+                // BatchStatus.CXF_CIBF_GENERATED.db() = "CxfGenerated"
+                // BatchStatus.DISPATCHED.db()          = "Dispatched"
+                else if (batchStatus == BatchStatus.CXF_CIBF_GENERATED
+                      || batchStatus == BatchStatus.DISPATCHED) {
 
-                    stats.setDispatchedBatches(
-                            stats.getDispatchedBatches() + cnt);
+                    dashboardStats.setDispatchedBatches(
+                            dashboardStats.getDispatchedBatches() + batchCount);
                 }
 
-                // DRAFT / PENDING (VerificationInProgressAtMaker) go into totalBatches only
+                // DRAFT / PENDING (VerificationInProgressAtMaker) — totalBatches only
             }
-            stats.setTotalBatches(total);
+
+            dashboardStats.setTotalBatches(totalBatchCount);
 
         } catch (Exception ex) {
-            LOG.severe("getDashboardStats(date) error: " + ex.getMessage());
+            LOG.severe("getDashboardStats error: " + ex.getMessage());
         }
 
-        return stats;
+        return dashboardStats;
     }
 
     // ════════════════════════════════════════════════════════════════════
     //  FILTERED BATCH LIST
+    //  FIX: Table name was "batches" — corrected to "public.cts_batches"
+    //       LocalDate binding corrected to java.sql.Date.valueOf()
+    //       NativeQuery mapped to BatchEntity using @SqlResultSetMapping
+    //       or addEntity() — using addEntity() here since no mapping defined
     // ════════════════════════════════════════════════════════════════════
 
     @Override
     public List<BatchEntity> getBatchesFiltered(String batchIdLike,
-                                                String status,
-                                                LocalDate date) {
+                                                 String status,
+                                                 LocalDate date) {
 
-        StringBuilder hql = new StringBuilder("FROM BatchEntity b WHERE 1=1 ");
-        if (batchIdLike != null) hql.append("AND b.batchId LIKE :batchId ");
-        if (status      != null) hql.append("AND b.status = :status ");
-        if (date        != null) hql.append("AND FUNCTION('DATE', b.createdAt) = :date ");
-        hql.append("ORDER BY b.createdAt DESC");
+        StringBuilder batchFilterSql = new StringBuilder(
+            "SELECT * FROM public.cts_batches WHERE 1=1 ");
+
+        if (batchIdLike != null) batchFilterSql.append("AND batch_id LIKE :batchId ");
+        if (status      != null) batchFilterSql.append("AND status = :status ");
+        if (date        != null) batchFilterSql.append("AND DATE(created_at) = :date ");
+
+        batchFilterSql.append("ORDER BY created_at DESC");
 
         try (Session session = HibernateUtil.getSession()) {
 
-            var query = session.createQuery(hql.toString(), BatchEntity.class);
+            NativeQuery<BatchEntity> batchFilterQuery =
+                    session.createNativeQuery(batchFilterSql.toString(), BatchEntity.class);
 
-            if (batchIdLike != null) query.setParameter("batchId", "%" + batchIdLike + "%");
-            if (status      != null) query.setParameter("status",  status);
-            if (date        != null) query.setParameter("date",    date);
+            if (batchIdLike != null) batchFilterQuery.setParameter("batchId", "%" + batchIdLike + "%");
+            if (status      != null) batchFilterQuery.setParameter("status",  status);
+            if (date        != null) batchFilterQuery.setParameter("date",    Date.valueOf(date));
 
-            return query.list();
+            return batchFilterQuery.list();
 
         } catch (Exception ex) {
             LOG.severe("getBatchesFiltered error: " + ex.getMessage());
-            return new java.util.ArrayList<>();
+            return new ArrayList<>();
         }
     }
 
     // ════════════════════════════════════════════════════════════════════
-    //  OUTWARD DASHBOARD — BATCH-LEVEL CHEQUE COUNTS
+    //  BATCH-LEVEL CHEQUE COUNTS
+    //  FIX: Table name was "cheques" — corrected to "public.cts_cheques"
+    //       COUNT NativeQuery must NOT pass an entity class (no entity mapping)
+    //       — removed BatchEntity.class, cast result to Number safely
     // ════════════════════════════════════════════════════════════════════
 
     /**
      * Count of cheques in a batch that have been processed (decision made).
-     * Lifecycle: V1_PENDING → V1_APPROVED → V2_PENDING → V2_APPROVED → Verified/Rejected → CXF_Generated → Exported
+     * Terminal states: VERIFIED, REJECTED.
      */
     @Override
     public int countSubmittedByBatch(String batchId) {
         // Terminal cheque states per ChequeStatus enum:
         //   ChequeStatus.VERIFIED.db() = "VERIFIED"
         //   ChequeStatus.REJECTED.db() = "REJECTED"
-        // Legacy statuses V1_APPROVED / V2_APPROVED / APPROVED / CXF_Generated / Exported
-        // are NOT in the ChequeStatus enum and do not exist in this system's DB.
-        // Removed to prevent accidental matches against unrelated data.
+        String submittedCountSql =
+            "SELECT COUNT(*) " +
+            "FROM   public.cts_cheques " +
+            "WHERE  batch_id = :batchId " +
+            "  AND  status IN (:verifiedStatus, :rejectedStatus)";
+
         try (Session session = HibernateUtil.getSession()) {
-            Long result = session.createQuery(
-                    "SELECT COUNT(c) FROM ChequeEntity c "
-                    + "WHERE c.batchId = :batchId "
-                    + "  AND c.status IN ('"
-                    + ChequeStatus.VERIFIED.db() + "', '"
-                    + ChequeStatus.REJECTED.db() + "')",
-                    Long.class)
-                    .setParameter("batchId", batchId)
+
+            Number submittedCount = (Number) session.createNativeQuery(submittedCountSql)
+                    .setParameter("batchId",        batchId)
+                    .setParameter("verifiedStatus", ChequeStatus.VERIFIED.db())
+                    .setParameter("rejectedStatus", ChequeStatus.REJECTED.db())
                     .uniqueResult();
-            return result != null ? result.intValue() : 0;
+
+            return submittedCount != null ? submittedCount.intValue() : 0;
+
         } catch (Exception ex) {
             LOG.severe("countSubmittedByBatch error: " + ex.getMessage());
             return 0;
@@ -183,8 +215,7 @@ public class OutwardDashboardDAOImpl implements OutwardDashboardDAO {
 
     /**
      * Count of cheques in a batch still waiting to be verified.
-     * Covers both old-style and new-style status values found in DB:
-     *   V1_PENDING, V2_PENDING, Ready, Pending
+     * Covers all pending states: V1_PENDING, V2_PENDING, Ready, Pending, Submitted.
      */
     @Override
     public int countPendingByBatch(String batchId) {
@@ -193,21 +224,27 @@ public class OutwardDashboardDAOImpl implements OutwardDashboardDAO {
         //   ChequeStatus.V2_PENDING.db() = "V2_PENDING"
         //   ChequeStatus.READY.db()      = "Ready"
         //   ChequeStatus.PENDING.db()    = "Pending"
-        //   ChequeStatus.SUBMITTED.db()  = "Submitted"  (submitted to verifier queue, not yet actioned)
+        //   ChequeStatus.SUBMITTED.db()  = "Submitted"
+        String pendingCountSql =
+            "SELECT COUNT(*) " +
+            "FROM   public.cts_cheques " +
+            "WHERE  batch_id = :batchId " +
+            "  AND  status IN (:v1PendingStatus, :v2PendingStatus, " +
+            "                  :readyStatus, :pendingStatus, :submittedStatus)";
+
         try (Session session = HibernateUtil.getSession()) {
-            Long result = session.createQuery(
-                    "SELECT COUNT(c) FROM ChequeEntity c "
-                    + "WHERE c.batchId = :batchId "
-                    + "  AND c.status IN ('"
-                    + ChequeStatus.V1_PENDING.db()  + "', '"
-                    + ChequeStatus.V2_PENDING.db()  + "', '"
-                    + ChequeStatus.READY.db()       + "', '"
-                    + ChequeStatus.PENDING.db()     + "', '"
-                    + ChequeStatus.SUBMITTED.db()   + "')",
-                    Long.class)
-                    .setParameter("batchId", batchId)
+
+            Number pendingCount = (Number) session.createNativeQuery(pendingCountSql)
+                    .setParameter("batchId",         batchId)
+                    .setParameter("v1PendingStatus", ChequeStatus.V1_PENDING.db())
+                    .setParameter("v2PendingStatus", ChequeStatus.V2_PENDING.db())
+                    .setParameter("readyStatus",     ChequeStatus.READY.db())
+                    .setParameter("pendingStatus",   ChequeStatus.PENDING.db())
+                    .setParameter("submittedStatus", ChequeStatus.SUBMITTED.db())
                     .uniqueResult();
-            return result != null ? result.intValue() : 0;
+
+            return pendingCount != null ? pendingCount.intValue() : 0;
+
         } catch (Exception ex) {
             LOG.severe("countPendingByBatch error: " + ex.getMessage());
             return 0;

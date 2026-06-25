@@ -36,6 +36,13 @@ public class SidebarComposer extends SelectorComposer<Component> {
     @Wire("#inwardArrow")
     private Label inwardArrow;
 
+    @Wire("#inwardDashboardHeader")
+    private Div inwardDashboardHeader;
+    @Wire("#inwardDashboardMenu")
+    private Div inwardDashboardMenu;
+    @Wire("#inwardDashboardArrow")
+    private Label inwardDashboardArrow;
+
     @Wire("#outwardReportsHeader")
     private Div outwardReportsHeader;
     @Wire("#outwardReportsMenu")
@@ -79,6 +86,7 @@ public class SidebarComposer extends SelectorComposer<Component> {
         updateSectionVisibility(comp);
 
         wireAccordion(outwardHeader, outwardMenu, outwardArrow);
+        wireAccordion(inwardDashboardHeader, inwardDashboardMenu, inwardDashboardArrow);
         wireAccordion(inwardHeader, inwardMenu, inwardArrow);
         wireAccordion(outwardReportsHeader, outwardReportsMenu, outwardReportsArrow);
         wireAccordion(inwardReportsHeader, inwardReportsMenu, inwardReportsArrow);
