@@ -1,741 +1,764 @@
 /* ═══════════════════════════════════════════════════
-   CXF-CIBF Generation page styles
-   Goes in: webapp/css/outward/cxf-cxbf.css
-   Follows the existing v1-theme conventions.
- ═══════════════════════════════════════════════════ */
-
-/* ── pg-head: force ZK button's wrapper <span> to stay inline in flex row ── */
-.pg-actions .z-button {
-    display: inline-flex !important;
-    align-items: center !important;
-}
-
-.pg-actions>span,
-.pg-actions>.z-button-os {
-    display: inline-flex !important;
-    align-items: center !important;
-    flex-shrink: 0 !important;
-}
-
-/* ── Stat cards: override ver-stat-box column-flex and padding ── */
-.cxf-stat-card {
-    overflow: hidden !important;
-    padding: 0 !important;
-    /* kill ver-stat-box's 14px 18px padding */
-    flex-direction: row !important;
-    /* override ver-stat-box column direction */
-    flex-wrap: wrap !important;
-    align-items: stretch !important;
-}
-
-.cxf-stat-inner {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 16px 10px 16px;
-    flex: 1;
-}
-
-.cxf-stat-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.cxf-icon-green {
-    background: #D1FAE5;
-}
-
-.cxf-icon-amber {
-    background: #FEF3C7;
-}
-
-.cxf-icon-purple {
-    background: #EDE9FE;
-}
-
-.cxf-icon-teal {
-    background: #CFFAFE;
-}
-
-.cxf-num-purple {
-    color: #6D28D9 !important;
-}
-
-.cxf-num-teal {
-    color: #0E7490 !important;
-}
-
-.cxf-stat-bar {
-    height: 3px;
-    border-radius: 0 0 6px 6px;
-    width: 100%;
-    flex-shrink: 0;
-    align-self: flex-end;
-}
-
-.cxf-bar-green {
-    background: #10B981;
-}
-
-.cxf-bar-amber {
-    background: #F59E0B;
-}
-
-.cxf-bar-purple {
-    background: #7C3AED;
-}
-
-.cxf-bar-teal {
-    background: #06B6D4;
-}
-
-/* ══════════════════════════════════════════════════
-   COLUMN WIDTHS & ALIGNMENT — scoped for single dynamic listbox
-   ══════════════════════════════════════════════════ */
-#lbDynamic.cxf-pending-table .z-listbox-header th,
-#lbDynamic.cxf-pending-table .z-listbox-body td {
-    width: auto !important;
-}
-
-#lbDynamic.cxf-pending-table .z-listheader-cnt {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    padding: 0 4px !important;
-}
-
-#lbDynamic.cxf-pending-table .z-listcell-cnt {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    padding: 0 4px !important;
-}
-
-/* ── Status badge pills in tables ── */
-.cxf-badge-green.z-label {
-    background: #D1FAE5 !important;
-    color: #065F46 !important;
-    border-radius: 4px !important;
-    padding: 2px 8px !important;
-    font-size: 10px !important;
-    font-weight: 700 !important;
-    white-space: nowrap !important;
-}
-
-.cxf-badge-amber.z-label {
-    background: #FEF3C7 !important;
-    color: #92400E !important;
-    border-radius: 4px !important;
-    padding: 2px 8px !important;
-    font-size: 10px !important;
-    font-weight: 700 !important;
-    white-space: nowrap !important;
-}
-
-.btn-primary.z-button[disabled],
-.btn-primary.z-button[disabled]:hover {
-    background: #F1F5F9 !important;
-    color: #94A3B8 !important;
-    border: 1px solid #E2E8F0 !important;
-    cursor: not-allowed !important;
-    opacity: 0.65 !important;
-    box-shadow: none !important;
-}
-
-.batch-pill-teal {
-    background: #CFFAFE !important;
-    color: #0E7490 !important;
-}
-
-/* ══════════════════════════════════════════
-   FILTER BAR STYLING
-   ══════════════════════════════════════════ */
-.cxf-filter-bar,
-.cxf-filter-bar.z-div {
-    display: flex !important;
-    align-items: flex-end !important;
-    flex-wrap: wrap !important;
-    flex-direction: row !important;
-    gap: 20px !important;
-    background: #FFFFFF !important;
-    border: 1px solid #E2E8F0 !important;
-    border-radius: 8px !important;
-    padding: 16px 20px !important;
-    margin-bottom: 20px !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-}
-
-.cxf-filter-group,
-.cxf-filter-group.z-div {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 6px !important;
-}
-
-.cxf-filter-label,
-.cxf-filter-label.z-label {
-    font-size: 10px !important;
-    font-weight: 700 !important;
-    color: #475569 !important;
-    letter-spacing: 0.05em !important;
-    text-transform: uppercase !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-.cxf-filter-actions,
-.cxf-filter-actions.z-div {
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
-    margin-top: auto !important;
-    padding-top: 15px !important;
-}
-
-.cxf-btn-search.z-button {
-    background: #1E3A8A !important;
-    color: #FFFFFF !important;
-    border: none !important;
-    font-weight: 600 !important;
-    padding: 8px 16px !important;
-    border-radius: 6px !important;
-    cursor: pointer !important;
-    font-size: 12px !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-.cxf-btn-search.z-button:hover {
-    background: #172554 !important;
-}
-
-.cxf-btn-clear.z-button {
-    background: #FFFFFF !important;
-    color: #475569 !important;
-    border: 1px solid #CBD5E1 !important;
-    font-weight: 600 !important;
-    padding: 8px 16px !important;
-    border-radius: 6px !important;
-    cursor: pointer !important;
-    font-size: 12px !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-.cxf-btn-clear.z-button:hover {
-    background: #F8FAFC !important;
-    color: #1E293B !important;
-}
-
-/* ══════════════════════════════════════════════════
-   EQUAL COLUMN WIDTHS, CHECKBOX ALIGNMENT & HEADER SIZES
-   ══════════════════════════════════════════════════ */
-
-/* Force all columns in the dynamic listbox to share equal space by unsetting verification.css overrides */
-#lbDynamic.cxf-pending-table th.z-listheader,
-#lbDynamic.cxf-pending-table td.z-listcell {
-    width: auto !important;
-}
-
-/* Make BATCH ID header text and all other headers identical in size and style */
-#lbDynamic .z-listheader-cnt,
-#lbDynamic .z-listheader-cnt span,
-#lbDynamic .z-listheader-cnt .z-label {
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    color: #CBD5E1 !important;
-    letter-spacing: 0.06em !important;
-    text-transform: uppercase !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-/* Position checkboxes to the far left of the column cells with a clean gap to prevent overlap */
-.cxf-header-checkbox-container,
-.cxf-cell-checkbox-container {
-    width: 100% !important;
-    height: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    gap: 12px !important;
-    padding-left: 16px !important;
-    box-sizing: border-box !important;
-}
-
-.cxf-header-checkbox,
-.cxf-cell-checkbox {
-    margin: 0 !important;
-    flex-shrink: 0 !important;
-}
-
-/* Overrides for Integrated Filter Bar inside the mb-card */
-.mb-card .cxf-filter-bar,
-.mb-card .cxf-filter-bar.z-div {
-    border: none !important;
-    border-radius: 0 !important;
-    border-bottom: 1px solid #E2E8F0 !important;
-    margin-bottom: 0 !important;
-    box-shadow: none !important;
-    padding: 14px 20px !important;
-}
-
-.mb-card .cxf-filter-actions,
-.mb-card .cxf-filter-actions.z-div {
-    margin-left: auto !important;
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-}
-
-/* Give the TOTAL CHEQUES column (2nd column) enough width to show fully */
-#lbDynamic.cxf-pending-table th.z-listheader:nth-child(2),
-#lbDynamic.cxf-pending-table td.z-listcell:nth-child(2) {
-    width: 130px !important;
-}
-
-/* ── Info / Stats Banner ── */
-.od-stats-banner,
-.od-stats-banner.z-div {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    background: #fffbeb !important;
-    border: 1px solid #fde68a !important;
-    border-radius: 8px !important;
-    padding: 6px 16px !important;
-    margin-bottom: 20px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-}
-
-.od-banner-left,
-.od-banner-left.z-div {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-}
-
-.od-banner-icon {
-    font-size: 14px !important;
-}
-
-.od-banner-text,
-.od-banner-text.z-label {
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    color: #92400e !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-.od-banner-right,
-.od-banner-right.z-div {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-}
-
-.od-pill,
-.od-pill.z-div {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 4px !important;
-    padding: 2px 8px !important;
-    border-radius: 16px !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    border: 1.5px solid !important;
-    line-height: 1 !important;
-    box-sizing: border-box !important;
-}
-
-.od-pill .z-label {
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    line-height: 1 !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-.od-pill-batches {
-    background: #fffbeb !important;
-    border-color: #fcd34d !important;
-    color: #92400e !important;
-}
-
-.od-pill-cheques {
-    background: #f0fdf4 !important;
-    border-color: #bbf7d0 !important;
-    color: #166534 !important;
-}
+	   CXF-CIBF Generation page styles
+	   Goes in: webapp/css/outward/cxf-cxbf.css
+	   Follows the existing v1-theme conventions.
+	 ═══════════════════════════════════════════════════ */
+	
+	/* ── pg-head: force ZK button's wrapper <span> to stay inline in flex row ── */
+	.pg-actions .z-button {
+	    display: inline-flex !important;
+	    align-items: center !important;
+	}
+	
+	.pg-actions>span,
+	.pg-actions>.z-button-os {
+	    display: inline-flex !important;
+	    align-items: center !important;
+	    flex-shrink: 0 !important;
+	}
+	
+	/* ── Stat cards: override ver-stat-box column-flex and padding ── */
+	.cxf-stat-card {
+	    overflow: hidden !important;
+	    padding: 0 !important;
+	    flex-direction: row !important;
+	    flex-wrap: wrap !important;
+	    align-items: stretch !important;
+	}
+	
+	.cxf-stat-inner {
+	    display: flex;
+	    align-items: center;
+	    gap: 12px;
+	    padding: 14px 16px 10px 16px;
+	    flex: 1;
+	}
+	
+	.cxf-stat-icon {
+	    width: 36px;
+	    height: 36px;
+	    border-radius: 8px;
+	    display: flex;
+	    align-items: center;
+	    justify-content: center;
+	    flex-shrink: 0;
+	}
+	
+	.cxf-icon-green  { background: #D1FAE5; }
+	.cxf-icon-amber  { background: #FEF3C7; }
+	.cxf-icon-purple { background: #EDE9FE; }
+	.cxf-icon-teal   { background: #CFFAFE; }
+	
+	.cxf-num-purple { color: #6D28D9 !important; }
+	.cxf-num-teal   { color: #0E7490 !important; }
+	
+	.cxf-stat-bar {
+	    height: 3px;
+	    border-radius: 0 0 6px 6px;
+	    width: 100%;
+	    flex-shrink: 0;
+	    align-self: flex-end;
+	}
+	
+	.cxf-bar-green  { background: #10B981; }
+	.cxf-bar-amber  { background: #F59E0B; }
+	.cxf-bar-purple { background: #7C3AED; }
+	.cxf-bar-teal   { background: #06B6D4; }
+	
+	/* ══════════════════════════════════════════════════
+	   COLUMN WIDTHS & ALIGNMENT — scoped for single dynamic listbox
+	   ══════════════════════════════════════════════════ */
+	#lbDynamic.cxf-pending-table .z-listbox-header th,
+	#lbDynamic.cxf-pending-table .z-listbox-body td {
+	    width: auto !important;
+	}
+	
+	#lbDynamic.cxf-pending-table .z-listheader-cnt {
+	    display: flex !important;
+	    align-items: center !important;
+	    justify-content: center !important;
+	    text-align: center !important;
+	    padding: 0 4px !important;
+	}
+	
+	#lbDynamic.cxf-pending-table .z-listcell-cnt {
+	    display: flex !important;
+	    align-items: center !important;
+	    justify-content: center !important;
+	    text-align: center !important;
+	    padding: 0 4px !important;
+	}
+	
+	/* ── Status badge pills in tables ── */
+	.cxf-badge-green.z-label {
+	    background: #D1FAE5 !important;
+	    color: #065F46 !important;
+	    border-radius: 4px !important;
+	    padding: 2px 8px !important;
+	    font-size: 10px !important;
+	    font-weight: 700 !important;
+	    white-space: nowrap !important;
+	}
+	
+	.cxf-badge-amber.z-label {
+	    background: #FEF3C7 !important;
+	    color: #92400E !important;
+	    border-radius: 4px !important;
+	    padding: 2px 8px !important;
+	    font-size: 10px !important;
+	    font-weight: 700 !important;
+	    white-space: nowrap !important;
+	}
+	
+	.btn-primary.z-button[disabled],
+	.btn-primary.z-button[disabled]:hover {
+	    background: #F1F5F9 !important;
+	    color: #94A3B8 !important;
+	    border: 1px solid #E2E8F0 !important;
+	    cursor: not-allowed !important;
+	    opacity: 0.65 !important;
+	    box-shadow: none !important;
+	}
+	
+	.batch-pill-teal {
+	    background: #CFFAFE !important;
+	    color: #0E7490 !important;
+	}
+	
+	/* ══════════════════════════════════════════
+	   FILTER BAR STYLING
+	   ══════════════════════════════════════════ */
+	.cxf-filter-bar,
+	.cxf-filter-bar.z-div {
+	    display: flex !important;
+	    align-items: flex-end !important;
+	    flex-wrap: wrap !important;
+	    flex-direction: row !important;
+	    gap: 13px !important;
+	    background: #FFFFFF !important;
+	    border: 1px solid #E2E8F0 !important;
+	    border-radius: 8px !important;
+	    padding: 16px 20px !important;
+	    margin-bottom: 20px !important;
+	    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+	    width: 100% !important;
+	    box-sizing: border-box !important;
+	}
+	
+	.cxf-filter-group,
+	.cxf-filter-group.z-div {
+	    display: flex !important;
+	    flex-direction: column !important;
+	    gap: 6px !important;
+	}
+	
+	.cxf-filter-label,
+	.cxf-filter-label.z-label {
+	    font-size: 10px !important;
+	    font-weight: 700 !important;
+	    color: #475569 !important;
+	    letter-spacing: 0.05em !important;
+	    text-transform: uppercase !important;
+	    font-family: 'Inter', sans-serif !important;
+	}
+	
+	.cxf-filter-actions,
+	.cxf-filter-actions.z-div {
+	    display: flex !important;
+	    align-items: center !important;
+	    gap: 10px !important;
+	    margin-top: auto !important;
+	    padding-top: 15px !important;
+	}
+	
+	.cxf-btn-search.z-button {
+	    background: #1E3A8A !important;
+	    color: #FFFFFF !important;
+	    border: none !important;
+	    font-weight: 600 !important;
+	    padding: 8px 16px !important;
+	    border-radius: 6px !important;
+	    cursor: pointer !important;
+	    font-size: 12px !important;
+	    font-family: 'Inter', sans-serif !important;
+	}
+	
+	.cxf-btn-search.z-button:hover { background: #172554 !important; }
+	
+	.cxf-btn-clear.z-button {
+	    background: #FFFFFF !important;
+	    color: #475569 !important;
+	    border: 1px solid #CBD5E1 !important;
+	    font-weight: 600 !important;
+	    padding: 8px 16px !important;
+	    border-radius: 6px !important;
+	    cursor: pointer !important;
+	    font-size: 12px !important;
+	    font-family: 'Inter', sans-serif !important;
+	}
+	
+	.cxf-btn-clear.z-button:hover {
+	    background: #F8FAFC !important;
+	    color: #1E293B !important;
+	}
+	
+	/* ══════════════════════════════════════════════════
+	   EQUAL COLUMN WIDTHS, CHECKBOX ALIGNMENT & HEADER SIZES
+	   ══════════════════════════════════════════════════ */
+	#lbDynamic.cxf-pending-table th.z-listheader,
+	#lbDynamic.cxf-pending-table td.z-listcell {
+	    width: auto !important;
+	}
+	
+	#lbDynamic .z-listheader-cnt,
+	#lbDynamic .z-listheader-cnt span,
+	#lbDynamic .z-listheader-cnt .z-label {
+	    font-size: 11px !important;
+	    font-weight: 700 !important;
+	    color: #CBD5E1 !important;
+	    letter-spacing: 0.06em !important;
+	    text-transform: uppercase !important;
+	    font-family: 'Inter', sans-serif !important;
+	}
+	
+	.cxf-header-checkbox-container,
+	.cxf-cell-checkbox-container {
+	    width: 100% !important;
+	    height: 100% !important;
+	    display: flex !important;
+	    align-items: center !important;
+	    justify-content: flex-start !important;
+	    gap: 12px !important;
+	    padding-left: 16px !important;
+	    box-sizing: border-box !important;
+	}
+	
+	.cxf-header-checkbox,
+	.cxf-cell-checkbox {
+	    margin: 0 !important;
+	    flex-shrink: 0 !important;
+	}
+	
+	/* Overrides for Integrated Filter Bar inside the mb-card */
+	.mb-card .cxf-filter-bar,
+	.mb-card .cxf-filter-bar.z-div {
+	    border: none !important;
+	    border-radius: 0 !important;
+	    border-bottom: 1px solid #E2E8F0 !important;
+	    margin-bottom: 0 !important;
+	    box-shadow: none !important;
+	    padding: 11px 20px !important;
+	}
+	
+	.mb-card .cxf-filter-actions,
+	.mb-card .cxf-filter-actions.z-div {
+	    margin-left: auto !important;
+	    padding-top: 0 !important;
+	    margin-top: 0 !important;
+	}
+	
+	/* Give the TOTAL CHEQUES column (2nd column) enough width to show fully */
+	#lbDynamic.cxf-pending-table th.z-listheader:nth-child(2),
+	#lbDynamic.cxf-pending-table td.z-listcell:nth-child(2) {
+	    width: 130px !important;
+	}
+	
+	/* ── Info / Stats Banner ── */
+	.od-stats-banner,
+	.od-stats-banner.z-div {
+	    display: flex !important;
+	    align-items: center !important;
+	    justify-content: space-between !important;
+	    background: #fffbeb !important;
+	    border: 1px solid #fde68a !important;
+	    border-radius: 8px !important;
+	    padding: 6px 16px !important;
+	    margin-bottom: 9px !important;
+	    width: 100% !important;
+	    box-sizing: border-box !important;
+	}
+	
+	.od-banner-left,
+	.od-banner-left.z-div {
+	    display: flex !important;
+	    align-items: center !important;
+	    gap: 8px !important;
+	}
+	
+	.od-banner-icon { font-size: 14px !important; }
+	
+	.od-banner-text,
+	.od-banner-text.z-label {
+	    font-size: 12px !important;
+	    font-weight: 600 !important;
+	    color: #92400e !important;
+	    font-family: 'Inter', sans-serif !important;
+	}
+	
+	.od-banner-right,
+	.od-banner-right.z-div {
+	    margin-right: 18px !important;
+	    display: flex !important;
+	    align-items: center !important;
+	    gap: 12px !important;
+	}
+	
+	.od-pill,
+	.od-pill.z-div {
+	    display: inline-flex !important;
+	    align-items: center !important;
+	    gap: 4px !important;
+	    padding: 2px 8px !important;
+	    border-radius: 16px !important;
+	    font-size: 13px !important;
+	    font-weight: 600 !important;
+	    border: 1.5px solid !important;
+	    line-height: 1 !important;
+	    box-sizing: border-box !important;
+	}
+	
+	.od-pill .z-label {
+	    font-size: 13px !important;
+	    font-weight: 600 !important;
+	    line-height: 1 !important;
+	    font-family: 'Inter', sans-serif !important;
+	}
+	
+	.od-pill-batches {
+	    background: #fffbeb !important;
+	    border-color: #fcd34d !important;
+	    color: #92400e !important;
+	}
+	
+	.od-pill-cheques {
+	    background: #f0fdf4 !important;
+	    border-color: #bbf7d0 !important;
+	    color: #166534 !important;
+	}
 
 /* ══════════════════════════════════════════════════
-   COMPLETED & ALL VIEW TABLE STYLING
+   MB-CARD TABLE ROW HEIGHT FIX
+   (matches compact row style of Outward Reports page)
    ══════════════════════════════════════════════════ */
-.cxf-completed-table .z-listbox-header table,
-.cxf-completed-table .z-listbox-body table {
-    table-layout: fixed !important;
-    width: 100% !important;
+
+/* Remove gap between rows */
+#v1Root .v1-listbox .z-listbox-body table,
+#v1Root .v1-batch-lb .z-listbox-body table {
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
 }
 
-/* Balanced Column Widths for 7 columns */
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(1),
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(1) {
-    width: 12% !important;
-    /* Batch ID */
+/* Row height */
+#v1Root .v1-listbox tr.z-listitem,
+#v1Root .v1-batch-lb tr.z-listitem {
+    height: 36px !important;
+    max-height: 36px !important;
+    min-height: 0 !important;
 }
 
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(2),
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(2) {
-    width: 11% !important;
-    /* Total cheques */
-}
-
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(3),
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(3) {
-    width: 13% !important;
-    /* Total Amount */
-}
-
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(4),
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(4) {
-    width: 21% !important;
-    /* CXF file */
-}
-
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(5),
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(5) {
-    width: 21% !important;
-    /* CIBF file */
-}
-
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(6),
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(6) {
-    width: 12% !important;
-    /* Generated at */
-}
-
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(7),
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(7) {
-    width: 10% !important;
-    /* Status */
-}
-
-/* Header wrapping and alignment */
-#lbDynamic.cxf-completed-table th.z-listheader .z-listheader-cnt {
-    display: flex !important;
-    align-items: center !important;
-    white-space: normal !important;
-    word-break: break-word !important;
+/* Cell padding and height */
+#v1Root .v1-listbox tr.z-listitem td.z-listcell,
+#v1Root .v1-batch-lb tr.z-listitem td.z-listcell {
+    padding: 0 8px !important;
+    height: 36px !important;
+    max-height: 36px !important;
+    min-height: 0 !important;
     line-height: 1.2 !important;
-    padding: 8px 4px !important;
-}
-
-/* Centered headers (Columns 1, 7) */
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(1) .z-listheader-cnt,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(7) .z-listheader-cnt,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(1) .z-listheader-cnt span,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(7) .z-listheader-cnt span,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(1) .z-listheader-cnt .z-label,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(7) .z-listheader-cnt .z-label {
-    justify-content: center !important;
-    text-align: center !important;
-}
-
-/* Left-aligned headers (Columns 2, 3, 4, 5, 6) */
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(2) .z-listheader-cnt,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(3) .z-listheader-cnt,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(4) .z-listheader-cnt,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(5) .z-listheader-cnt,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(6) .z-listheader-cnt,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(2) .z-listheader-cnt span,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(3) .z-listheader-cnt span,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(4) .z-listheader-cnt span,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(5) .z-listheader-cnt span,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(6) .z-listheader-cnt span,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(2) .z-listheader-cnt .z-label,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(3) .z-listheader-cnt .z-label,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(4) .z-listheader-cnt .z-label,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(5) .z-listheader-cnt .z-label,
-#lbDynamic.cxf-completed-table th.z-listheader:nth-child(6) .z-listheader-cnt .z-label {
-    justify-content: flex-start !important;
-    text-align: left !important;
-    padding-left: 8px !important;
-}
-
-/* Centered cells (Columns 1, 7) */
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(1) .z-listcell-cnt,
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(7) .z-listcell-cnt {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-}
-
-/* Left-aligned cells (Columns 2, 3, 6) */
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(2) .z-listcell-cnt,
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(3) .z-listcell-cnt,
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(6) .z-listcell-cnt {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    text-align: left !important;
-    padding-left: 8px !important;
-}
-
-/* Long value cells (CXF file, CIBF file - Columns 4, 5) left-aligned and truncated */
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(4) .z-listcell-cnt,
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(5) .z-listcell-cnt {
-    display: block !important;
-    text-align: left !important;
-    white-space: nowrap !important;
+    vertical-align: middle !important;
     overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    padding-left: 8px !important;
-    padding-right: 8px !important;
+    border-bottom: 1px solid #E2E8F0 !important;
 }
 
-/* Amount values in green color */
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(3) .z-listcell-cnt {
-    color: #166534 !important;
-    font-weight: 700 !important;
+/* Cell content wrapper */
+#v1Root .v1-listbox tr.z-listitem td .z-listcell-cnt,
+#v1Root .v1-batch-lb tr.z-listitem td .z-listcell-cnt {
+    padding: 0 4px !important;
+    min-height: 0 !important;
+    height: auto !important;
+    line-height: 1.2 !important;
 }
 
-/* Status shown as a pill/badge: Ensure the badge is displayed nicely centered */
-#lbDynamic.cxf-completed-table td.z-listcell:nth-child(7) .z-listcell-cnt .batch-pill {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+/* Hover row highlight */
+#v1Root .v1-listbox .z-listitem:hover td,
+#v1Root .v1-batch-lb .z-listitem:hover td {
+    background: #f9fbff !important;
 }
 
-/* ══════════════════════════════════════════════════
-   PAGINATION STYLING
-   ══════════════════════════════════════════════════ */
-.cxf-pagination-container {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: 12px 24px !important;
-    background: #FFFFFF !important;
-    border-top: 1px solid #E2E8F0 !important;
-    border-radius: 0 0 8px 8px !important;
-    box-sizing: border-box !important;
-    width: 100% !important;
-}
-
-.cxf-paging-records,
-.cxf-paging-records.z-label {
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    color: #475569 !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-.cxf-paging-controls {
-    display: flex !important;
-    align-items: center !important;
-    gap: 16px !important;
-}
-
-.cxf-paging-info,
-.cxf-paging-info.z-label {
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    color: #334155 !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-.cxf-btn-paging.z-button {
-    background: #FFFFFF !important;
-    border: 1px solid #E2E8F0 !important;
-    color: #475569 !important;
+/* Status chip */
+#v1Root .v1-listbox .batch-pill,
+#v1Root .v1-batch-lb .batch-pill {
+    padding: 2px 10px !important;
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    display: inline-block !important;
+    white-space: nowrap !important;
     border-radius: 20px !important;
-    padding: 6px 18px !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    font-family: 'Inter', sans-serif !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
 }
 
-.cxf-btn-paging.z-button:hover {
-    background: #F8FAFC !important;
-    border-color: #CBD5E1 !important;
-    color: #1E293B !important;
+/* Remove internal scroll gaps */
+#v1Root .v1-listbox .z-listbox-body,
+#v1Root .v1-batch-lb .z-listbox-body {
+    height: auto !important;
+    overflow: hidden !important;
 }
 
-.cxf-btn-paging.z-button[disabled],
-.cxf-btn-paging.z-button[disabled]:hover {
-    background: #F8FAFC !important;
-    border-color: #F1F5F9 !important;
-    color: #CBD5E1 !important;
-    cursor: not-allowed !important;
-    box-shadow: none !important;
-}
-
-/* Ensure the ZK Window component itself is completely transparent and has no padding/borders */
-.cxf-success-window,
-.cxf-success-window .z-window-cnt,
-.cxf-success-window .z-window-body,
-.cxf-success-window .z-window-content,
-.cxf-success-window .z-window-modal-cnt,
-.cxf-success-window .z-window-modal-body,
-.cxf-success-window-cnt,
-.cxf-success-window-body {
-    background: transparent !important;
-    background-color: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-}
-
-/* ── Success Modal Dialog ── */
-.cxf-modal-container {
-    width: 480px;
-    background-color: #262626 !important;
-    border-radius: 12px !important;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
-    padding: 32px !important;
-    box-sizing: border-box !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-.cxf-modal-icon-circle {
-    width: 64px;
-    height: 64px;
-    background-color: #14532D !important;
-    border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    margin-bottom: 20px !important;
-}
-
-.cxf-modal-icon-check {
-    font-size: 32px !important;
-    color: #4ADE80 !important;
-    line-height: 1 !important;
-}
-
-.cxf-modal-title {
-    font-size: 20px !important;
-    font-weight: 700 !important;
-    color: #FFFFFF !important;
-    margin-bottom: 6px !important;
-    text-align: center !important;
-    display: block !important;
-}
-
-.cxf-modal-subtitle {
-    font-size: 13px !important;
-    color: #A3A3A3 !important;
-    margin-bottom: 24px !important;
-    text-align: center !important;
-    display: block !important;
-}
-
-.cxf-modal-checklist {
-    width: 100% !important;
-    background-color: #1F1F1F !important;
-    border-radius: 8px !important;
-    padding: 16px 20px !important;
-    margin-bottom: 28px !important;
-    box-sizing: border-box !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 12px !important;
-}
-
-.cxf-modal-checklist-item {
-    display: flex !important;
-    align-items: center !important;
-    gap: 12px !important;
-}
-
-.cxf-modal-item-icon {
-    color: #4ADE80 !important;
-    font-weight: bold !important;
-    font-size: 14px !important;
-}
-
-.cxf-modal-item-text {
-    font-size: 13px !important;
-    color: #E5E5E5 !important;
-    font-weight: 500 !important;
-}
-
-.cxf-modal-actions {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    gap: 16px !important;
-}
-
-.cxf-modal-btn-view.z-button {
-    flex: 1 !important;
-    background-color: #1F1F1F !important;
-    color: #E5E5E5 !important;
-    border: 1px solid #404040 !important;
-    border-radius: 8px !important;
-    padding: 12px 16px !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    text-align: center !important;
-    transition: all 0.2s ease !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 8px !important;
-}
-
-.cxf-modal-btn-view.z-button:hover {
-    background-color: #2D2D2D !important;
-    color: #FFFFFF !important;
-    border-color: #525252 !important;
-}
-
-.cxf-modal-btn-done.z-button {
-    flex: 1 !important;
-    background-color: #FFFFFF !important;
-    color: #171717 !important;
-    border: none !important;
-    border-radius: 8px !important;
-    padding: 12px 16px !important;
-    font-size: 14px !important;
-    font-weight: 700 !important;
-    cursor: pointer !important;
-    text-align: center !important;
-    transition: all 0.2s ease !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-.cxf-modal-btn-done.z-button:hover {
-    background-color: #F5F5F5 !important;
-}
-
-/* ── Alignment for page header and actions ── */
-.pg-head {
-    display: flex !important;
-    align-items: flex-start !important;
-    justify-content: space-between !important;
-    margin-bottom: 12px !important;
-    width: 100% !important;
-}
-
-.pg-actions {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    flex-shrink: 0 !important;
-}
+	/* ══════════════════════════════════════════════════
+	   COMPLETED & ALL VIEW TABLE STYLING
+	   ══════════════════════════════════════════════════ */
+	.cxf-completed-table .z-listbox-header table,
+	.cxf-completed-table .z-listbox-body table {
+	    table-layout: fixed !important;
+	    width: 100% !important;
+	}
+	
+	/* Balanced Column Widths for 7 columns */
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(1),
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(1) { width: 12% !important; }
+	
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(2),
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(2) { width: 11% !important; }
+	
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(3),
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(3) { width: 13% !important; }
+	
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(4),
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(4) { width: 21% !important; }
+	
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(5),
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(5) { width: 21% !important; }
+	
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(6),
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(6) { width: 12% !important; }
+	
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(7),
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(7) { width: 10% !important; }
+	
+	/* Header wrapping and alignment */
+	#lbDynamic.cxf-completed-table th.z-listheader .z-listheader-cnt {
+	    display: flex !important;
+	    align-items: center !important;
+	    white-space: normal !important;
+	    word-break: break-word !important;
+	    line-height: 1.2 !important;
+	    padding: 8px 4px !important;
+	}
+	
+	/* Centered headers (Columns 1, 7) */
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(1) .z-listheader-cnt,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(7) .z-listheader-cnt,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(1) .z-listheader-cnt span,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(7) .z-listheader-cnt span,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(1) .z-listheader-cnt .z-label,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(7) .z-listheader-cnt .z-label {
+	    justify-content: center !important;
+	    text-align: center !important;
+	}
+	
+	/* Left-aligned headers (Columns 2-6) */
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(2) .z-listheader-cnt,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(3) .z-listheader-cnt,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(4) .z-listheader-cnt,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(5) .z-listheader-cnt,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(6) .z-listheader-cnt,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(2) .z-listheader-cnt span,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(3) .z-listheader-cnt span,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(4) .z-listheader-cnt span,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(5) .z-listheader-cnt span,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(6) .z-listheader-cnt span,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(2) .z-listheader-cnt .z-label,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(3) .z-listheader-cnt .z-label,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(4) .z-listheader-cnt .z-label,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(5) .z-listheader-cnt .z-label,
+	#lbDynamic.cxf-completed-table th.z-listheader:nth-child(6) .z-listheader-cnt .z-label {
+	    justify-content: flex-start !important;
+	    text-align: left !important;
+	    padding-left: 8px !important;
+	}
+	
+	/* Centered cells (Columns 1, 7) */
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(1) .z-listcell-cnt,
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(7) .z-listcell-cnt {
+	    display: flex !important;
+	    align-items: center !important;
+	    justify-content: center !important;
+	    text-align: center !important;
+	}
+	
+	/* Left-aligned cells (Columns 2, 3, 6) */
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(2) .z-listcell-cnt,
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(3) .z-listcell-cnt,
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(6) .z-listcell-cnt {
+	    display: flex !important;
+	    align-items: center !important;
+	    justify-content: flex-start !important;
+	    text-align: left !important;
+	    padding-left: 8px !important;
+	}
+	
+	/* Long value cells (CXF file, CIBF file - Columns 4, 5) */
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(4) .z-listcell-cnt,
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(5) .z-listcell-cnt {
+	    display: block !important;
+	    text-align: left !important;
+	    white-space: nowrap !important;
+	    overflow: hidden !important;
+	    text-overflow: ellipsis !important;
+	    padding-left: 8px !important;
+	    padding-right: 8px !important;
+	}
+	
+	/* Amount values in green */
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(3) .z-listcell-cnt {
+	    color: #166534 !important;
+	    font-weight: 700 !important;
+	}
+	
+	/* Status pill centered */
+	#lbDynamic.cxf-completed-table td.z-listcell:nth-child(7) .z-listcell-cnt .batch-pill {
+	    display: inline-flex !important;
+	    align-items: center !important;
+	    justify-content: center !important;
+	}
+	
+	/* ══════════════════════════════════════════════════
+	   PAGINATION STYLING
+	   ══════════════════════════════════════════════════ */
+	.cxf-pagination-container {
+	    display: flex !important;
+	    justify-content: space-between !important;
+	    align-items: center !important;
+	    padding: 12px 24px !important;
+	    background: #FFFFFF !important;
+	    border-top: 1px solid #E2E8F0 !important;
+	    border-radius: 0 0 8px 8px !important;
+	    box-sizing: border-box !important;
+	    width: 100% !important;
+	}
+	
+	.cxf-paging-records,
+	.cxf-paging-records.z-label {
+	    font-size: 13px !important;
+	    font-weight: 500 !important;
+	    color: #475569 !important;
+	    font-family: 'Inter', sans-serif !important;
+	}
+	
+	.cxf-paging-controls {
+	    display: flex !important;
+	    align-items: center !important;
+	    gap: 16px !important;
+	}
+	
+	.cxf-paging-info,
+	.cxf-paging-info.z-label {
+	    font-size: 13px !important;
+	    font-weight: 500 !important;
+	    color: #334155 !important;
+	    font-family: 'Inter', sans-serif !important;
+	}
+	
+	.cxf-btn-paging.z-button {
+	    background: #FFFFFF !important;
+	    border: 1px solid #E2E8F0 !important;
+	    color: #475569 !important;
+	    border-radius: 20px !important;
+	    padding: 6px 18px !important;
+	    font-size: 12px !important;
+	    font-weight: 600 !important;
+	    font-family: 'Inter', sans-serif !important;
+	    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+	    cursor: pointer !important;
+	    transition: all 0.2s ease !important;
+	}
+	
+	.cxf-btn-paging.z-button:hover {
+	    background: #F8FAFC !important;
+	    border-color: #CBD5E1 !important;
+	    color: #1E293B !important;
+	}
+	
+	.cxf-btn-paging.z-button[disabled],
+	.cxf-btn-paging.z-button[disabled]:hover {
+	    background: #F8FAFC !important;
+	    border-color: #F1F5F9 !important;
+	    color: #CBD5E1 !important;
+	    cursor: not-allowed !important;
+	    box-shadow: none !important;
+	}
+	
+	/* ── Success Window transparency ── */
+	.cxf-success-window,
+	.cxf-success-window .z-window-cnt,
+	.cxf-success-window .z-window-body,
+	.cxf-success-window .z-window-content,
+	.cxf-success-window .z-window-modal-cnt,
+	.cxf-success-window .z-window-modal-body,
+	.cxf-success-window-cnt,
+	.cxf-success-window-body {
+	    background: transparent !important;
+	    background-color: transparent !important;
+	    border: none !important;
+	    padding: 0 !important;
+	    margin: 0 !important;
+	    box-shadow: none !important;
+	}
+	
+	/* ── Success Modal Dialog ── */
+	.cxf-modal-container {
+	    width: 480px;
+	    background-color: #262626 !important;
+	    border-radius: 12px !important;
+	    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+	    padding: 32px !important;
+	    box-sizing: border-box !important;
+	    display: flex !important;
+	    flex-direction: column !important;
+	    align-items: center !important;
+	    font-family: 'Inter', sans-serif !important;
+	}
+	
+	.cxf-modal-icon-circle {
+	    width: 64px;
+	    height: 64px;
+	    background-color: #14532D !important;
+	    border-radius: 50% !important;
+	    display: flex !important;
+	    align-items: center !important;
+	    justify-content: center !important;
+	    margin-bottom: 20px !important;
+	}
+	
+	.cxf-modal-icon-check {
+	    font-size: 32px !important;
+	    color: #4ADE80 !important;
+	    line-height: 1 !important;
+	}
+	
+	.cxf-modal-title {
+	    font-size: 20px !important;
+	    font-weight: 700 !important;
+	    color: #FFFFFF !important;
+	    margin-bottom: 6px !important;
+	    text-align: center !important;
+	    display: block !important;
+	}
+	
+	.cxf-modal-subtitle {
+	    font-size: 13px !important;
+	    color: #A3A3A3 !important;
+	    margin-bottom: 24px !important;
+	    text-align: center !important;
+	    display: block !important;
+	}
+	
+	.cxf-modal-checklist {
+	    width: 100% !important;
+	    background-color: #1F1F1F !important;
+	    border-radius: 8px !important;
+	    padding: 16px 20px !important;
+	    margin-bottom: 28px !important;
+	    box-sizing: border-box !important;
+	    display: flex !important;
+	    flex-direction: column !important;
+	    gap: 12px !important;
+	}
+	
+	.cxf-modal-checklist-item {
+	    display: flex !important;
+	    align-items: center !important;
+	    gap: 12px !important;
+	}
+	
+	.cxf-modal-item-icon {
+	    color: #4ADE80 !important;
+	    font-weight: bold !important;
+	    font-size: 14px !important;
+	}
+	
+	.cxf-modal-item-text {
+	    font-size: 13px !important;
+	    color: #E5E5E5 !important;
+	    font-weight: 500 !important;
+	}
+	
+	.cxf-modal-actions {
+	    width: 100% !important;
+	    display: flex !important;
+	    justify-content: space-between !important;
+	    gap: 16px !important;
+	}
+	
+	.cxf-modal-btn-view.z-button {
+	    flex: 1 !important;
+	    background-color: #1F1F1F !important;
+	    color: #E5E5E5 !important;
+	    border: 1px solid #404040 !important;
+	    border-radius: 8px !important;
+	    padding: 12px 16px !important;
+	    font-size: 14px !important;
+	    font-weight: 600 !important;
+	    cursor: pointer !important;
+	    text-align: center !important;
+	    transition: all 0.2s ease !important;
+	    display: inline-flex !important;
+	    align-items: center !important;
+	    justify-content: center !important;
+	    gap: 8px !important;
+	}
+	
+	.cxf-modal-btn-view.z-button:hover {
+	    background-color: #2D2D2D !important;
+	    color: #FFFFFF !important;
+	    border-color: #525252 !important;
+	}
+	
+	.cxf-modal-btn-done.z-button {
+	    flex: 1 !important;
+	    background-color: #FFFFFF !important;
+	    color: #171717 !important;
+	    border: none !important;
+	    border-radius: 8px !important;
+	    padding: 12px 16px !important;
+	    font-size: 14px !important;
+	    font-weight: 700 !important;
+	    cursor: pointer !important;
+	    text-align: center !important;
+	    transition: all 0.2s ease !important;
+	    display: inline-flex !important;
+	    align-items: center !important;
+	    justify-content: center !important;
+	}
+	
+	.cxf-modal-btn-done.z-button:hover { background-color: #F5F5F5 !important; }
+	
+	/* ── Page header and actions ── */
+	.pg-head {
+	    display: flex !important;
+	    align-items: flex-start !important;
+	    justify-content: space-between !important;
+	    margin-bottom: 5px !important;
+	    width: 100% !important;
+	    padding: 9px !important;
+	    padding-left: 16px !important;
+	    font-size: 25px !important;
+	}
+	
+	.pg-actions {
+	    display: flex !important;
+	    align-items: center !important;
+	    gap: 8px !important;
+	    flex-shrink: 0 !important;
+	}
+	
+	#v1Root {
+	    padding: 20px !important;
+	    box-sizing: border-box !important;
+	}
+	
+	.mb-card-head {
+	    display: flex !important;
+	    align-items: center !important;
+	    justify-content: space-between !important;
+	    padding: 18px 20px 11px !important;
+	    border-bottom: 1px solid #E2E8F0 !important;
+	}

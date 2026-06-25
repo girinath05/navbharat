@@ -48,7 +48,7 @@ import java.util.List;
   */
 public class CibfXmlBuilder {
 
-    private static final DateTimeFormatter ISO_DT =
+    private static final DateTimeFormatter ISO_DATE_TIME_FORMATTER =
         DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     /**
@@ -90,24 +90,24 @@ public class CibfXmlBuilder {
         xmlBuilder.append("        <BatchId>").append(escapeXmlSpecialCharacters(batch.getBatchId())).append("</BatchId>\n");
         xmlBuilder.append("        <ImageCount>").append(imageCount).append("</ImageCount>\n");
         xmlBuilder.append("        <TotalImageSize>").append(totalImageSize).append("</TotalImageSize>\n");
-        xmlBuilder.append("        <GeneratedAt>").append(now.format(ISO_DT)).append("</GeneratedAt>\n");
+        xmlBuilder.append("        <GeneratedAt>").append(now.format(ISO_DATE_TIME_FORMATTER)).append("</GeneratedAt>\n");
         xmlBuilder.append("    </BatchInfo>\n");
 
         // ImageList
         xmlBuilder.append("    <ImageList>\n");
 
-        int seq = 1;  // global sequential image number across all cheques in this part
-        int idx = offset + 1;  // cheque index → drives filename (cheque001, cheque002, ...)
+        int sequentialNumber = 1;  // global sequential image number across all cheques in this part
+        int chequeIndex = offset + 1;  // cheque index → drives filename (cheque001, cheque002, ...)
 
         for (CxfChequeDTO cheque : cheques) {
             String chequeNo = substituteNullWithEmptyString(cheque.getChequeNo());
-            String idxStr   = String.format("%03d", idx);
+            String indexString   = String.format("%03d", chequeIndex);
 
             // FRONT
             if (hasValidImageBytes(cheque.getFrontImage())) {
-                String filePath = "cheque" + idxStr + "_front.png";
+                String filePath = "cheque" + indexString + "_front.png";
                 xmlBuilder.append("        <Image>\n");
-                xmlBuilder.append("            <SeqNo>").append(seq++).append("</SeqNo>\n");
+                xmlBuilder.append("            <SeqNo>").append(sequentialNumber++).append("</SeqNo>\n");
                 xmlBuilder.append("            <ChequeNo>").append(escapeXmlSpecialCharacters(chequeNo)).append("</ChequeNo>\n");
                 xmlBuilder.append("            <Side>FRONT</Side>\n");
                 xmlBuilder.append("            <FilePath>").append(filePath).append("</FilePath>\n");
@@ -118,9 +118,9 @@ public class CibfXmlBuilder {
 
             // BACK
             if (hasValidImageBytes(cheque.getRearImage())) {
-                String filePath = "cheque" + idxStr + "_back.png";
+                String filePath = "cheque" + indexString + "_back.png";
                 xmlBuilder.append("        <Image>\n");
-                xmlBuilder.append("            <SeqNo>").append(seq++).append("</SeqNo>\n");
+                xmlBuilder.append("            <SeqNo>").append(sequentialNumber++).append("</SeqNo>\n");
                 xmlBuilder.append("            <ChequeNo>").append(escapeXmlSpecialCharacters(chequeNo)).append("</ChequeNo>\n");
                 xmlBuilder.append("            <Side>BACK</Side>\n");
                 xmlBuilder.append("            <FilePath>").append(filePath).append("</FilePath>\n");
@@ -129,7 +129,7 @@ public class CibfXmlBuilder {
                 xmlBuilder.append("        </Image>\n");
             }
 
-            idx++;
+            chequeIndex++;
         }
 
         xmlBuilder.append("    </ImageList>\n");
@@ -160,9 +160,9 @@ public class CibfXmlBuilder {
     private static String calculateSha256ChecksumInHex(byte[] data) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(data);
+            byte[] hashBytes = digest.digest(data);
             StringBuilder hex = new StringBuilder(64);
-            for (byte hashByte : hash) {
+            for (byte hashByte : hashBytes) {
                 hex.append(String.format("%02x", hashByte));
             }
             return hex.toString();

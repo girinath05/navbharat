@@ -5,25 +5,23 @@
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="batch_summary_report" pageWidth="842" pageHeight="595"
               orientation="Landscape" columnWidth="782" leftMargin="30"
-              rightMargin="30" topMargin="20" bottomMargin="20">
-
-    <parameter name="adminName" class="java.lang.String"/>
-    <parameter name="loginTime" class="java.lang.String"/>
+              rightMargin="30" topMargin="20" bottomMargin="20">  
+  <!--
+      ExpressClear CTS - Batch Summary Report
+      Purpose: Displays a summary of multiple batches, including cheque counts, total amounts, creation dates, and status.
+    -->
     <parameter name="dateRange" class="java.lang.String"/>
     <parameter name="generatedAt" class="java.lang.String"/>
     <parameter name="totalCountLabel" class="java.lang.String"/>
     <parameter name="totalCountValue" class="java.lang.String"/>
     <parameter name="totalAmount" class="java.lang.String"/>
 
+    <field name="sNo"          class="java.lang.String"/>
     <field name="batchId"      class="java.lang.String"/>
     <field name="totalCheques" class="java.lang.Integer"/>
     <field name="totalAmount"  class="java.math.BigDecimal"/>
     <field name="createdDate"  class="java.time.LocalDateTime"/>
     <field name="status"       class="java.lang.String"/>
-
-    <variable name="grandTotalAmount" class="java.math.BigDecimal" calculation="Sum">
-        <variableExpression><![CDATA[$F{totalAmount}]]></variableExpression>
-    </variable>
 
     <title>
         <band height="85">
@@ -39,17 +37,12 @@
             <textField>
                 <reportElement x="0" y="30" width="300" height="15"/>
                 <textElement><font size="9" isBold="false"/></textElement>
-                <textFieldExpression><![CDATA["Admin : " + ($P{adminName} != null ? $P{adminName} : "")]]></textFieldExpression>
+                <textFieldExpression><![CDATA["Date Range : " + ($P{dateRange} != null ? $P{dateRange} : "")]]></textFieldExpression>
             </textField>
             <textField>
                 <reportElement x="0" y="45" width="300" height="15"/>
                 <textElement><font size="9" isBold="false"/></textElement>
-                <textFieldExpression><![CDATA["Login Time : " + ($P{loginTime} != null ? $P{loginTime} : "")]]></textFieldExpression>
-            </textField>
-            <textField>
-                <reportElement x="0" y="60" width="300" height="15"/>
-                <textElement><font size="9" isBold="false"/></textElement>
-                <textFieldExpression><![CDATA["Date Range : " + ($P{dateRange} != null ? $P{dateRange} : "")]]></textFieldExpression>
+                <textFieldExpression><![CDATA["Generated : " + ($P{generatedAt} != null ? $P{generatedAt} : "")]]></textFieldExpression>
             </textField>
 
             <!-- Right Column -->
@@ -63,11 +56,6 @@
                 <textElement textAlignment="Right"><font size="9" isBold="false"/></textElement>
                 <textFieldExpression><![CDATA["Total Amount : " + ($P{totalAmount} != null ? $P{totalAmount} : "₹0")]]></textFieldExpression>
             </textField>
-            <textField>
-                <reportElement x="482" y="60" width="300" height="15"/>
-                <textElement textAlignment="Right"><font size="9" isBold="false"/></textElement>
-                <textFieldExpression><![CDATA["Generated : " + ($P{generatedAt} != null ? $P{generatedAt} : "")]]></textFieldExpression>
-            </textField>
             
             <line>
                 <reportElement x="0" y="80" width="782" height="1"/>
@@ -78,32 +66,39 @@
 
     <columnHeader>
         <band height="24">
+            <!-- S.No -->
             <staticText>
-                <reportElement x="0" y="0" width="150" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
+                <reportElement x="0" y="0" width="40" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[S.No]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="40" y="0" width="150" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
                 <box><pen lineWidth="0.5" lineColor="#000000"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
                 <text><![CDATA[Batch ID]]></text>
             </staticText>
             <staticText>
-                <reportElement x="150" y="0" width="120" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
+                <reportElement x="190" y="0" width="120" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
                 <box><pen lineWidth="0.5" lineColor="#000000"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
                 <text><![CDATA[Total Cheques]]></text>
             </staticText>
             <staticText>
-                <reportElement x="270" y="0" width="160" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
+                <reportElement x="310" y="0" width="160" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
                 <box><pen lineWidth="0.5" lineColor="#000000"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
                 <text><![CDATA[Total Amount]]></text>
             </staticText>
             <staticText>
-                <reportElement x="430" y="0" width="202" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
+                <reportElement x="470" y="0" width="202" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
                 <box><pen lineWidth="0.5" lineColor="#000000"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
                 <text><![CDATA[Created Date]]></text>
             </staticText>
             <staticText>
-                <reportElement x="632" y="0" width="150" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
+                <reportElement x="672" y="0" width="110" height="24" forecolor="#FFFFFF" backcolor="#1a3a6b" mode="Opaque"/>
                 <box><pen lineWidth="0.5" lineColor="#000000"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
                 <text><![CDATA[Status]]></text>
@@ -113,32 +108,39 @@
 
     <detail>
         <band height="20">
+            <!-- S.No -->
             <textField>
-                <reportElement x="0" y="0" width="150" height="20"/>
+                <reportElement x="0" y="0" width="40" height="20"/>
+                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{sNo}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="40" y="0" width="150" height="20"/>
                 <box><pen lineWidth="0.5" lineColor="#000000"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
                 <textFieldExpression><![CDATA[$F{batchId}]]></textFieldExpression>
             </textField>
             <textField>
-                <reportElement x="150" y="0" width="120" height="20"/>
+                <reportElement x="190" y="0" width="120" height="20"/>
                 <box><pen lineWidth="0.5" lineColor="#000000"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
                 <textFieldExpression><![CDATA[$F{totalCheques}]]></textFieldExpression>
             </textField>
             <textField pattern="#,##0.00">
-                <reportElement x="270" y="0" width="160" height="20"/>
+                <reportElement x="310" y="0" width="160" height="20"/>
                 <box><pen lineWidth="0.5" lineColor="#000000"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
                 <textFieldExpression><![CDATA[$F{totalAmount}]]></textFieldExpression>
             </textField>
             <textField>
-                <reportElement x="430" y="0" width="202" height="20"/>
+                <reportElement x="470" y="0" width="202" height="20"/>
                 <box><pen lineWidth="0.5" lineColor="#000000"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
-                <textFieldExpression><![CDATA[$F{createdDate} != null ? $F{createdDate}.toString() : ""]]></textFieldExpression>
+                <textFieldExpression><![CDATA[$F{createdDate} != null ? $F{createdDate}.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) : ""]]></textFieldExpression>
             </textField>
             <textField>
-                <reportElement x="632" y="0" width="150" height="20"/>
+                <reportElement x="672" y="0" width="110" height="20"/>
                 <box><pen lineWidth="0.5" lineColor="#000000"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
                 <textFieldExpression><![CDATA[$F{status}]]></textFieldExpression>
@@ -156,32 +158,4 @@
         </band>
     </pageFooter>
 
-    <summary>
-        <band height="20">
-            <staticText>
-                <reportElement x="0" y="0" width="270" height="20" backcolor="#F3F4F6" mode="Opaque"/>
-                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
-                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
-                <text><![CDATA[Grand Total :   ]]></text>
-            </staticText>
-            <textField pattern="#,##0.00">
-                <reportElement x="270" y="0" width="160" height="20" backcolor="#F3F4F6" mode="Opaque"/>
-                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
-                <textFieldExpression><![CDATA[$V{grandTotalAmount}]]></textFieldExpression>
-            </textField>
-            <staticText>
-                <reportElement x="430" y="0" width="202" height="20" backcolor="#F3F4F6" mode="Opaque"/>
-                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
-                <text><![CDATA[]]></text>
-            </staticText>
-            <staticText>
-                <reportElement x="632" y="0" width="150" height="20" backcolor="#F3F4F6" mode="Opaque"/>
-                <box><pen lineWidth="0.5" lineColor="#000000"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
-                <text><![CDATA[]]></text>
-            </staticText>
-        </band>
-    </summary>
 </jasperReport>

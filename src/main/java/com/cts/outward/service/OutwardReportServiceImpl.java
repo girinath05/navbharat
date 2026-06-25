@@ -19,6 +19,9 @@ public class OutwardReportServiceImpl implements OutwardReportService {
 
     private final OutwardReportDAO dao;
 
+    /**
+     * Default constructor initializing the OutwardReportDAO implementation.
+     */
     public OutwardReportServiceImpl() {
         this.dao = new OutwardReportDAOImpl();
     }
