@@ -78,22 +78,22 @@
 					</div>
 
 					<div sclass="od-filter-bar">
-						<textbox id="txtBatchId" sclass="od-search-box"
+						<textbox id="txtBatchIdSearch" sclass="od-search-box"
 							placeholder="Search Batch ID..." instant="true" />
 
 						<div sclass="od-date-range">
 							<div sclass="od-date-box od-date-from">
-								<datebox id="filterDateFrom" format="dd-MM-yyyy"
+								<datebox id="dteBatchDateFrom" format="dd-MM-yyyy"
 									placeholder="From" />
 							</div>
 							<label sclass="od-date-sep" value="→" />
 							<div sclass="od-date-box od-date-to">
-								<datebox id="filterDateTo" format="dd-MM-yyyy"
+								<datebox id="dteBatchDateTo" format="dd-MM-yyyy"
 									placeholder="To" />
 							</div>
 						</div>
 
-						<combobox id="cmbStatus" sclass="od-status-combo"
+						<combobox id="cmbBatchStatus" sclass="od-status-combo"
 							readonly="true">
 							<comboitem label="All" value="All" />
 							<comboitem label="Draft"
@@ -110,7 +110,7 @@
 								value="Dispatched" />
 						</combobox>
 
-						<button id="btnClear" sclass="od-clear-btn" label="✕ Clear" />
+						<button id="btnClearBatchFilters" sclass="od-clear-btn" label="✕ Clear" />
 					</div>
 
 				</div>
@@ -139,7 +139,7 @@
 
 						<div sclass="od-page-size-wrap">
 							<label sclass="od-page-size-label" value="Rows per page:" />
-							<intbox id="intPageSize" sclass="od-page-size-input"
+							<intbox id="intBatchPageSize" sclass="od-page-size-input"
 								value="5" instant="true" />
 						</div>
 					</div>

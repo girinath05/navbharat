@@ -5,7 +5,7 @@
  *  Package : com.cts.outward.model
  *  Desc    : Value object holding the 4 stat-card counts for
  *            the Outward Dashboard page.
- *            Populated by BatchDAOImpl.getDashboardStats().
+ *            Populated by OutwardDashboardDAOImpl.getDashboardStats().
  *
  *  Card mapping:
  *    totalBatches        → ALL batches today (any status)
@@ -25,11 +25,14 @@ public class OutwardDashboardStats {
 
     public OutwardDashboardStats() {}
 
-    public OutwardDashboardStats(int total, int verification, int verified, int dispatched) {
-        this.totalBatches        = total;
-        this.verificationBatches = verification;
-        this.verifiedBatches     = verified;
-        this.dispatchedBatches   = dispatched;
+    public OutwardDashboardStats(int totalBatches,
+                                  int verificationBatches,
+                                  int verifiedBatches,
+                                  int dispatchedBatches) {
+        this.totalBatches        = totalBatches;
+        this.verificationBatches = verificationBatches;
+        this.verifiedBatches     = verifiedBatches;
+        this.dispatchedBatches   = dispatchedBatches;
     }
 
     // ── Getters ──────────────────────────────────────────────
@@ -39,10 +42,10 @@ public class OutwardDashboardStats {
     public int getDispatchedBatches()   { return dispatchedBatches;   }
 
     // ── Setters ──────────────────────────────────────────────
-    public void setTotalBatches(int v)        { this.totalBatches        = v; }
-    public void setVerificationBatches(int v) { this.verificationBatches = v; }
-    public void setVerifiedBatches(int v)     { this.verifiedBatches     = v; }
-    public void setDispatchedBatches(int v)   { this.dispatchedBatches   = v; }
+    public void setTotalBatches(int totalBatches)               { this.totalBatches        = totalBatches;        }
+    public void setVerificationBatches(int verificationBatches) { this.verificationBatches = verificationBatches; }
+    public void setVerifiedBatches(int verifiedBatches)         { this.verifiedBatches     = verifiedBatches;     }
+    public void setDispatchedBatches(int dispatchedBatches)     { this.dispatchedBatches   = dispatchedBatches;   }
 
     // ── Legacy getters — keep until all callers updated ──────
     /** @deprecated use getVerifiedBatches() */

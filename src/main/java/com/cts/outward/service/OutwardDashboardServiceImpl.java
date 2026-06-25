@@ -20,6 +20,7 @@ import com.cts.outward.dao.OutwardDashboardDAO;
 import com.cts.outward.entity.BatchEntity;
 import com.cts.outward.model.BatchModel;
 import com.cts.outward.model.OutwardDashboardStats;
+// OutwardDashboardStats — used as return type for getDashboardStats() passthrough
 
 public class OutwardDashboardServiceImpl implements OutwardDashboardService {
 
@@ -40,8 +41,8 @@ public class OutwardDashboardServiceImpl implements OutwardDashboardService {
     //  pending cheque counts per batch row.
     //
     //  Flow:
-    //    1. outwardDashboardDAO.getBatchesFiltered()  → List<BatchEntity>
-    //    2. For each entity: map fields to BatchModel
+    //    1. outwardDashboardDAO.getBatchesFiltered()    → List<BatchEntity>
+    //    2. For each batchEntity: map fields to BatchModel
     //    3. outwardDashboardDAO.countSubmittedByBatch() → submittedCheques
     //    4. outwardDashboardDAO.countPendingByBatch()   → pendingCheques
     //    5. Return List<BatchModel>
@@ -49,30 +50,30 @@ public class OutwardDashboardServiceImpl implements OutwardDashboardService {
 
     @Override
     public List<BatchModel> getBatchesFilteredAsModels(String batchIdFilter,
-                                                       String statusFilter,
-                                                       LocalDate dateFilter) {
-        List<BatchEntity> entities = outwardDashboardDAO.getBatchesFiltered(
+                                                        String statusFilter,
+                                                        LocalDate dateFilter) {
+        List<BatchEntity> batchEntities = outwardDashboardDAO.getBatchesFiltered(
                 batchIdFilter, statusFilter, dateFilter);
 
-        List<BatchModel> models = new ArrayList<>();
-        for (BatchEntity e : entities) {
-            BatchModel m = new BatchModel();
-            m.setBatchId(e.getBatchId());
-            m.setBranchCode(e.getBranchCode());
-            m.setTotalCheques(e.getTotalCheques());
-            m.setExpectedCheques(e.getExpectedCheques());
-            m.setTotalAmount(e.getTotalAmount());
-            m.setExpectedAmount(e.getExpectedAmount());
-            m.setStatus(e.getStatus());
-            m.setCreatedAt(e.getCreatedAt());
-            m.setUpdatedAt(e.getUpdatedAt());
+        List<BatchModel> batchModels = new ArrayList<>();
+        for (BatchEntity batchEntity : batchEntities) {
+            BatchModel batchModel = new BatchModel();
+            batchModel.setBatchId(batchEntity.getBatchId());
+            batchModel.setBranchCode(batchEntity.getBranchCode());
+            batchModel.setTotalCheques(batchEntity.getTotalCheques());
+            batchModel.setExpectedCheques(batchEntity.getExpectedCheques());
+            batchModel.setTotalAmount(batchEntity.getTotalAmount());
+            batchModel.setExpectedAmount(batchEntity.getExpectedAmount());
+            batchModel.setStatus(batchEntity.getStatus());
+            batchModel.setCreatedAt(batchEntity.getCreatedAt());
+            batchModel.setUpdatedAt(batchEntity.getUpdatedAt());
 
             // Cheque-level counts — two lightweight COUNT queries per batch
-            m.setSubmittedCheques(outwardDashboardDAO.countSubmittedByBatch(e.getBatchId()));
-            m.setPendingCheques(outwardDashboardDAO.countPendingByBatch(e.getBatchId()));
+            batchModel.setSubmittedCheques(outwardDashboardDAO.countSubmittedByBatch(batchEntity.getBatchId()));
+            batchModel.setPendingCheques(outwardDashboardDAO.countPendingByBatch(batchEntity.getBatchId()));
 
-            models.add(m);
+            batchModels.add(batchModel);
         }
-        return models;
+        return batchModels;
     }
 }

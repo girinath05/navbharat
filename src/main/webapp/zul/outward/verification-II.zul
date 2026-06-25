@@ -4,21 +4,12 @@
 <!--
     verification-II.zul
     Verification-II : High Value & Referred Cheque Authorisation
-    Composer : com.cts.outward.composer.Verification2Composer
+    Composer : com.cts.outward.composer.VerificationIIComposer
 
     Screens:
-      Screen 1 — batchListView    : HV batch table
-      Screen 2 — chequeListView   : HV/Referred cheques inside selected batch
-      Screen 3 — chequeDetailPopup: Full detail overlay — image viewer + data sections + action
-
-    Changes in this version:
-      • Popup no longer scrollable — fixed layout, all sections visible without scroll
-      • Image viewer: single panel with FRONT / BACK tab toggle (professional, not side-by-side)
-      • Data restructured into 3 clear sections: MICR Data | Cheque Data | CBS Data
-      • CBS Data section added (UI-only stub for now — backend integration later)
-      • Cheque type badge: HIGH VALUE (navy) vs REFERRED (orange) — dynamic from flag
-      • Remarks mandatory on Reject; Accept auto-fills "Accepted by <user>"
-      • Prev / Next navigation kept; counter centred between them
+      Screen 1 — batchListView      : HV batch table
+      Screen 2 — chequeListView     : HV/Referred cheques inside selected batch
+      Screen 3 — chequeDetailPopup  : Full detail overlay — image viewer + data sections + action
 -->
 <zk xmlns="http://www.zkoss.org/2005/zul"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -26,7 +17,7 @@
     <div id="v2Root" sclass="v2-root"
         apply="com.cts.outward.composer.VerificationIIComposer">
 
-       	 <style src="/css/outward/verification-II.css" />
+        <style src="/css/outward/verification-II.css" />
 
         <!-- ══════════════════════════════════════════════════════
             PAGE HEADER
@@ -57,11 +48,11 @@
             <label value="Displaying batches containing cheques flagged as High Value or Referred from Verification I" />
             <div sclass="v2-strip-right">
                 <label sclass="v2-stat-chip pending-chip"
-                    id="totalBatchesChip" value="— Batches" />
-                <label sclass="v2-stat-chip hv-chip" id="totalHvChip"
-                    value="— HV Cheques" />
-                <label sclass="v2-stat-chip ref-chip" id="totalRefChip"
-                    value="— Referred" />
+                    id="lblTotalBatchCount" value="— Batches" />
+                <label sclass="v2-stat-chip hv-chip"
+                    id="lblTotalHighValueCount" value="— HV Cheques" />
+                <label sclass="v2-stat-chip ref-chip"
+                    id="lblTotalReferredCount" value="— Referred" />
             </div>
         </div>
 
@@ -75,18 +66,18 @@
                     <label sclass="v2-card-title" value="BATCH LIST" />
                 </div>
                 <div sclass="v2-filter-bar">
-                    <textbox id="batchSearchBox" sclass="v2-search-box"
+                    <textbox id="txtBatchSearch" sclass="v2-search-box"
                         placeholder="Search Batch ID..." instant="true" />
 
                     <div sclass="v2-date-range">
-                        <datebox id="batchDateFromBox" sclass="v2-date-box v2-date-from"
+                        <datebox id="dteBatchDateFrom" sclass="v2-date-box v2-date-from"
                             format="dd-MM-yyyy" placeholder="From" />
                         <label sclass="v2-date-sep" value="→" />
-                        <datebox id="batchDateToBox" sclass="v2-date-box v2-date-to"
+                        <datebox id="dteBatchDateTo" sclass="v2-date-box v2-date-to"
                             format="dd-MM-yyyy" placeholder="To" />
                     </div>
 
-                    <combobox id="batchStatusCombo" sclass="v2-status-combo" readonly="true">
+                    <combobox id="cmbBatchStatus" sclass="v2-status-combo" readonly="true">
                         <comboitem label="All"                    value="ALL" />
                         <comboitem label="Ready for Verification" value="PENDING" />
                         <comboitem label="Verified"               value="VERIFIED" />
@@ -99,7 +90,7 @@
 
             <grid id="batchGrid" sclass="v2-grid" width="100%">
                 <columns sclass="v2-grid-columns">
-                    <column label="BATCH ID"          width="9%"  sclass="v2-col-hd" />
+                    <column label="BATCH ID"           width="9%"  sclass="v2-col-hd" />
                     <column label="DATE"               width="10%" sclass="v2-col-hd v2-center" />
                     <column label="TOTAL CHEQUES"      width="9%"  sclass="v2-col-hd v2-center" />
                     <column label="HV &amp; RF CHEQUES" width="10%" sclass="v2-col-hd v2-center" />
@@ -108,7 +99,7 @@
                     <column label="CHEQUE STATUS"      width="14%" sclass="v2-col-hd v2-center" />
                     <column label="ACTION"             width="9%"  sclass="v2-col-hd v2-center" />
                 </columns>
-                <rows id="batchRows" />
+                <rows id="batchGridRows" />
             </grid>
 
             <div id="batchEmptyState" sclass="v2-empty-state" visible="false">
@@ -117,10 +108,10 @@
             </div>
 
             <div sclass="v2-pagination-bar">
-                <label id="batchCountLabel" sclass="v2-page-count-label" value="Showing high-value batches" />
+                <label id="lblBatchRecordCount" sclass="v2-page-count-label" value="Showing high-value batches" />
                 <div sclass="v2-page-nav">
                     <button id="btnBatchPagePrev" sclass="v2-page-btn" label="‹ Prev" />
-                    <label  id="batchPageInfoLabel" sclass="v2-page-info" value="Page 1 of 1" />
+                    <label  id="lblBatchPageInfo" sclass="v2-page-info" value="Page 1 of 1" />
                     <button id="btnBatchPageNext" sclass="v2-page-btn" label="Next ›" />
                 </div>
             </div>
@@ -130,80 +121,79 @@
         <!-- ══════════════════════════════════════════════════════
             SCREEN 2 — HV CHEQUE LIST VIEW
             ═══════════════════════════════════════════════════════ -->
-        <!-- chequeListView wrapper -->
         <div id="chequeListView" visible="false">
 
             <div sclass="v2-card">
 
-            <div sclass="v2-cheque-card-header">
+                <div sclass="v2-cheque-card-header">
 
-                <!-- Row 1: batch badge | CHEQUE QUEUE | Back to Batches (right end) -->
-                <div sclass="v2-cheque-header-row1">
-                    <div sclass="v2-cheque-col-left">
-                        <label sclass="v2-batch-badge" id="activeBatchLabel" value="" />
+                    <!-- Row 1: batch badge | CHEQUE QUEUE | Back to Batches (right end) -->
+                    <div sclass="v2-cheque-header-row1">
+                        <div sclass="v2-cheque-col-left">
+                            <label sclass="v2-batch-badge" id="lblActiveBatchId" value="" />
+                        </div>
+                        <div sclass="v2-cheque-col-center">
+                            <label sclass="v2-queue-label" value="CHEQUE QUEUE" />
+                        </div>
+                        <div sclass="v2-cheque-col-right">
+                            <button id="btnBackToBatches" sclass="v2-back-btn" label="← Back to Batches" />
+                        </div>
                     </div>
-                    <div sclass="v2-cheque-col-center">
-                        <label sclass="v2-queue-label" value="CHEQUE QUEUE" />
+
+                    <!-- Row 2: search -> date range -> chips -> clear -->
+                    <div sclass="v2-cheque-filter-row">
+                        <textbox id="txtChequeSearch" sclass="v2-search-box"
+                            placeholder="Search cheque no. or payee..." instant="true" />
+
+                        <div sclass="v2-date-range">
+                            <datebox id="dteChequeDateFrom" sclass="v2-date-box v2-date-from"
+                                format="dd-MM-yyyy" placeholder="From" />
+                            <label sclass="v2-date-sep" value="→" />
+                            <datebox id="dteChequeDateTo" sclass="v2-date-box v2-date-to"
+                                format="dd-MM-yyyy" placeholder="To" />
+                        </div>
+
+                        <div sclass="v2-chip-group">
+                            <label id="chipFilterHighValue"  sclass="v2-stat-chip chip-filter-hv chip-filter"  value="0 High Value" />
+                            <label id="chipFilterReferred"   sclass="v2-stat-chip chip-filter-ref chip-filter" value="0 Referred" />
+                            <span sclass="v2-chip-divider" />
+                            <label id="chipStatusPending"    sclass="v2-stat-chip pending-chip chip-filter"    value="0 Pending" />
+                            <label id="chipStatusPassed"     sclass="v2-stat-chip passed-chip chip-filter"     value="0 Passed" />
+                            <label id="chipStatusRejected"   sclass="v2-stat-chip rejected-chip chip-filter"   value="0 Rejected" />
+                        </div>
+
+                        <button id="btnClearChequeFilters" sclass="v2-clear-btn" label="✕ Clear" />
                     </div>
-                    <div sclass="v2-cheque-col-right">
-                        <button id="btnBackToBatches" sclass="v2-back-btn" label="← Back to Batches" />
-                    </div>
+
                 </div>
 
-                <!-- Row 2: search -> date range -> chips -> clear, spread edge-to-edge -->
-                <div sclass="v2-cheque-filter-row">
-                    <textbox id="chequeSearchBox" sclass="v2-search-box"
-                        placeholder="Search cheque no. or payee..." instant="true" />
+                <grid id="chequeGrid" sclass="v2-grid" width="100%">
+                    <columns sclass="v2-grid-columns">
+                        <column label="S.NO."          width="6%"  sclass="v2-col-hd v2-center" />
+                        <column label="CHEQUE NO."     width="12%" sclass="v2-col-hd v2-center" />
+                        <column label="PAYEE NAME"     width="13%" sclass="v2-col-hd v2-center" />
+                        <column label="AMOUNT (Rs.)"   width="16%" sclass="v2-col-hd v2-center" />
+                        <column label="DATE"           width="12%" sclass="v2-col-hd v2-center" />
+                        <column label="FLAG"           width="8%"  sclass="v2-col-hd v2-center" />
+                        <column label="VER STATUS"     width="11%" sclass="v2-col-hd v2-center" />
+                        <column label="ACTION"         width="7%"  sclass="v2-col-hd v2-center" />
+                    </columns>
+                    <rows id="chequeGridRows" />
+                </grid>
 
-                    <div sclass="v2-date-range">
-                        <datebox id="chequeDateFromBox" sclass="v2-date-box v2-date-from"
-                            format="dd-MM-yyyy" placeholder="From" />
-                        <label sclass="v2-date-sep" value="→" />
-                        <datebox id="chequeDateToBox" sclass="v2-date-box v2-date-to"
-                            format="dd-MM-yyyy" placeholder="To" />
-                    </div>
-
-                    <div sclass="v2-chip-group">
-                        <label id="btnFilterHv"    sclass="v2-stat-chip chip-filter-hv chip-filter"  value="0 High Value" />
-                        <label id="btnFilterRef"   sclass="v2-stat-chip chip-filter-ref chip-filter" value="0 Referred" />
-                        <span sclass="v2-chip-divider" />
-                        <label id="hvPendingChip"  sclass="v2-stat-chip pending-chip chip-filter"    value="0 Pending" />
-                        <label id="hvPassedChip"   sclass="v2-stat-chip passed-chip chip-filter"     value="0 Passed" />
-                        <label id="hvRejectedChip" sclass="v2-stat-chip rejected-chip chip-filter"   value="0 Rejected" />
-                    </div>
-
-                    <button id="btnClearChequeFilters" sclass="v2-clear-btn" label="✕ Clear" />
+                <div id="chequeEmptyState" sclass="v2-empty-state" visible="false">
+                    <label sclass="v2-empty-icon" value="✅" />
+                    <label sclass="v2-empty-msg" value="No cheques match the selected filter" />
                 </div>
 
-            </div>
-
-            <grid id="chequeGrid" sclass="v2-grid" width="100%">
-                <columns sclass="v2-grid-columns">
-                    <column label="S.NO."          width="6%"  sclass="v2-col-hd v2-center" />
-                    <column label="CHEQUE NO."     width="12%" sclass="v2-col-hd v2-center" />
-                    <column label="PAYEE NAME"     width="13%" sclass="v2-col-hd v2-center" />
-                    <column label="AMOUNT (Rs.)"   width="16%" sclass="v2-col-hd v2-center" />
-                    <column label="DATE"           width="12%" sclass="v2-col-hd v2-center" />
-                    <column label="FLAG"           width="8%"  sclass="v2-col-hd v2-center" />
-                    <column label="VER STATUS"     width="11%" sclass="v2-col-hd v2-center" />
-                    <column label="ACTION"         width="7%"  sclass="v2-col-hd v2-center" />
-                </columns>
-                <rows id="chequeRows" />
-            </grid>
-
-            <div id="chequeEmptyState" sclass="v2-empty-state" visible="false">
-                <label sclass="v2-empty-icon" value="✅" />
-                <label sclass="v2-empty-msg" value="No cheques match the selected filter" />
-            </div>
-
-            <div sclass="v2-pagination-bar">
-                <label id="chequeCountLabel" sclass="v2-page-count-label" value="Showing cheques" />
-                <div sclass="v2-page-nav">
-                    <button id="btnPagePrev"  sclass="v2-page-btn" label="‹ Prev" />
-                    <label  id="pageInfoLabel" sclass="v2-page-info" value="Page 1 of 1" />
-                    <button id="btnPageNext"  sclass="v2-page-btn" label="Next ›" />
+                <div sclass="v2-pagination-bar">
+                    <label id="lblChequeRecordCount" sclass="v2-page-count-label" value="Showing cheques" />
+                    <div sclass="v2-page-nav">
+                        <button id="btnChequePagePrev" sclass="v2-page-btn" label="‹ Prev" />
+                        <label  id="lblChequePageInfo" sclass="v2-page-info" value="Page 1 of 1" />
+                        <button id="btnChequePageNext" sclass="v2-page-btn" label="Next ›" />
+                    </div>
                 </div>
-            </div>
 
             </div><!-- /v2-card -->
 
@@ -231,13 +221,13 @@
 
                 <!-- ── TITLE BAR ──────────────────────────────── -->
                 <div sclass="v2-popup-titlebar">
-                    <label sclass="v2-popup-title" id="popupTitle" value="Cheque #——" />
+                    <label sclass="v2-popup-title" id="lblPopupChequeTitle" value="Cheque #——" />
                     <!--
                         popupTypeBadge id is used by composer to swap between
-                        v2-badge-hv (dark navy, HIGH VALUE)
-                        v2-badge-ref (orange, REFERRED)
+                        v2-badge-hv  (dark navy, HIGH VALUE)
+                        v2-badge-ref (orange,    REFERRED)
                     -->
-                    <div id="popupTypeBadge" sclass="v2-badge-hv">HIGH VALUE</div>
+                    <div id="divPopupChequeTypeBadge" sclass="v2-badge-hv">HIGH VALUE</div>
                     <button id="btnClosePopup" sclass="v2-close-btn" label="✕" />
                 </div>
 
@@ -250,8 +240,8 @@
                         <!-- Front panel -->
                         <div id="imgPanelFront" sclass="v2-img-panel">
                             <div sclass="v2-img-panel-inner">
-                                <image id="frontChequeImage" sclass="v2-cheque-img" visible="false" />
-                                <div id="frontImagePlaceholder" sclass="v2-img-placeholder">
+                                <image id="imgChequeFront" sclass="v2-cheque-img" visible="false" />
+                                <div id="divFrontImagePlaceholder" sclass="v2-img-placeholder">
                                     <label sclass="v2-img-ph-icon" value="🖼" />
                                     <label sclass="v2-img-ph-text" value="Front image not available" />
                                 </div>
@@ -261,8 +251,8 @@
                         <!-- Back panel (hidden by default) -->
                         <div id="imgPanelBack" sclass="v2-img-panel" visible="false">
                             <div sclass="v2-img-panel-inner">
-                                <image id="rearChequeImage" sclass="v2-cheque-img" visible="false" />
-                                <div id="rearImagePlaceholder" sclass="v2-img-placeholder">
+                                <image id="imgChequeRear" sclass="v2-cheque-img" visible="false" />
+                                <div id="divRearImagePlaceholder" sclass="v2-img-placeholder">
                                     <label sclass="v2-img-ph-icon" value="🖼" />
                                     <label sclass="v2-img-ph-text" value="Rear image not available" />
                                 </div>
@@ -271,7 +261,7 @@
 
                         <!-- Flip button — RIGHT side of image, vertically centred -->
                         <div sclass="v2-flip-btn-col">
-                            <button id="btnFlipImage" sclass="v2-flip-btn" label="Show Back" />
+                            <button id="btnFlipChequeImage" sclass="v2-flip-btn" label="Show Back" />
                         </div>
 
                     </div><!-- /img-col -->
@@ -284,26 +274,26 @@
                             <div sclass="v2-data-section-hdr hdr-blue">
                                 MICR DATA
                             </div>
-                            <div sclass="v2-data-grid-5" >
+                            <div sclass="v2-data-grid-5">
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="CHEQUE NO." />
-                                    <label sclass="v2-field-val" id="fChequeNo" value="——" />
+                                    <label sclass="v2-field-val" id="lblChequeNumber" value="——" />
                                 </div>
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="CITY CODE" />
-                                    <label sclass="v2-field-val" id="fCityCode" value="——" />
+                                    <label sclass="v2-field-val" id="lblCityCode" value="——" />
                                 </div>
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="BANK CODE" />
-                                    <label sclass="v2-field-val" id="fBankCode" value="——" />
+                                    <label sclass="v2-field-val" id="lblBankCode" value="——" />
                                 </div>
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="BRANCH CODE" />
-                                    <label sclass="v2-field-val" id="fBranchCode" value="——" />
+                                    <label sclass="v2-field-val" id="lblBranchCode" value="——" />
                                 </div>
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="TC CODE" />
-                                    <label sclass="v2-field-val" id="fTxCode" value="——" />
+                                    <label sclass="v2-field-val" id="lblTransactionCode" value="——" />
                                 </div>
                             </div>
                         </div>
@@ -317,41 +307,41 @@
                                 <!-- Row 1: PAYEE NAME | PAYEE NAME (CBS) | PAYEE MATCH (CBS) -->
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="PAYEE NAME" />
-                                    <label sclass="v2-field-val" id="fPayeeName" value="——" />
+                                    <label sclass="v2-field-val" id="lblPayeeName" value="——" />
                                 </div>
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="PAYEE NAME (CBS)" />
-                                    <label sclass="v2-field-val v2-cbs-val" id="fCbsPayeeName" value="—" />
+                                    <label sclass="v2-field-val v2-cbs-val" id="lblCbsPayeeName" value="—" />
                                 </div>
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="PAYEE MATCH (CBS)" />
-                                    <label sclass="v2-field-val v2-cbs-val" id="fCbsPayeeMatch" value="—" />
+                                    <label sclass="v2-field-val v2-cbs-val" id="lblCbsPayeeMatch" value="—" />
                                 </div>
                                 <!-- Row 2: CHEQUE DATE | AMOUNT (₹) | AMOUNT IN WORDS -->
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="CHEQUE DATE" />
-                                    <label sclass="v2-field-val" id="fChequeDate" value="——" />
+                                    <label sclass="v2-field-val" id="lblChequeDate" value="——" />
                                 </div>
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="AMOUNT (₹)" />
-                                    <label sclass="v2-field-val v2-amount-val" id="fAmount" value="——" />
+                                    <label sclass="v2-field-val v2-amount-val" id="lblChequeAmount" value="——" />
                                 </div>
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="AMOUNT IN WORDS" />
-                                    <label sclass="v2-field-val" id="fAmountWords" value="——" />
+                                    <label sclass="v2-field-val" id="lblAmountInWords" value="——" />
                                 </div>
                                 <!-- Row 3: ACCOUNT NO. | NEW ACCOUNT (CBS) | ACCOUNT STATUS (CBS) -->
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="ACCOUNT NO." />
-                                    <label sclass="v2-field-val" id="fAccountNo" value="——" />
+                                    <label sclass="v2-field-val" id="lblAccountNumber" value="——" />
                                 </div>
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="NEW ACCOUNT (CBS)" />
-                                    <label sclass="v2-field-val v2-cbs-val" id="fCbsNewAccount" value="—" />
+                                    <label sclass="v2-field-val v2-cbs-val" id="lblCbsNewAccount" value="—" />
                                 </div>
                                 <div sclass="v2-field-group">
                                     <label sclass="v2-field-lbl" value="ACCOUNT STATUS (CBS)" />
-                                    <label sclass="v2-field-val v2-cbs-val" id="fCbsAccStatus" value="—" />
+                                    <label sclass="v2-field-val v2-cbs-val" id="lblCbsAccountStatus" value="—" />
                                 </div>
                             </div>
                         </div>
@@ -366,20 +356,20 @@
                     <!-- Navigation row -->
                     <div sclass="v2-nav-row">
                         <button id="btnPopupPrev" sclass="v2-nav-btn" label="‹ Prev" />
-                        <label sclass="v2-popup-counter" id="popupCounter" value="1 / 1" />
+                        <label sclass="v2-popup-counter" id="lblPopupChequeCounter" value="1 / 1" />
                         <button id="btnPopupNext" sclass="v2-nav-btn" label="Next ›" />
                     </div>
 
                     <!-- Action row -->
                     <div sclass="v2-action-row">
                         <div sclass="v2-remarks-wrap">
-                            <textbox id="fVerRemarks" sclass="v2-remarks-box"
+                            <textbox id="txtVerificationRemarks" sclass="v2-remarks-box"
                                 placeholder="Enter remarks..."
                                 multiline="true" rows="1" width="100%" />
                         </div>
                         <div sclass="v2-action-btns">
-                            <button id="btnAccept" sclass="v2-accept-btn" label="✔  Accept" />
-                            <button id="btnReject" sclass="v2-reject-btn" label="✘  Reject" />
+                            <button id="btnAcceptCheque" sclass="v2-accept-btn" label="✔  Accept" />
+                            <button id="btnRejectCheque" sclass="v2-reject-btn" label="✘  Reject" />
                         </div>
                     </div>
 
