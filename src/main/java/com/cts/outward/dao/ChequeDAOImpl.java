@@ -62,6 +62,7 @@ public class ChequeDAOImpl implements ChequeDAO {
 	/**
 	 * Maps one Object[] row (column order = PROJECTION_COLS) to a ChequeEntity
 	 * using the existing 17-field projection constructor.
+	 * Used by all projection-based read methods.
 	 */
 	private static ChequeEntity mapProjectionRow(Object[] r) {
 		return new ChequeEntity(
@@ -84,24 +85,41 @@ public class ChequeDAOImpl implements ChequeDAO {
 				toLocalDateTime(r[16]));        // updated_at
 	}
 
+	/** Null-safe Long coercion — handles Long, Integer, BigInteger from JDBC. */
 	private static Long toLong(Object o) {
 		if (o == null) return null;
 		if (o instanceof Long) return (Long) o;
 		return ((Number) o).longValue();
 	}
 
+	/** Null-safe BigDecimal coercion — handles BigDecimal, Double, String from JDBC. */
 	private static BigDecimal toBigDecimal(Object o) {
 		if (o == null) return null;
 		if (o instanceof BigDecimal) return (BigDecimal) o;
 		return new BigDecimal(o.toString());
 	}
 
+	/** Null-safe LocalDateTime coercion — handles LocalDateTime and java.sql.Timestamp from JDBC. */
 	private static LocalDateTime toLocalDateTime(Object o) {
 		if (o == null) return null;
 		if (o instanceof LocalDateTime) return (LocalDateTime) o;
 		return ((java.sql.Timestamp) o).toLocalDateTime();
 	}
 
+	// ══════════════════════════════════════════════════════════
+	// DASHBOARD
+	// ══════════════════════════════════════════════════════════
+
+	/**
+	 * Service method: loadDashboardData
+	 *
+	 * Two queries in one session:
+	 *   1. SELECT * FROM cts_batches ORDER BY created_at DESC — full batch list
+	 *   2. SELECT COUNT(*) WHERE ver_status = 'Pending' — pending cheques count
+	 * Wraps both into DashboardData. Returns empty/zero defaults on any error.
+	 *
+	 * Called by: DashboardComposer on page load
+	 */
 	@Override
 	public DashboardData loadDashboardData() {
 		try (Session session = HibernateUtil.getSession()) {
@@ -118,6 +136,18 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	// ══════════════════════════════════════════════════════════
+	// CHEQUE OPERATIONS
+	// ══════════════════════════════════════════════════════════
+
+	/**
+	 * Service method: saveCheque
+	 *
+	 * persist() for new entities (id=null), merge() for existing.
+	 * Explicit transaction; rethrows on failure.
+	 *
+	 * Called by: BatchDetailComposer after individual cheque edit
+	 */
 	@Override
 	public void saveCheque(ChequeEntity cheque) {
 		Transaction tx = null;
@@ -136,13 +166,30 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	/**
+	 * Daemon thread pool for async BLOB writes — 2 threads, named "img-save".
+	 * Keeps image save off the main request thread; daemon so it doesn't block JVM shutdown.
+	 */
 	private static final ExecutorService IMAGE_EXEC =
 	        Executors.newFixedThreadPool(2, r -> { Thread t = new Thread(r, "img-save"); t.setDaemon(true); return t; });
 
-	
+	/**
+	 * Service method: saveCheques
+	 *
+	 * Phase 1 (sync) — strip BLOBs, persist metadata in batches of 50 (flush+clear each batch).
+	 *   - BLOBs stripped before tx open: avoids sending large BYTEA to Supabase in main tx.
+	 *   - On failure: BLOBs restored to entities before rethrow.
+	 *
+	 * Phase 2 (async) — IMAGE_EXEC thread runs JDBC batch UPDATE for front_image/rear_image.
+	 *   - Skipped entirely if no images present (hasImages check).
+	 *   - Snapshots of ids/fronts/rears passed to lambda (immutable copies, thread-safe).
+	 *   - Uses session.doWork() for raw JDBC PreparedStatement batch — bypasses Hibernate
+	 *     for BYTEA efficiency.
+	 *
+	 * Called by: ZipImportServiceImpl after parsing ZIP scan bundle
+	 */
 	//SAVING IMG ON Supabase  
 	// 6. SAVE CHEQUES TO DB
-	
 	@Override
 	public void saveCheques(List<ChequeEntity> cheques) {
 	    if (cheques == null || cheques.isEmpty())
@@ -220,6 +267,16 @@ public class ChequeDAOImpl implements ChequeDAO {
 	    });
 	}
 
+	/**
+	 * Service method: findExistingChequeNos
+	 *
+	 * SELECT cheque_no FROM cts_cheques WHERE cheque_no IN :nos
+	 * IN-clause batch query — one round trip for the whole list.
+	 * Returns HashSet for O(1) contains() in duplicate-filter loop.
+	 * Returns empty set on null/empty input or DB error.
+	 *
+	 * Called by: ZipImportServiceImpl.filterDuplicates()
+	 */
 	@Override
 	public Set<String> findExistingChequeNos(List<String> chequeNos) {
 		if (chequeNos == null || chequeNos.isEmpty())
@@ -237,6 +294,17 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	/**
+	 * Service method: loadReadyBatchIds
+	 *
+	 * GROUP BY batch_id HAVING COUNT(*) > 0 AND COUNT(*) = COUNT(CASE WHEN status='Ready' THEN 1 END)
+	 * Single query replaces N areAllChequesReady() calls for table rendering.
+	 * HAVING clause ensures: batch non-empty AND every cheque is Ready.
+	 * Returns HashSet for O(1) contains() in renderPage() loop.
+	 * Returns empty set on null/empty input or DB error.
+	 *
+	 * Called by: BatchServiceImpl.getReadyBatchIds() → MyBatchesComposer.renderPage()
+	 */
 	@Override
 	public Set<String> loadReadyBatchIds(List<String> batchIds) {
 		if (batchIds == null || batchIds.isEmpty())
@@ -257,6 +325,19 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	/**
+	 * Service method: loadChequesForBatch
+	 *
+	 * Two-query projection pattern:
+	 *   Query 1: PROJECTION_COLS SELECT → mapProjectionRow() → list of ChequeEntity (no BLOBs)
+	 *   Query 2: SELECT id + extra fields (transaction_code, amount_in_words,
+	 *            amount_words_mismatch, payee_account_no, base_no) WHERE id IN :ids
+	 *            → merged into entities via HashMap<Long, Object[]>
+	 * Falls back to loadChequesForBatchFull() if projection query throws.
+	 *
+	 * Called by: BatchServiceImpl (areAllChequesReady, submitBatch validation),
+	 *            BatchDetailComposer cheque list render
+	 */
 	@Override
 	public List<ChequeEntity> loadChequesForBatch(String batchId) {
 		try (Session session = HibernateUtil.getSession()) {
@@ -298,6 +379,15 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	/**
+	 * Service method: loadChequesForBatchFull
+	 *
+	 * SELECT * — full entity including BLOBs. Slower than loadChequesForBatch().
+	 * Only called as fallback when projection query fails.
+	 * Returns empty list on DB error.
+	 *
+	 * Called by: loadChequesForBatch() fallback path
+	 */
 	@Override
 	public List<ChequeEntity> loadChequesForBatchFull(String batchId) {
 		try (Session session = HibernateUtil.getSession()) {
@@ -311,13 +401,22 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
-	
+	/**
+	 * Service method: loadChequeWithImages
+	 *
+	 * session.get() by PK — full Hibernate entity load including BYTEA columns.
+	 * The ONLY method that returns front_image/rear_image bytes.
+	 * All other reads use PROJECTION_COLS to avoid loading BLOBs unnecessarily.
+	 * Returns null on not-found or DB error.
+	 *
+	 * Called by: ImageViewerComposer / batch-detail image display
+	 */
 	// ── 3. Load image bytes from Supabase via Hibernate ──────────────────
-				//
-				// loadChequeWithImages() uses session.get() which loads the full entity
-				// including the BYTEA columns (front_image, rear_image).
-				// The 17-field projection constructor intentionally excludes these.
-				//
+	//
+	// loadChequeWithImages() uses session.get() which loads the full entity
+	// including the BYTEA columns (front_image, rear_image).
+	// The 17-field projection constructor intentionally excludes these.
+	//
 	@Override
 	public ChequeEntity loadChequeWithImages(Long chequeId) {
 		try (Session session = HibernateUtil.getSession()) {
@@ -328,6 +427,15 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	/**
+	 * Service method: updateChequeStatus
+	 *
+	 * Targeted UPDATE: status + ver_status + updated_at only.
+	 * Lighter than updateChequeFields() — does not touch MICR or amount columns.
+	 * Silent on failure (logs but does not rethrow).
+	 *
+	 * Called by: MicrRepairComposer, BatchDetailComposer on status-only changes
+	 */
 	@Override
 	public void updateChequeStatus(Long chequeId, String status, String verStatus) {
 		Transaction tx = null;
@@ -346,6 +454,15 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	/**
+	 * Service method: deleteCheque
+	 *
+	 * DELETE FROM cts_cheques WHERE id = :id — hard delete, no soft-delete flag.
+	 * Explicit transaction; rethrows on failure.
+	 * Logs cheque id on success for audit trail.
+	 *
+	 * Called by: BatchDetailComposer "Delete Cheque" action
+	 */
 	@Override
 	public void deleteCheque(Long chequeId) {
 		Transaction tx = null;
@@ -363,6 +480,14 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	/**
+	 * Service method: countPendingCheques
+	 *
+	 * SELECT COUNT(*) WHERE ver_status = 'Pending' — global count across all batches.
+	 * Returns 0 on DB error.
+	 *
+	 * Called by: DashboardComposer pending-cheques KPI tile
+	 */
 	@Override
 	public long countPendingCheques() {
 		try (Session session = HibernateUtil.getSession()) {
@@ -376,6 +501,19 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	// ══════════════════════════════════════════════════════════
+	// MICR REPAIR OPERATIONS
+	// ══════════════════════════════════════════════════════════
+
+	/**
+	 * Service method: loadIqaFailedCheques
+	 *
+	 * Projection SELECT WHERE iqa_status = 'Fail' AND status = 'MICR_Repair' for a batch.
+	 * No BLOBs — MICR repair screen needs field values, not images.
+	 * Returns empty list on DB error.
+	 *
+	 * Called by: MicrRepairComposer on batch load
+	 */
 	@Override
 	public List<ChequeEntity> loadIqaFailedCheques(String batchId) {
 		try (Session session = HibernateUtil.getSession()) {
@@ -395,6 +533,18 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	/**
+	 * Service method: updateChequeFields
+	 *
+	 * Multi-field MICR repair UPDATE:
+	 *   sort_code, transaction_code, account_no, payee_account_no, base_no,
+	 *   amount, amount_in_words, amount_words_mismatch, cheque_date, payee_name, status.
+	 * NOTE: ver_level intentionally excluded — projection loads verLevel=null;
+	 *   writing it here would clobber ver_level set by submitBatch()/verifier flow.
+	 * Rethrows on failure.
+	 *
+	 * Called by: MicrRepairComposer "Save" action
+	 */
 	@Override
 	public void updateChequeFields(ChequeEntity cheque) {
 		Transaction tx = null;
@@ -440,6 +590,15 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	/**
+	 * Service method: countRepairedToday
+	 *
+	 * SELECT COUNT(*) WHERE status = 'Sent_for_Verification' AND updated_at >= CURRENT_DATE.
+	 * "Today" is determined server-side by Postgres CURRENT_DATE — no Java date math.
+	 * Returns 0 on DB error.
+	 *
+	 * Called by: DashboardComposer / MicrRepairComposer "repaired today" stats tile
+	 */
 	@Override
 	public long countRepairedToday() {
 		try (Session session = HibernateUtil.getSession()) {
@@ -456,6 +615,19 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	// ══════════════════════════════════════════════════════════
+	// HIGH VALUE (HV) OPERATIONS
+	// ══════════════════════════════════════════════════════════
+
+	/**
+	 * Service method: loadHvChequesForBatch
+	 *
+	 * Projection SELECT WHERE batch_id = :batchId AND high_value = true.
+	 * Falls back to SELECT * if projection throws (two-level try/catch).
+	 * Returns empty list on both levels failing.
+	 *
+	 * Called by: HvBatchDetailComposer / VerificationTwoComposer
+	 */
 	@Override
 	public List<ChequeEntity> loadHvChequesForBatch(String batchId) {
 		try (Session session = HibernateUtil.getSession()) {
@@ -483,6 +655,15 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	/**
+	 * Service method: countHvPendingCheques
+	 *
+	 * SELECT COUNT(*) WHERE high_value = true AND ver_status = 'Pending'.
+	 * Global count across all batches.
+	 * Returns 0 on DB error.
+	 *
+	 * Called by: DashboardComposer HV pending KPI tile
+	 */
 	@Override
 	public long countHvPendingCheques() {
 		try (Session session = HibernateUtil.getSession()) {
@@ -496,6 +677,15 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	/**
+	 * Service method: countHvByVerStatus
+	 *
+	 * SELECT COUNT(*) WHERE high_value = true AND ver_status = :vs.
+	 * Generic — caller passes any ver_status string ('V2_PENDING', 'VERIFIED', etc.).
+	 * Returns 0 on DB error.
+	 *
+	 * Called by: DashboardComposer HV breakdown tiles
+	 */
 	@Override
 	public long countHvByVerStatus(String verStatus) {
 		try (Session session = HibernateUtil.getSession()) {
@@ -509,6 +699,15 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	/**
+	 * Service method: countHvPendingForBatch
+	 *
+	 * SELECT COUNT(*) WHERE batch_id = :batchId AND high_value = true AND ver_status = 'Pending'.
+	 * Batch-scoped version of countHvPendingCheques().
+	 * Returns 0 on DB error.
+	 *
+	 * Called by: HvBatchDetailComposer pending-count indicator
+	 */
 	@Override
 	public long countHvPendingForBatch(String batchId) {
 		try (Session session = HibernateUtil.getSession()) {
@@ -523,6 +722,15 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+	/**
+	 * Service method: sumHvPendingAmount
+	 *
+	 * SELECT SUM(amount) WHERE high_value = true AND ver_status = 'Pending'.
+	 * toBigDecimal() handles both NUMERIC and DOUBLE PRECISION from Postgres.
+	 * Returns BigDecimal.ZERO on null result (no matching rows) or DB error.
+	 *
+	 * Called by: DashboardComposer HV pending amount KPI tile
+	 */
 	@Override
 	public BigDecimal sumHvPendingAmount() {
 		try (Session session = HibernateUtil.getSession()) {
@@ -536,9 +744,157 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+<<<<<<< Updated upstream
 	
 
 	
+=======
+	// ══════════════════════════════════════════════════════════
+	// VERIFICATION OPERATIONS
+	// Author : Anusha (V1) / Girinath (V2)
+	// ══════════════════════════════════════════════════════════
+
+	/**
+	 * Service method: loadChequesByVerLevel
+	 *
+	 * Two-query projection pattern for verification queues:
+	 *   Query 1: PROJECTION_COLS WHERE ver_level = :verLevel AND status = :status
+	 *            ORDER BY batch_id ASC, id ASC (FIFO within batch)
+	 *   Query 2: SELECT id, ver_action, ver_by, ver_remarks WHERE id IN :ids
+	 *            → merged into entities via HashMap<Long, Object[]>
+	 * Returns empty list on DB error.
+	 *
+	 * Called by: VerificationOneComposer (verLevel='V1', status='V1_Pending')
+	 *            VerificationTwoComposer (verLevel='V2', status='V2_Pending')
+	 */
+	@Override
+	public List<ChequeEntity> loadChequesByVerLevel(String verLevel, String status) {
+		try (Session session = HibernateUtil.getSession()) {
+			List<Object[]> rows = session.createNativeQuery(
+					"SELECT " + PROJECTION_COLS + " FROM cts_cheques"
+					+ " WHERE ver_level = :verLevel AND status = :status"
+					+ " ORDER BY batch_id ASC, id ASC",
+					Object[].class)
+					.setParameter("verLevel", verLevel)
+					.setParameter("status", status)
+					.getResultList();
+
+			List<ChequeEntity> results = new ArrayList<>(rows.size());
+			for (Object[] r : rows)
+				results.add(mapProjectionRow(r));
+
+			if (!results.isEmpty()) {
+				List<Long> ids = results.stream().map(ChequeEntity::getId).toList();
+				List<Object[]> verRows = session.createNativeQuery(
+						"SELECT id, ver_action, ver_by, ver_remarks FROM cts_cheques WHERE id IN :ids",
+						Object[].class)
+						.setParameter("ids", ids).getResultList();
+				Map<Long, Object[]> verMap = new HashMap<>();
+				for (Object[] row : verRows)
+					verMap.put(toLong(row[0]), row);
+				results.forEach(c -> {
+					Object[] row = verMap.get(c.getId());
+					if (row != null) {
+						c.setVerAction(row[1] != null ? row[1].toString() : null);
+						c.setVerBy(row[2] != null ? row[2].toString() : null);
+						c.setVerRemarks(row[3] != null ? row[3].toString() : null);
+					}
+				});
+			}
+			return results;
+		} catch (Exception ex) {
+			LOG.severe("loadChequesByVerLevel error: " + ex.getMessage());
+			return Collections.emptyList();
+		}
+	}
+
+	/**
+	 * Service method: countPendingVerificationForBatch
+	 *
+	 * SELECT COUNT(*) WHERE batch_id = :batchId AND status IN ('V1_PENDING', 'V2_PENDING').
+	 * Used by BatchServiceImpl.checkAndFinalizeBatch() — count=0 triggers batch→'Verified'.
+	 * Returns -1L on DB error so caller can distinguish "zero pending" from "query failed"
+	 * and skip finalization on uncertainty (fail-safe).
+	 *
+	 * Called by: BatchServiceImpl.checkAndFinalizeBatch() after each verifier action
+	 */
+	@Override
+	public long countPendingVerificationForBatch(String batchId) {
+		try (Session session = HibernateUtil.getSession()) {
+			Number result = (Number) session.createNativeQuery(
+					"SELECT COUNT(*) FROM cts_cheques"
+					+ " WHERE batch_id = :batchId"
+					+ " AND status IN ('V1_PENDING', 'V2_PENDING')",
+					Object.class)
+					.setParameter("batchId", batchId)
+					.uniqueResult();
+			return result != null ? result.longValue() : 0L;
+		} catch (Exception ex) {
+			LOG.severe("countPendingVerificationForBatch error: " + ex.getMessage());
+			return -1L;
+		}
+	}
+
+	/**
+	 * Service method: applyVerifierAction
+	 *
+	 * UPDATE: status, ver_status, ver_level, ver_action, ver_by, ver_remarks, updated_at.
+	 * Note: ver_status mirrors status in this UPDATE (both set to same value).
+	 * Used for standard V1/V2 decisions: ACCEPTED, REJECTED.
+	 * Does NOT set is_referred — use referToVerificationTwo() for V1→V2 escalation.
+	 * Rethrows on failure.
+	 *
+	 * Called by: VerificationOneComposer (Anusha), VerificationTwoComposer (Girinath)
+	 */
+	@Override
+	public void applyVerifierAction(Long chequeId, String status, String verLevel,
+			String verAction, String verBy, String verRemarks) {
+		Transaction tx = null;
+		try (Session session = HibernateUtil.getSession()) {
+			tx = session.beginTransaction();
+			session.createNativeMutationQuery(
+					"UPDATE cts_cheques SET"
+					+ "  status      = :status,"
+					+ "  ver_status  = :status,"
+					+ "  ver_level   = :verLevel,"
+					+ "  ver_action  = :verAction,"
+					+ "  ver_by      = :verBy,"
+					+ "  ver_remarks = :verRemarks,"
+					+ "  updated_at  = CURRENT_TIMESTAMP"
+					+ " WHERE id = :id")
+					.setParameter("status",     status)
+					.setParameter("verLevel",   verLevel)
+					.setParameter("verAction",  verAction)
+					.setParameter("verBy",      verBy)
+					.setParameter("verRemarks", verRemarks)
+					.setParameter("id",         chequeId)
+					.executeUpdate();
+			tx.commit();
+			LOG.info("applyVerifierAction: cheque=" + chequeId + " action=" + verAction + " by=" + verBy);
+		} catch (Exception ex) {
+			if (tx != null)
+				tx.rollback();
+			LOG.severe("applyVerifierAction error: " + ex.getMessage());
+			throw new RuntimeException("Failed to apply verifier action: " + ex.getMessage(), ex);
+		}
+	}
+
+	// ══════════════════════════════════════════════════════════
+	// CXF GENERATION
+	// ══════════════════════════════════════════════════════════
+
+	/**
+	 * Service method: loadAcceptedInstrumentsForCxf
+	 *
+	 * Projection SELECT WHERE status = 'VERIFIED'
+	 *   AND (ver_status IS NULL OR ver_status != 'CXF_Generated')
+	 * Excludes already-generated instruments — idempotent if called twice.
+	 * Secondary SELECT merges transaction_code via HashMap.
+	 * Returns empty list on DB error.
+	 *
+	 * Called by: CxfGenerationComposer on generate action
+	 */
+>>>>>>> Stashed changes
 	@Override
 	public List<ChequeEntity> loadAcceptedInstrumentsForCxf() {
 		try (Session session = HibernateUtil.getSession()) {
@@ -574,8 +930,94 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
+<<<<<<< Updated upstream
 	
 	@Override
+=======
+	/**
+	 * Service method: referToVerificationTwo
+	 *
+	 * V1 → V2 escalation UPDATE — differs from applyVerifierAction() in two fields:
+	 *   - ver_level   hardcoded 'V2' (not passed — always V2 on refer)
+	 *   - is_referred hardcoded true (permanent flag; V2 must NOT reset this)
+	 * status + ver_status both set to 'V2_PENDING', ver_action = 'Refer'.
+	 * Rethrows on failure.
+	 *
+	 * Called by: VerificationOneComposer "Refer to V2" action (Anusha)
+	 */
+	@Override
+	public void referToVerificationTwo(Long chequeId, String verBy, String verRemarks) {
+		Transaction tx = null;
+		try (Session session = HibernateUtil.getSession()) {
+			tx = session.beginTransaction();
+			session.createNativeMutationQuery(
+					"UPDATE cts_cheques SET"
+					+ "  status      = :status,"
+					+ "  ver_status  = :status,"
+					+ "  ver_level   = :verLevel,"
+					+ "  is_referred = true,"
+					+ "  ver_action  = :verAction,"
+					+ "  ver_by      = :verBy,"
+					+ "  ver_remarks = :verRemarks,"
+					+ "  updated_at  = CURRENT_TIMESTAMP"
+					+ " WHERE id = :id")
+					.setParameter("status",     "V2_PENDING")
+					.setParameter("verLevel",   "V2")
+					.setParameter("verAction",  "Refer")
+					.setParameter("verBy",      verBy)
+					.setParameter("verRemarks", verRemarks)
+					.setParameter("id",         chequeId)
+					.executeUpdate();
+			tx.commit();
+			LOG.info("referToVerificationTwo: cheque=" + chequeId + " by=" + verBy);
+		} catch (Exception ex) {
+			if (tx != null)
+				tx.rollback();
+			LOG.severe("referToVerificationTwo error: " + ex.getMessage());
+			throw new RuntimeException("Failed to refer cheque to V2: " + ex.getMessage(), ex);
+		}
+	}
+
+	/**
+	 * Service method: countV1ProcessedForBatch
+	 *
+	 * SELECT COUNT(*) WHERE batch_id = :batchId AND ver_level = 'V1'
+	 *   AND status IN ('VERIFIED', 'REJECTED', 'V2_PENDING').
+	 * "Processed" = any terminal V1 decision including refer-to-V2.
+	 * Returns 0 on DB error.
+	 *
+	 * Called by: VerificationOneComposer batch progress indicator
+	 */
+	@Override
+	public long countV1ProcessedForBatch(String batchId) {
+	    try (Session session = HibernateUtil.getSession()) {
+	        Number result = (Number) session.createNativeQuery(
+	                "SELECT COUNT(*) FROM cts_cheques"
+	                + " WHERE batch_id = :batchId"
+	                + "   AND ver_level = 'V1'"
+	                + "   AND status IN ('VERIFIED', 'REJECTED', 'V2_PENDING')",
+	                Object.class)
+	                .setParameter("batchId", batchId)
+	                .uniqueResult();
+	        return result != null ? result.longValue() : 0L;
+	    } catch (Exception ex) {
+	        LOG.severe("countV1ProcessedForBatch error: " + ex.getMessage());
+	        return 0L;
+	    }
+	}
+
+	/**
+	 * Service method: updateVerRouting
+	 *
+	 * Routing UPDATE on batch submission: sets status, ver_level, ver_status, updated_at.
+	 * Called once per cheque inside BatchServiceImpl.submitBatch() routing loop.
+	 * Does NOT touch ver_action/ver_by/ver_remarks — those are set by verifiers, not submit.
+	 * Rethrows on failure.
+	 *
+	 * Called by: BatchServiceImpl.submitBatch() → per-cheque V1/V2 routing loop
+	 */
+	@Override
+>>>>>>> Stashed changes
 	public void updateVerRouting(Long chequeId, String status, String verLevel, String verStatus) {
 		Transaction tx = null;
 		try (Session session = HibernateUtil.getSession()) {

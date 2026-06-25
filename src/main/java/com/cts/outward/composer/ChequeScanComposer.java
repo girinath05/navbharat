@@ -752,7 +752,9 @@ public class ChequeScanComposer extends SelectorComposer<Component> {
 	// FLOW: button clicks → these methods → batchModal.setVisible(true/false)
 	// ══════════════════════════════════════════════════════════════════════
 
-	/**
+	
+	
+	/**SEE AFTER CLICKING BUTTON , OPENS openBatchModal ===>🙏🙏🙏 batchModal.setVisible(true/false) 🙏🙏🙏
 	 * Opens the Create Batch modal (Step 1). FLOW: onClick → openBatchModal() →
 	 * clears inputs → modal visible Called from:
 	 * {@code onClick = #btnOpenBatchModal}

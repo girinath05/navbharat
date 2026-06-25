@@ -59,6 +59,19 @@ public class CBSDAOImpl implements CBSDAO {
     // ACCOUNT QUERIES
     // ══════════════════════════════════════════════════════════
 
+    /**
+     * Service method: getAccountDetails
+     *
+     * GET /accounts/{accountNumber} from Firestore REST.
+     * Returns the "fields" node of the Firestore document on HTTP 200.
+     * Callers read typed values via Firestore envelope:
+     *   fields.path("accountHolderName").path("stringValue").asText()
+     *   fields.path("active").path("booleanValue").asBoolean(false)
+     *   fields.path("balance").path("integerValue").asDouble(0)
+     * Fail-closed: returns null on non-200 or any exception.
+     *
+     * Called by: CBSServiceImpl.getAccountDetails() → BatchDetailComposer (account lookup)
+     */
     @Override
     public JsonNode getAccountDetails(String accountNumber) {
         try {
@@ -81,6 +94,15 @@ public class CBSDAOImpl implements CBSDAO {
         }
     }
 
+    /**
+     * Service method: isAccountExists
+     *
+     * GET /accounts/{accountNumber} — checks HTTP status only, ignores body.
+     * HTTP 200 → account exists → true.
+     * Any non-200 or exception → false (fail-closed: deny on uncertainty).
+     *
+     * Called by: CBSServiceImpl.isAccountExists() → BatchDetailComposer (pre-entry validation)
+     */
     @Override
     public boolean isAccountExists(String accountNumber) {
         try {
@@ -102,6 +124,16 @@ public class CBSDAOImpl implements CBSDAO {
     // CHEQUE QUERIES
     // ══════════════════════════════════════════════════════════
 
+    /**
+     * Service method: isChequeExists
+     *
+     * GET /cheques/{accountNumber}_{chequeNumber} — checks HTTP status only.
+     * Document ID constructed as "{accountNumber}_{chequeNumber}" per Firestore convention.
+     * HTTP 200 → cheque document exists → true.
+     * Any non-200 or exception → false (fail-closed).
+     *
+     * Called by: CBSServiceImpl.isChequeExists() → BatchDetailComposer (cheque validation)
+     */
     @Override
     public boolean isChequeExists(String accountNumber, String chequeNumber) {
         try {
@@ -120,6 +152,22 @@ public class CBSDAOImpl implements CBSDAO {
         }
     }
 
+    /**
+     * Service method: getChequeStatus
+     *
+     * GET /cheques/{accountNumber}_{chequeNumber} — reads status field from Firestore envelope.
+     * Path: response.fields.status.stringValue
+     * Return values:
+     *   "ACTIVE"    — valid and in circulation
+     *   "STOPPED"   — stop payment issued
+     *   "CLEARED"   — already presented
+     *   "NOT_FOUND" — HTTP non-200 (document absent)
+     *   "UNKNOWN"   — document found but status field missing (asText fallback)
+     *   "ERROR"     — network or parse exception
+     * Never returns null.
+     *
+     * Called by: CBSServiceImpl.getChequeStatus() → BatchDetailComposer (stop-payment check)
+     */
     @Override
     public String getChequeStatus(String accountNumber, String chequeNumber) {
         try {

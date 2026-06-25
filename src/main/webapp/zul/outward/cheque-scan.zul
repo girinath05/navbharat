@@ -105,6 +105,8 @@
              Displays page title, subtitle, and two action buttons.
              Buttons wired to composer:
                btnViewBatches    → onViewBatches()  → navigates to batchManagement.zul
+               
+               //
                btnOpenBatchModal → onOpenBatchModal() → opens Create Batch modal
         ═══════════════════════════════════════════════════════════════════ -->
         <n:div class="pg-head">
@@ -294,6 +296,10 @@
 
              Visibility: controlled by composer → batchModal.setVisible(true/false)
              Opens via : onOpenBatchModal() / autoOpenBatchModal session flag
+             ///////See this flags after  onOpenBatchModal True its automaticaaly open this popup...
+             
+             
+             
              Closes via: btnCloseBatchModal (×), btnCancelBatchModal (Cancel),
                           or automatically after successful onCreateBatch()
 
@@ -316,6 +322,8 @@
                         <div sclass="modal-head-icon">&#x1F4C2;</div>
                         <span sclass="modal-title">Create New Batch</span>
                     </div>
+                    
+                    
                     <!-- Wired to onCloseBatchModal() → batchModal.setVisible(false) -->
                     <button id="btnCloseBatchModal" sclass="modal-close-btn" label="&#x2715;"/>
                 </div>
