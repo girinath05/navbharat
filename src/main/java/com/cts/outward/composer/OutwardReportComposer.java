@@ -1,11 +1,10 @@
 package com.cts.outward.composer;
 
-import com.cts.composer.SidebarComposer;
 import com.cts.outward.dto.ReportBatchDTO;
 import com.cts.outward.dto.ReportChequeDTO;
 import com.cts.outward.service.OutwardReportService;
 import com.cts.outward.service.OutwardReportServiceImpl;
-import com.cts.util.SecurityUtil;
+
 import com.cts.outward.enums.BatchStatus;
 
 import org.zkoss.zk.ui.Component;
@@ -18,7 +17,6 @@ import org.zkoss.zul.*;
 
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.data.JRMapCollectionDataSource;
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -70,6 +68,8 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
     private Datebox fromDate;
     @Wire("#toDate")
     private Datebox toDate;
+    @Wire("#statusFilter")
+    private Combobox statusFilter;
     @Wire("#batchIdFilter")
     private Textbox batchIdFilter;
 
@@ -116,6 +116,9 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
         super.doAfterCompose(component);
 
         initDateFilters();
+        if (statusFilter != null && statusFilter.getItemCount() > 0) {
+            statusFilter.setSelectedIndex(0);
+        }
         service.migrateBatchStatuses();
         determineActiveReportTab();
         configureReportView();
@@ -207,7 +210,7 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
     /**
      * Triggers data reload on filter modifications.
      */
-    @Listen("onChange = #fromDate; onChange = #toDate")
+    @Listen("onChange = #fromDate; onChange = #toDate; onChange = #statusFilter")
     public void onFilterChanged() {
         resetActivePages();
         performSearch();
@@ -247,6 +250,9 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
         if (batchIdFilter != null) {
             batchIdFilter.setValue("");
         }
+        if (statusFilter != null) {
+            statusFilter.setSelectedIndex(0);
+        }
         resetActivePages();
         performSearch();
     }
@@ -264,8 +270,8 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
     private void performSearch() {
         lastDbChecksum = service.getDatabaseSyncChecksum();
 
-        Date fromDateVal = fromDate.getValue();
-        Date toDateVal = toDate.getValue();
+        Date fromDateVal = fromDate != null ? fromDate.getValue() : null;
+        Date toDateVal = toDate != null ? toDate.getValue() : null;
         String filterBatchId = currentBatchIdFilter;
 
         LocalDate searchFromDate = fromDateVal != null ? new java.sql.Date(fromDateVal.getTime()).toLocalDate() : null;
@@ -403,6 +409,7 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
 
         if (totalItems > 0) {
             for (int itemIndex = startIndex; itemIndex < endIndex; itemIndex++) {
+                // Global 1-based serial number continuing across pages
                 Object listItem = currentFilteredList.get(itemIndex);
                 if ("CXF_REPORT".equals(activeReportTab)) {
                     ReportBatchDTO batch = (ReportBatchDTO) listItem;
@@ -426,11 +433,10 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
                     appendCheckboxOnlyCellToListItem(row, chkSelectAllBatch, lbBatch);
                     appendListcellWithTextAndStyle(row, batch.getBatchId(), "font-weight:700;color:#1B2E4B;");
                     appendListcellWithTextAndStyle(row, String.valueOf(batch.getTotalCheques()), null);
-                    appendListcellWithTextAndStyle(row, formatCurrencyToIndianRupees(batch.getTotalAmount()),
-                            "color:#166534;font-weight:600;");
-                    row.appendChild(createListcellWithStatusPill(formatStatusStringToFriendlyLabel(batch.getStatus()),
-                            retrieveCssClassForBatchStatusPill(batch.getStatus())));
+                    appendListcellWithTextAndStyle(row, formatCurrencyToIndianRupees(batch.getTotalAmount()), "color:#166534;font-weight:600;");
                     appendListcellWithTextAndStyle(row, formatLocalDateTimeToString(batch.getCreatedAt()), null);
+                    row.appendChild(createListcellWithStatusPill(formatStatusStringToFriendlyLabel(batch.getStatus()), retrieveCssClassForBatchStatusPill(batch.getStatus())));
+                    
                     lbBatch.appendChild(row);
                 } else if ("CHEQUE_REPORT".equals(activeReportTab)) {
                     ReportChequeDTO cheque = (ReportChequeDTO) listItem;
@@ -534,6 +540,15 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
         if (filterBatchId != null && !filterBatchId.isEmpty()) {
             if (batch.getBatchId() == null || !batch.getBatchId().toLowerCase().contains(filterBatchId.toLowerCase())) {
                 return false;
+            }
+        }
+
+        if (statusFilter != null && statusFilter.getSelectedItem() != null) {
+            String selectedStatus = statusFilter.getSelectedItem().getValue();
+            if (selectedStatus != null && !selectedStatus.isEmpty() && !"ALL".equalsIgnoreCase(selectedStatus)) {
+                if (batch.getStatus() == null || !batch.getStatus().equalsIgnoreCase(selectedStatus)) {
+                    return false;
+                }
             }
         }
         return true;
@@ -831,44 +846,12 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
                 }
             }
 
-            String batchIdStr = "";
-            if (uniqueBatches.size() == 1) {
-                batchIdStr = uniqueBatches.iterator().next();
-            }
-
-            // Retrieve admin details
-            String adminName = "Admin";
-            org.zkoss.zk.ui.Session zkSession = org.zkoss.zk.ui.Sessions.getCurrent();
-            if (zkSession != null) {
-                com.cts.uam.model.User sessionUser = (com.cts.uam.model.User) zkSession
-                        .getAttribute(SecurityUtil.SESSION_USER_KEY);
-                String sessionUserName = sessionUser != null ? sessionUser.getUsername() : "System";
-                if (sessionUserName != null && !sessionUserName.trim().isEmpty()) {
-                    adminName = sessionUserName;
-                }
-            }
-
-            // Retrieve login time
-            long loginTimeMs = System.currentTimeMillis();
-            if (zkSession != null && zkSession.getNativeSession() instanceof jakarta.servlet.http.HttpSession) {
-                try {
-                    loginTimeMs = ((jakarta.servlet.http.HttpSession) zkSession.getNativeSession()).getCreationTime();
-                } catch (Exception exception) {
-                    // fallback
-                }
-            }
-            LocalDateTime loginDateTime = LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(loginTimeMs),
-                    java.time.ZoneId.systemDefault());
-            String loginTimeStr = loginDateTime.format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"));
-            String generatedTimeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"));
-
             // Select JRXML path and populate data source collection
+            String generatedTimeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"));
             String templatePath = "";
             List<Map<String, ?>> jasperData = new ArrayList<>();
             Map<String, Object> parameters = new HashMap<>();
 
-            parameters.put("adminName", adminName);
-            parameters.put("loginTime", loginTimeStr);
             parameters.put("dateRange", dateRangeStr);
             parameters.put("generatedAt", generatedTimeStr);
             parameters.put("totalAmount", formatCurrencyToIndianRupees(totalAmountVal));
@@ -878,9 +861,11 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
                 parameters.put("totalCountLabel", "Total Batches");
                 parameters.put("totalCountValue", String.valueOf(totalBatches));
 
+                int sNo = 1;
                 for (Object item : itemsToExport) {
                     ReportBatchDTO batch = (ReportBatchDTO) item;
                     Map<String, Object> map = new HashMap<>();
+                    map.put("sNo", String.valueOf(sNo++));
                     map.put("fileId", batch.getBatchId());
                     map.put("fileName",
                             "CXF_REPORT".equals(activeReportTab) ? batch.getCxfFileName() : batch.getCibfFileName());
@@ -907,8 +892,10 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
                     }
                     parameters.put("totalCountValue", String.valueOf(batchCheques.size()));
 
+                    int sNo = 1;
                     for (ReportChequeDTO cheque : batchCheques) {
                         Map<String, Object> map = new HashMap<>();
+                        map.put("sNo", String.valueOf(sNo++));
                         map.put("chequeNo", cheque.getChequeNo());
                         map.put("batchId", cheque.getBatchId());
                         map.put("amount", cheque.getAmount());
@@ -922,9 +909,11 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
                     parameters.put("totalCountLabel", "Total Batches");
                     parameters.put("totalCountValue", String.valueOf(totalBatches));
 
+                    int sNo = 1;
                     for (Object item : itemsToExport) {
                         ReportBatchDTO batch = (ReportBatchDTO) item;
                         Map<String, Object> map = new HashMap<>();
+                        map.put("sNo", String.valueOf(sNo++));
                         map.put("batchId", batch.getBatchId());
                         map.put("totalCheques", batch.getTotalCheques());
                         map.put("totalAmount", batch.getTotalAmount());
@@ -938,9 +927,11 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
                 parameters.put("totalCountLabel", "Total Cheques");
                 parameters.put("totalCountValue", String.valueOf(totalCheques));
 
+                int sNo = 1;
                 for (Object item : itemsToExport) {
                     ReportChequeDTO cheque = (ReportChequeDTO) item;
                     Map<String, Object> map = new HashMap<>();
+                    map.put("sNo", String.valueOf(sNo++));
                     map.put("chequeNo", cheque.getChequeNo());
                     map.put("batchId", cheque.getBatchId());
                     map.put("amount", cheque.getAmount());
@@ -984,11 +975,14 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
      */
     private String determinePdfDateRange(List<?> itemsToExport) {
         java.util.TreeSet<LocalDate> dates = new java.util.TreeSet<>();
+
         for (Object item : itemsToExport) {
             LocalDate extractedDate = null;
             if (item instanceof ReportBatchDTO) {
                 ReportBatchDTO batch = (ReportBatchDTO) item;
-                LocalDateTime dateTime = "CXF_REPORT".equals(activeReportTab) ? batch.getGeneratedAt()
+                // For CXF_REPORT use generatedAt, for BATCH_SUMMARY use createdAt
+                LocalDateTime dateTime = "CXF_REPORT".equals(activeReportTab)
+                        ? batch.getGeneratedAt()
                         : batch.getCreatedAt();
                 if (dateTime != null) {
                     extractedDate = dateTime.toLocalDate();
@@ -1003,6 +997,8 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
         }
 
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+        // If we found actual dates from the selected items — use them (most accurate)
         if (!dates.isEmpty()) {
             LocalDate minDate = dates.first();
             LocalDate maxDate = dates.last();
@@ -1013,8 +1009,9 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
             }
         }
 
-        Date fromDateValue = fromDate.getValue();
-        Date toDateValue = toDate.getValue();
+        // Fallback: if manual date filters were applied, show those
+        Date fromDateValue = (fromDate != null) ? fromDate.getValue() : null;
+        Date toDateValue = (toDate != null) ? toDate.getValue() : null;
         if (fromDateValue != null && toDateValue != null) {
             LocalDate fromLocalDate = new java.sql.Date(fromDateValue.getTime()).toLocalDate();
             LocalDate toLocalDate = new java.sql.Date(toDateValue.getTime()).toLocalDate();
@@ -1025,12 +1022,15 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
             }
         } else if (fromDateValue != null) {
             LocalDate fromLocalDate = new java.sql.Date(fromDateValue.getTime()).toLocalDate();
-            return fromLocalDate.format(dateFormatter) + " to All";
+            return fromLocalDate.format(dateFormatter) + " onwards";
         } else if (toDateValue != null) {
             LocalDate toLocalDate = new java.sql.Date(toDateValue.getTime()).toLocalDate();
-            return "All to " + toLocalDate.format(dateFormatter);
+            return "Up to " + toLocalDate.format(dateFormatter);
         }
-        return "All to All";
+
+        // No filters, no dates found — scan ALL selected items for widest possible
+        // range
+        return "All Dates";
     }
 
     /**
@@ -1064,15 +1064,35 @@ public class OutwardReportComposer extends SelectorComposer<Component> {
     /**
      * Appends long string values as list cells with full tooltip capabilities.
      */
+ // AFTER — truncate after 2nd underscore: CXF_560765000_....
     private void appendLongValueCell(Listitem row, String value) {
         String displayVal = (value != null && !value.isEmpty()) ? value : "—";
+
+        if (displayVal.startsWith("CXF_") || displayVal.startsWith("CIBF_")) {
+            int pos = -1;
+            int count = 0;
+            for (int i = 0; i < displayVal.length(); i++) {
+                if (displayVal.charAt(i) == '_') {
+                    count++;
+                    if (count == 2) {
+                        pos = i;
+                        break;
+                    }
+                }
+            }
+            if (pos != -1 && displayVal.length() > pos + 1) {
+                displayVal = displayVal.substring(0, pos + 1) + "....";
+            }
+        } else if (!displayVal.equals("—") && displayVal.length() > 14) {
+            displayVal = displayVal.substring(0, 14) + "....";
+        }
+
         Listcell tooltipCell = new Listcell(displayVal);
         if (value != null && !value.isEmpty() && !value.equals("—")) {
             tooltipCell.setTooltiptext(value);
         }
         row.appendChild(tooltipCell);
     }
-
     /**
      * Instantiates status indicator badges dynamically.
      */

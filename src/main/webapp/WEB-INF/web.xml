@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+
 <!--
     web.xml — ClearPay CTS / NavbharatCTS
     =====================================================================
@@ -25,14 +26,22 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="
         https://jakarta.ee/xml/ns/jakartaee
-        https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd"
-    version="5.0">
+        https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+    version="6.0">
+
 
     <!-- =================================================================
          ZK SESSION LISTENER — declared explicitly so Tomcat finds it even
          when running via Eclipse WTP (Maven classpath JARs not in WEB-INF/lib).
          Must come BEFORE the servlets.
     ================================================================= -->
+
+    <listener>
+        <listener-class>
+            com.cts.outward.listener.AppStartupListener
+        </listener-class>
+    </listener>
+
 
     <listener>
         <listener-class>
@@ -109,6 +118,7 @@
         <url-pattern>*.zul</url-pattern>
     </servlet-mapping>
 
+
     <!-- =================================================================
          FIX 8: AU SECURITY FILTER — guards /zkau/* so unauthenticated
          or locked users cannot fire ZK AJAX callbacks after session ends.
@@ -129,6 +139,12 @@
          ZK AU ENGINE — handles ZK AJAX callbacks (server push, events).
     ================================================================= -->
 
+    <servlet-mapping>
+        <servlet-name>zkLoader</servlet-name>
+        <url-pattern>/zul/index.zul</url-pattern>
+    </servlet-mapping>
+
+
     <servlet>
         <servlet-name>auEngine</servlet-name>
         <servlet-class>
@@ -141,6 +157,7 @@
         <servlet-name>auEngine</servlet-name>
         <url-pattern>/zkau/*</url-pattern>
     </servlet-mapping>
+
 
     <!-- =================================================================
          CHEQUE IMAGE SERVLET — serves cheque front/rear images
@@ -168,12 +185,10 @@
         <welcome-file>zul/login.zul</welcome-file>
     </welcome-file-list>
 
-    <!-- =================================================================
-         SESSION TIMEOUT
-    ================================================================= -->
-
     <session-config>
         <session-timeout>30</session-timeout>
     </session-config>
 
 </web-app>
+
+

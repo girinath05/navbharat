@@ -4,10 +4,10 @@
     xmlns:n="native">
 
     <style src="/css/outward/verification.css"/>
-    <style src="/css/outward/cxf-cxbf.css?v=14"/>
+    <style src="/css/outward/my-batches.css"/>
+    <style src="/css/outward/cxf-cxbf.css?v=15"/>
 
-<div id="v1Root" apply="com.cts.outward.composer.CxfCibfComposer"
-     style="padding:0px;">
+<div id="v1Root" apply="com.cts.outward.composer.CxfCibfComposer">
 
     <!-- ══════════════════════════════════════════
          PAGE HEADER  (matches pg-head team pattern)
@@ -15,13 +15,6 @@
     <n:div class="pg-head">
         <n:div>
             <n:div class="pg-title">CXF-CIBF Generation</n:div>
-            <n:div class="pg-subtitle">Generate CXF &amp; CIBF files for all VERIFIED batches</n:div>
-        </n:div>
-        <n:div class="pg-actions">
-            <button id="btnGenerateCxf" sclass="btn btn-primary"
-                    style="white-space:nowrap;" disabled="true">
-                ⚡ Generate CXF &amp; CIBF
-            </button>
         </n:div>
     </n:div>
 
@@ -50,38 +43,44 @@
                 <label id="lblTableTitle" sclass="mb-card-title" value="PENDING BATCHES FOR FILE GENERATION"/>
                 <label id="lblTableSubtitle" style="font-size:11px;color:#9CA3AF;font-style:italic;display:block;" value="Verified batches awaiting CXF &amp; CIBF file generation"/>
             </n:div>
+            <button id="btnGenerateCxf" sclass="btn btn-primary"
+                    style="white-space:nowrap;" disabled="true">
+                ⚡ Generate CXF &amp; CIBF
+            </button>
         </n:div>
 
-        <!-- Integrated Search + Filter Bar -->
-        <div sclass="cxf-filter-bar">
-            <div sclass="cxf-filter-group">
-                <label sclass="cxf-filter-label" value="Search Batch ID"/>
-                <textbox id="txtSearchBatchId" placeholder="e.g. BATCH0101" width="160px"/>
-            </div>
-            <div sclass="cxf-filter-group">
-                <label sclass="cxf-filter-label" value="Status"/>
-                <combobox id="cmbStatus" readonly="true" width="180px">
+        <!-- Search + filter bar -->
+        <n:div class="mb-toolbar">
+            <n:div class="mb-search-wrap">
+                <n:span class="mb-search-icon">&#x1F50D;</n:span>
+                <textbox id="txtSearchBatchId"
+                         sclass="mb-search-input"
+                         placeholder="Enter Batch Id.."/>
+            </n:div>
+            <n:div class="mb-filter-group">
+                <n:span class="mb-filter-lbl">Status:</n:span>
+                <combobox id="cmbStatus" sclass="mb-filter-combo" readonly="true">
                     <comboitem label="Pending" value="PENDING"/>
                     <comboitem label="Completed" value="COMPLETED"/>
                     <comboitem label="All" value="ALL"/>
                 </combobox>
-            </div>
-            <div sclass="cxf-filter-group">
-                <label sclass="cxf-filter-label" value="From Date"/>
-                <datebox id="dbFromDate" format="dd-MM-yyyy" placeholder="dd-mm-yyyy" width="120px"/>
-            </div>
-            <div sclass="cxf-filter-group">
-                <label sclass="cxf-filter-label" value="To Date"/>
-                <datebox id="dbToDate" format="dd-MM-yyyy" placeholder="dd-mm-yyyy" width="120px"/>
-            </div>
-            <div sclass="cxf-filter-actions">
-                <button id="btnReset" label="✕ Clear" sclass="cxf-btn-clear"/>
-            </div>
-        </div>
+            </n:div>
+            <n:div class="mb-filter-group">
+                <n:span class="mb-filter-lbl">From:</n:span>
+                <datebox id="dbFromDate" sclass="mb-filter-date" format="dd-MM-yyyy" placeholder="dd-mm-yyyy"/>
+            </n:div>
+            <n:div class="mb-filter-group">
+                <n:span class="mb-filter-lbl">To:</n:span>
+                <datebox id="dbToDate" sclass="mb-filter-date" format="dd-MM-yyyy" placeholder="dd-mm-yyyy"/>
+            </n:div>
+            <n:div class="mb-filter-group">
+                <button id="btnReset" sclass="btn btn-sm btn-secondary" label="✕ Clear"/>
+            </n:div>
+        </n:div>
 
-        <paging id="pgDynamic" pageSize="10" visible="false"/>
+        <paging id="pgDynamic" pageSize="5" visible="false"/>
         <listbox id="lbDynamic" sclass="v1-listbox v1-batch-lb"
-                 mold="paging" paginal="${pgDynamic}" pageSize="10" multiple="true"
+                 mold="paging" paginal="${pgDynamic}" pageSize="5" multiple="true"
                  emptyMessage="No batches found">
             <listhead id="lhDynamic" sclass="v1-lh-row">
                 <!-- Programmatically populated in Composer -->

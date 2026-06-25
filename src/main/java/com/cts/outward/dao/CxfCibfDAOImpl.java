@@ -1,5 +1,5 @@
 package com.cts.outward.dao;
-//hi
+
 import com.cts.outward.dto.CxfBatchDTO;
 import com.cts.outward.dto.CxfChequeDTO;
 import com.cts.outward.enums.BatchStatus;
@@ -286,28 +286,28 @@ public class CxfCibfDAOImpl implements CxfCibfDAO {
             batchDTO.setStatus(coerceToString(rowArray[1]));
             batchDTO.setTotalCheques(rowArray[2] != null ? ((Number) rowArray[2]).intValue() : 0);
             batchDTO.setTotalAmount(coerceToBigDecimal(rowArray[3]));
-            batchDTO.setCxfFileName(coerceToString(safe(rowArray, 4)));
-            batchDTO.setCibfFileName(coerceToString(safe(rowArray, 5)));
-            batchDTO.setGeneratedAt(coerceToLocalDateTime(safe(rowArray, 6)));
+            batchDTO.setCxfFileName(coerceToString(getElementAtIndexOrNull(rowArray, 4)));
+            batchDTO.setCibfFileName(coerceToString(getElementAtIndexOrNull(rowArray, 5)));
+            batchDTO.setGeneratedAt(coerceToLocalDateTime(getElementAtIndexOrNull(rowArray, 6)));
             return batchDTO;
         }
 
         // All other queries:
         // batch_id[0], branch_code[1], status[2], total_cheques[3], total_amount[4], ...
         batchDTO.setBatchId(coerceToString(rowArray[0]));
-        batchDTO.setBranchCode(coerceToString(safe(rowArray, 1)));
-        batchDTO.setStatus(coerceToString(safe(rowArray, 2)));
+        batchDTO.setBranchCode(coerceToString(getElementAtIndexOrNull(rowArray, 1)));
+        batchDTO.setStatus(coerceToString(getElementAtIndexOrNull(rowArray, 2)));
         batchDTO.setTotalCheques(rowArray[3] != null ? ((Number) rowArray[3]).intValue() : 0);
-        batchDTO.setTotalAmount(coerceToBigDecimal(safe(rowArray, 4)));
+        batchDTO.setTotalAmount(coerceToBigDecimal(getElementAtIndexOrNull(rowArray, 4)));
 
         switch (context) {
             case "PENDING":
                 // SELECT: ..., created_at[5]
-                batchDTO.setCreatedAt(coerceToLocalDateTime(safe(rowArray, 5)));
-                batchDTO.setStatusReason(resolvePendingReasonText(coerceToString(safe(rowArray, 2))));
+                batchDTO.setCreatedAt(coerceToLocalDateTime(getElementAtIndexOrNull(rowArray, 5)));
+                batchDTO.setStatusReason(resolvePendingReasonText(coerceToString(getElementAtIndexOrNull(rowArray, 2))));
                 break;
             case "VER2_DONE":
-                batchDTO.setCreatedAt(coerceToLocalDateTime(safe(rowArray, 5)));
+                batchDTO.setCreatedAt(coerceToLocalDateTime(getElementAtIndexOrNull(rowArray, 5)));
                 break;
             default:
                 break;
@@ -315,9 +315,16 @@ public class CxfCibfDAOImpl implements CxfCibfDAO {
         return batchDTO;
     }
 
-    /** Safe array access — returns null instead of ArrayIndexOutOfBoundsException */
-    private static Object safe(Object[] rowArray, int idx) {
-        return (rowArray != null && idx < rowArray.length) ? rowArray[idx] : null;
+    /**
+     * Safely retrieves an element from the row array, returning null instead of throwing
+     * an ArrayIndexOutOfBoundsException.
+     * 
+     * @param rowArray the array of objects
+     * @param index    the target index
+     * @return the object at index, or null if out of bounds or array is null
+     */
+    private static Object getElementAtIndexOrNull(Object[] rowArray, int index) {
+        return (rowArray != null && index < rowArray.length) ? rowArray[index] : null;
     }
 
     /**
@@ -329,13 +336,13 @@ public class CxfCibfDAOImpl implements CxfCibfDAO {
      * @param cibf     name of the CIBF file
      * @param generatedAt timestamp when file was generated
      */
-    private void executeUpdateBatchCxfCibfStatus(String sql, String batchId, String cxf, String cibf,
+    private void executeUpdateBatchCxfCibfStatus(String sql, String batchId, String cxfFileName, String cibfFileName,
                                                  LocalDateTime generatedAt) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             session.beginTransaction();
             session.createNativeMutationQuery(sql)
-             .setParameter("cxf",  cxf)
-             .setParameter("cibf", cibf)
+             .setParameter("cxf",  cxfFileName)
+             .setParameter("cibf", cibfFileName)
              .setParameter("gat",  Timestamp.valueOf(generatedAt))
              .setParameter("bid",  batchId)
              .executeUpdate();

@@ -8,7 +8,7 @@
     <div id="outwardReportsRoot" apply="com.cts.outward.composer.OutwardReportComposer"
          width="100%" sclass="od-page-bg outward-reports-root" style="padding:0;margin:0;">
 
-        <style src="/css/outward/outward-reports.css?v=51"/>
+        <style src="/css/outward/outward-reports.css?v=57"/>
 
         <!-- Page Header -->
         <div sclass="od-page-header">
@@ -34,60 +34,89 @@
             </div>
         </div>
 
-        <!-- List Card Wrapper (Single content area with dynamic display) -->
+        <!-- List Card Wrapper -->
         <div sclass="od-list-card">
             <div sclass="od-list-card-header" style="padding: 10px 16px;">
                 <label id="lblListCardTitle" sclass="od-list-card-title" value="Batch Summary"/>
-                
+
                 <!-- Integrated Filter Bar inside Header -->
                 <div sclass="od-filter-bar-header">
+
                     <!-- Search Input Wrap -->
                     <div sclass="od-search-wrap">
                         <span sclass="od-search-icon">&#x1F50D;</span>
                         <textbox id="batchIdFilter" sclass="od-search-input" placeholder="Search Batch ID..."/>
                     </div>
-                    
-                    <!-- Date Inputs Group -->
-                    <datebox id="fromDate" format="dd-MM-yyyy" placeholder="dd-MM-yyyy" width="100px"/>
-                    <label value="→" style="color:#64748b; font-weight:700; margin: 0;"/>
-                    <datebox id="toDate" format="dd-MM-yyyy" placeholder="dd-MM-yyyy" width="100px"/>
-                    
-                    <button id="btnReset" sclass="od-btn-clear" label="✕ Clear"/>
-                    <button id="btnExport" sclass="od-btn-hdr" label="Download pdf" disabled="true" style="margin-left: 4px;"/>
+
+                    <!-- Status Filter -->
+                    <div style="display:inline-flex;align-items:flex-start;flex-direction:column;gap:2px;">
+                        <label value="Status"
+                               style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;"/>
+                        <combobox id="statusFilter" readonly="true" width="130px" placeholder="Select Status">
+                            <comboitem label="All"                      value="ALL"/>
+                            <comboitem label="Draft"                    value="Draft"/>
+                            <comboitem label="Pending"                  value="VerificationInProgressAtMaker"/>
+                            <comboitem label="Ready for Verification"   value="ReadyForVerification"/>
+                            <comboitem label="Verification In Progress" value="VerificationInProgress"/>
+                            <comboitem label="Verified"                 value="Verified"/>
+                            <comboitem label="CXF Generated"            value="CXF_CIBF_GENERATED"/>
+                            <comboitem label="Dispatched"               value="Dispatched"/>
+                        </combobox>
+                    </div>
+
+                    <!-- From Date -->
+                    <div style="display:inline-flex;align-items:flex-start;flex-direction:column;gap:2px;">
+                        <label value="From Date"
+                               style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;"/>
+                        <datebox id="fromDate" format="dd-MM-yyyy" placeholder="dd-MM-yyyy" width="110px"/>
+                    </div>
+
+                    <label value="→"
+                           style="color:#64748b;font-weight:700;margin:0;margin-bottom:7px;"/>
+
+                    <!-- To Date -->
+                    <div style="display:inline-flex;align-items:flex-start;flex-direction:column;gap:2px;">
+                        <label value="To Date"
+                               style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;"/>
+                        <datebox id="toDate" format="dd-MM-yyyy" placeholder="dd-MM-yyyy" width="110px"/>
+                    </div>
+
+                    <button id="btnReset"  sclass="od-btn-clear" label="✕ Clear"/>
+                    <button id="btnExport" sclass="od-btn-hdr"   label="Download pdf" disabled="true" style="margin-left: 4px;"/>
                 </div>
             </div>
 
-            <!-- Grid 3: Batch Summary -->
-            <listbox id="gridBatch" visible="false"
-                     multiple="true"
-                     emptyMessage="No batches found.">
+            <!-- Grid: Batch Summary -->
+            <listbox id="gridBatch" visible="false" multiple="true" emptyMessage="No batches found.">
                 <listhead sizable="true">
-                    <listheader width="50px" align="center">
-                        <checkbox id="chkSelectAllBatch" />
+                    <listheader width="50px"  align="center">
+                        <checkbox id="chkSelectAllBatch"/>
                     </listheader>
-                    <listheader label="BATCH ID"      width="150px" align="center"/>
-                    <listheader label="TOTAL CHEQUES" width="150px" align="center"/>
+                    <listheader label="BATCH ID"      width="200px" align="center"/>
+                    <listheader label="TOTAL CHEQUES" width="180px" align="center"/>
                     <listheader label="TOTAL AMOUNT"  width="200px" align="center"/>
+                    <listheader label="CREATED AT"    width="175px"   align="center"/>
                     <listheader label="STATUS"        width="220px" align="center"/>
-                    <listheader label="CREATED AT"    hflex="1" align="center"/>
+                    
                 </listhead>
             </listbox>
 
-            <!-- Custom Pagination Bar (Alternative B - Pure ZUL/Java) -->
+            <!-- Custom Pagination Bar -->
             <div id="customPagingBar" sclass="z-paging" visible="false">
                 <label id="lblPagingInfo" sclass="z-paging-info" value="Showing 0-0 of 0 records"/>
-                
                 <div sclass="z-paging-controls" style="display:flex;align-items:center;">
-                    <button id="btnPagingPrev" sclass="z-paging-prev" disabled="true"/>
-                    <label id="lblPagingPageLabel" sclass="custom-paging-page-label" value="Page "/>
-                    <label id="lblPagingCurrentPage" sclass="z-paging-text" value="1" style="font-weight:700;color:#1a3a6e;margin-left:0;margin-right:2px;"/>
-                    <label id="lblPagingText" sclass="z-paging-text" value="of 1" style="margin-left:2px;"/>
+                    <button id="btnPagingPrev"      sclass="z-paging-prev" disabled="true"/>
+                    <label  id="lblPagingPageLabel" sclass="custom-paging-page-label" value="Page "/>
+                    <label  id="lblPagingCurrentPage" sclass="z-paging-text" value="1"
+                            style="font-weight:700;color:#1a3a6e;margin-left:0;margin-right:2px;"/>
+                    <label  id="lblPagingText" sclass="z-paging-text" value="of 1"
+                            style="margin-left:2px;"/>
                     <button id="btnPagingNext" sclass="z-paging-next" disabled="true"/>
                 </div>
             </div>
         </div>
-        
-        <timer id="outwardReportsTimer" delay="3000" repeats="true" />
+
+        <timer id="outwardReportsTimer" delay="3000" repeats="true"/>
 
     </div>
 </zk>

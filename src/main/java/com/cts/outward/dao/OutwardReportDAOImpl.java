@@ -41,7 +41,7 @@ public class OutwardReportDAOImpl implements OutwardReportDAO {
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public List<ReportBatchDTO> findGeneratedBatches() {
-        List<ReportBatchDTO> list = new ArrayList<>();
+        List<ReportBatchDTO> generatedBatchesList = new ArrayList<>();
         String sql = "SELECT batch_id, branch_code, status, total_cheques, total_amount, " +
                 "       cxf_file_name, cibf_file_name, generated_at " +
                 "FROM cts_batches " +
@@ -60,12 +60,12 @@ public class OutwardReportDAOImpl implements OutwardReportDAO {
                 batchDTO.setCxfFileName(coerceToString(rowArray[5]));
                 batchDTO.setCibfFileName(coerceToString(rowArray[6]));
                 batchDTO.setGeneratedAt(coerceToLocalDateTime(rowArray[7]));
-                list.add(batchDTO);
+                generatedBatchesList.add(batchDTO);
             }
         } catch (Exception exception) {
             LOG.log(Level.SEVERE, "findGeneratedBatches failed", exception);
         }
-        return list;
+        return generatedBatchesList;
     }
 
     // ── Batch Summary: every batch regardless of status ───────────────────────
@@ -78,7 +78,7 @@ public class OutwardReportDAOImpl implements OutwardReportDAO {
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public List<ReportBatchDTO> findAllBatches() {
-        List<ReportBatchDTO> list = new ArrayList<>();
+        List<ReportBatchDTO> allBatchesList = new ArrayList<>();
         String sql = "SELECT batch_id, branch_code, status, total_cheques, total_amount, " +
                 "       cxf_file_name, cibf_file_name, generated_at, created_at, created_by " +
                 "FROM cts_batches " +
@@ -98,12 +98,12 @@ public class OutwardReportDAOImpl implements OutwardReportDAO {
                 batchDTO.setGeneratedAt(coerceToLocalDateTime(rowArray[7]));
                 batchDTO.setCreatedAt(coerceToLocalDateTime(rowArray[8]));
                 batchDTO.setCreatedBy(coerceToString(rowArray[9]));
-                list.add(batchDTO);
+                allBatchesList.add(batchDTO);
             }
         } catch (Exception exception) {
             LOG.log(Level.SEVERE, "findAllBatches failed", exception);
         }
-        return list;
+        return allBatchesList;
     }
 
     // ── Cheque-level: all cheques from completed batches ──────────────────────
@@ -117,7 +117,7 @@ public class OutwardReportDAOImpl implements OutwardReportDAO {
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public List<ReportChequeDTO> findAllCheques() {
-        List<ReportChequeDTO> list = new ArrayList<>();
+        List<ReportChequeDTO> chequesList = new ArrayList<>();
         // Join to cts_batches so we only return cheques belonging to generated batches.
         // Excludes front_image / rear_image (bytea) — not needed for reports.
         String sql = "SELECT c.cheque_no, c.batch_id, c.cheque_date, c.account_no, " +
@@ -143,12 +143,12 @@ public class OutwardReportDAOImpl implements OutwardReportDAO {
                 chequeDTO.setBatchStatus(coerceToString(rowArray[9]));
                 chequeDTO.setIqaStatus(coerceToString(rowArray[10]));
                 chequeDTO.setStatus(coerceToString(rowArray[11]));
-                list.add(chequeDTO);
+                chequesList.add(chequeDTO);
             }
         } catch (Exception exception) {
             LOG.log(Level.SEVERE, "findAllCheques failed", exception);
         }
-        return list;
+        return chequesList;
     }
 
     /**

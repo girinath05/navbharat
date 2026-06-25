@@ -1,5 +1,99 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <?page title="ExpressClear CTS"?>
 <zk>
     <div apply="com.cts.composer.IndexComposer"/>
+<?page title="ClearPay CTS — Login | Nav Bharat Bank" contentType="text/html;charset=UTF-8"?>
+<zk xmlns="http://www.zkoss.org/2005/zul"
+    xmlns:n="native">
+    
+    <n:link rel="stylesheet" href="${execution.contextPath}/css/index.css"/>
+
+<n:div class="cts-header">
+    <n:div class="hdr-left">
+        <n:img src="${execution.contextPath}/images/navbharat.jpg" class="hdr-logo" alt="Nav Bharat Bank"/>
+    </n:div>
+    
+    <n:div class="hdr-right">
+        <n:img src="${execution.contextPath}/images/clearpay.jpg" class="hdr-cp-logo" alt="ClearPay CTS"/>
+    </n:div>
+</n:div>
+
+<!-- ═══════════════════════════════════════════════
+     LOGIN BODY
+     ─────────────────────────────────────────────
+     FIX BUG 1: apply= is on .login-container div
+     (the ZK component tree root that contains
+     #userId, #password, and #btnLogin as children)
+     so that @Wire can resolve all three IDs.
+════════════════════════════════════════════════ -->
+<n:div class="login-page">
+
+    <!-- ▼▼▼  apply= moved HERE — parent of all 3 wired IDs  ▼▼▼ -->
+    <div id="loginContainer" class="login-container"
+         apply="com.cts.composer.LoginComposer">
+
+        <n:div class="login-top-bar"></n:div>
+
+        <!-- Card header -->
+        <n:div class="login-card-header">
+            <n:div class="login-title">Welcome to CTS Operations</n:div>
+            <n:div class="login-sub-bank">Nav Bharat Bank</n:div>
+            <n:div class="login-sub-system">Cheque Truncation System</n:div>
+        </n:div>
+
+        <!-- ── Form fields ── -->
+        <n:div class="login-form">
+
+            <n:div class="field-block">
+                <n:label class="field-lbl">User ID</n:label>
+                <n:div class="input-wrap icon-user">
+                    <!-- ZK textbox — @Wire("#userId") will find this -->
+                    <textbox id="userId"
+                             placeholder="Enter your User ID"
+                             width="100%"
+                             onOK="@command('onLogin')"/>
+                </n:div>
+            </n:div>
+
+            <n:div class="field-block">
+                <n:label class="field-lbl">Password</n:label>
+                <n:div class="input-wrap icon-lock">
+                    <!-- ZK textbox — @Wire("#password") will find this -->
+                    <textbox id="password"
+                             type="password"
+                             placeholder="Enter your Password"
+                             width="100%"
+                             onOK="@command('onLogin')"/>
+                </n:div>
+            </n:div>
+
+            <!-- Error label (shown server-side when login fails) -->
+            <label id="lblError" value="" sclass="error-msg" visible="false"/>
+
+            <!-- Login button — @Listen("onClick = #btnLogin") targets this -->
+            <n:div class="cts-btn-login">
+                <button id="btnLogin" label="LOGIN"/>
+            </n:div>
+
+        </n:div>
+
+        <!-- Card footer -->
+        <n:div class="login-footer-row">
+            <n:span class="lf-rbi">RBI CTS-2010 Compliant</n:span>
+        </n:div>
+
+    </div><!-- /loginContainer -->
+</n:div>
+
+<!-- ═══════════════════════════════════════════════
+     STATUS BAR
+════════════════════════════════════════════════ -->
+<n:div class="status-bar">
+    <n:span class="sb-item"><n:span class="sb-dot"></n:span>System Online</n:span>
+    <n:span class="sb-item">ClearPay CTS v3.1.2</n:span>
+    <n:span class="sb-item">&#169; 2026 Nav Bharat Bank</n:span>
+</n:div>
+
+
 </zk>

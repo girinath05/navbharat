@@ -16,13 +16,25 @@ import java.util.List;
  */
 public interface OutwardReportDAO {
 
-    /** Batches that have CXF / CIBF generated — shown in CXF + CIBF report tabs. */
+    /**
+     * Finds and retrieves all batches that have completed file generation.
+     * 
+     * @return list of generated batches DTOs
+     */
     List<ReportBatchDTO> findGeneratedBatches();
 
-    /** All batches across every status — shown in Batch Summary tab. */
+    /**
+     * Finds and retrieves all batches regardless of their status.
+     * 
+     * @return list of all batches DTOs
+     */
     List<ReportBatchDTO> findAllBatches();
 
-    /** All cheques from completed batches — shown in Cheque-level tab. */
+    /**
+     * Finds and retrieves all cheques belonging to completed batches.
+     * 
+     * @return list of report cheque DTOs
+     */
     List<ReportChequeDTO> findAllCheques();
 
     /**

@@ -26,7 +26,7 @@ import java.util.List;
  */
 public class CxfXmlBuilder {
 
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("ddMMyyyy");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("ddMMyyyy");
 
     /** Clearing type per NPCI CTS spec */
     private static final String CLEARING_TYPE = "14";
@@ -52,13 +52,13 @@ public class CxfXmlBuilder {
                         String ifscCode,
                         LocalDateTime now) {
 
-        String dateStr      = now.format(DATE_FMT);
+        String dateString   = now.format(DATE_FORMATTER);
         String batchId      = batch.getBatchId();
         long   totalAmount  = calculateTotalAmountInPaise(cheques);
 
         StringBuilder xmlBuilder = new StringBuilder(8192);
         xmlBuilder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        xmlBuilder.append("<FileHeader PresentationDate=\"").append(dateStr).append("\"")
+        xmlBuilder.append("<FileHeader PresentationDate=\"").append(dateString).append("\"")
           .append(" PresentingBankRoutNo=\"").append(escapeXmlSpecialCharacters(presentingRoutNo)).append("\"")
           .append(" TotalItems=\"").append(cheques.size()).append("\">\n");
 
@@ -67,11 +67,11 @@ public class CxfXmlBuilder {
             String seqNo     = String.format("%018d", serial);
             String serialStr = String.format("%06d", serial);
             // Amount in paise (multiply by 100, no decimals)
-            long amtPaise = convertDecimalAmountToPaiseLong(cheque.getAmount());
+            long amountInPaise = convertDecimalAmountToPaiseLong(cheque.getAmount());
 
             xmlBuilder.append("  <Item")
               .append(" AccountNo=\"").append(escapeXmlSpecialCharacters(cheque.getAccountNo())).append("\"")
-              .append(" Amount=\"").append(amtPaise).append("\"")
+              .append(" Amount=\"").append(amountInPaise).append("\"")
               .append(" ClearingType=\"").append(CLEARING_TYPE).append("\"")
               .append(" CycleNo=\"").append(CYCLE_NO).append("\"")
               .append(" DocType=\"").append(DOC_TYPE).append("\"")
@@ -79,14 +79,14 @@ public class CxfXmlBuilder {
               .append(" NumOfImageViews=\"").append(NUM_VIEWS).append("\"")
               .append(" PayorBankRoutNo=\"").append(escapeXmlSpecialCharacters(substituteNullWithEmptyString(cheque.getSortCode()))).append("\"")
               .append(" PresentingBankRoutNo=\"").append(escapeXmlSpecialCharacters(presentingRoutNo)).append("\"")
-              .append(" PresentmentDate=\"").append(dateStr).append("\"")
+              .append(" PresentmentDate=\"").append(dateString).append("\"")
               .append(" SerialNo=\"").append(serialStr).append("\"")
               .append(" TransCode=\"").append(TRANS_CODE).append("\"")
               .append(" UserField=\"").append(escapeXmlSpecialCharacters(batchId)).append("\"")
               .append(">\n");
 
             xmlBuilder.append("    <AddendA")
-              .append(" BOFDBusDate=\"").append(dateStr).append("\"")
+              .append(" BOFDBusDate=\"").append(dateString).append("\"")
               .append(" BOFDRoutNo=\"").append(escapeXmlSpecialCharacters(presentingRoutNo)).append("\"")
               .append(" IFSC=\"").append(escapeXmlSpecialCharacters(substituteNullWithEmptyString(ifscCode))).append("\"")
               .append("/>\n");
@@ -125,9 +125,9 @@ public class CxfXmlBuilder {
      * @param amt amount decimal representation
      * @return amount in paise
      */
-    private static long convertDecimalAmountToPaiseLong(BigDecimal amt) {
-        if (amt == null) return 0L;
-        return amt.multiply(BigDecimal.valueOf(100)).longValue();
+    private static long convertDecimalAmountToPaiseLong(BigDecimal amount) {
+        if (amount == null) return 0L;
+        return amount.multiply(BigDecimal.valueOf(100)).longValue();
     }
 
     /**

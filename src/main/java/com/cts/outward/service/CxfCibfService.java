@@ -20,7 +20,27 @@ public interface CxfCibfService {
      */
     CxfFileResult generateForBatch(String batchId);
 
-    // ── Stat counts for UI ────────────────────────────────
+    /**
+     * Generates ONE combined CXF+CIBF output for all the supplied batch IDs.
+     * Cheques from every batch are pooled together and processed in a single run.
+     * All valid batch DB records are updated upon success.
+     *
+     * @param batchIds list of batch IDs selected by the user (1 or more)
+     * @return a single CxfFileResult representing the combined generation outcome
+     */
+    CxfFileResult generateForBatches(List<String> batchIds);
+
+    /**
+     * Counts the total number of completed batches.
+     *
+     * @return count of completed batches
+     */
     long countCompleted();
+
+    /**
+     * Counts the total number of pending batches.
+     *
+     * @return count of pending batches
+     */
     long countPending();
 }

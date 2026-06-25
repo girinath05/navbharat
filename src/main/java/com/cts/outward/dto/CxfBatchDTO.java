@@ -9,47 +9,206 @@ import java.time.LocalDateTime;
  */
 public class CxfBatchDTO {
 
+    /** Unique identifier of the batch. */
     private String        batchId;
+    /** Branch code of the batch. */
     private String        branchCode;
+    /** Current database status of the batch. */
     private String        status;
+    /** Total number of cheques in the batch. */
     private int           totalCheques;
+    /** Total monetary amount of all cheques in the batch. */
     private BigDecimal    totalAmount;
 
+    /** Name of the generated CXF file. */
     private String        cxfFileName;
+    /** Name of the generated CIBF file. */
     private String        cibfFileName;
+    /** Timestamp when files were generated. */
     private LocalDateTime generatedAt;
+    /** Timestamp when the batch was created. */
     private LocalDateTime createdAt;
 
     /** Human-readable reason shown in the Pending table */
     private String        statusReason;
 
-    public String getBatchId()                     { return batchId; }
-    public void setBatchId(String v)               { this.batchId = v; }
+    /**
+     * Gets the batch ID.
+     *
+     * @return the batch ID
+     */
+    public String getBatchId() { 
+        return batchId; 
+    }
 
-    public String getBranchCode()                  { return branchCode; }
-    public void setBranchCode(String v)            { this.branchCode = v; }
+    /**
+     * Sets the batch ID.
+     *
+     * @param batchId the batch ID to set
+     */
+    public void setBatchId(String batchId) { 
+        this.batchId = batchId; 
+    }
 
-    public String getStatus()                      { return status; }
-    public void setStatus(String v)                { this.status = v; }
+    /**
+     * Gets the branch code.
+     *
+     * @return the branch code
+     */
+    public String getBranchCode() { 
+        return branchCode; 
+    }
 
-    public int getTotalCheques()                   { return totalCheques; }
-    public void setTotalCheques(int v)             { this.totalCheques = v; }
+    /**
+     * Sets the branch code.
+     *
+     * @param branchCode the branch code to set
+     */
+    public void setBranchCode(String branchCode) { 
+        this.branchCode = branchCode; 
+    }
 
-    public BigDecimal getTotalAmount()             { return totalAmount; }
-    public void setTotalAmount(BigDecimal v)       { this.totalAmount = v; }
+    /**
+     * Gets the status.
+     *
+     * @return the status
+     */
+    public String getStatus() { 
+        return status; 
+    }
 
-    public String getCxfFileName()                 { return cxfFileName; }
-    public void setCxfFileName(String v)           { this.cxfFileName = v; }
+    /**
+     * Sets the status.
+     *
+     * @param status the status to set
+     */
+    public void setStatus(String status) { 
+        this.status = status; 
+    }
 
-    public String getCibfFileName()                { return cibfFileName; }
-    public void setCibfFileName(String v)          { this.cibfFileName = v; }
+    /**
+     * Gets the total number of cheques.
+     *
+     * @return the total number of cheques
+     */
+    public int getTotalCheques() { 
+        return totalCheques; 
+    }
 
-    public LocalDateTime getGeneratedAt()          { return generatedAt; }
-    public void setGeneratedAt(LocalDateTime v)    { this.generatedAt = v; }
+    /**
+     * Sets the total number of cheques.
+     *
+     * @param totalCheques the total number of cheques to set
+     */
+    public void setTotalCheques(int totalCheques) { 
+        this.totalCheques = totalCheques; 
+    }
 
-    public LocalDateTime getCreatedAt()            { return createdAt; }
-    public void setCreatedAt(LocalDateTime v)      { this.createdAt = v; }
+    /**
+     * Gets the total monetary amount.
+     *
+     * @return the total monetary amount
+     */
+    public BigDecimal getTotalAmount() { 
+        return totalAmount; 
+    }
 
-    public String getStatusReason()                { return statusReason; }
-    public void setStatusReason(String v)          { this.statusReason = v; }
+    /**
+     * Sets the total monetary amount.
+     *
+     * @param totalAmount the total monetary amount to set
+     */
+    public void setTotalAmount(BigDecimal totalAmount) { 
+        this.totalAmount = totalAmount; 
+    }
+
+    /**
+     * Gets the CXF file name.
+     *
+     * @return the CXF file name
+     */
+    public String getCxfFileName() { 
+        return cxfFileName; 
+    }
+
+    /**
+     * Sets the CXF file name.
+     *
+     * @param cxfFileName the CXF file name to set
+     */
+    public void setCxfFileName(String cxfFileName) { 
+        this.cxfFileName = cxfFileName; 
+    }
+
+    /**
+     * Gets the CIBF file name.
+     *
+     * @return the CIBF file name
+     */
+    public String getCibfFileName() { 
+        return cibfFileName; 
+    }
+
+    /**
+     * Sets the CIBF file name.
+     *
+     * @param cibfFileName the CIBF file name to set
+     */
+    public void setCibfFileName(String cibfFileName) { 
+        this.cibfFileName = cibfFileName; 
+    }
+
+    /**
+     * Gets the generation timestamp.
+     *
+     * @return the generation timestamp
+     */
+    public LocalDateTime getGeneratedAt() { 
+        return generatedAt; 
+    }
+
+    /**
+     * Sets the generation timestamp.
+     *
+     * @param generatedAt the generation timestamp to set
+     */
+    public void setGeneratedAt(LocalDateTime generatedAt) { 
+        this.generatedAt = generatedAt; 
+    }
+
+    /**
+     * Gets the creation timestamp.
+     *
+     * @return the creation timestamp
+     */
+    public LocalDateTime getCreatedAt() { 
+        return createdAt; 
+    }
+
+    /**
+     * Sets the creation timestamp.
+     *
+     * @param createdAt the creation timestamp to set
+     */
+    public void setCreatedAt(LocalDateTime createdAt) { 
+        this.createdAt = createdAt; 
+    }
+
+    /**
+     * Gets the human-readable status reason.
+     *
+     * @return the status reason
+     */
+    public String getStatusReason() { 
+        return statusReason; 
+    }
+
+    /**
+     * Sets the human-readable status reason.
+     *
+     * @param statusReason the status reason to set
+     */
+    public void setStatusReason(String statusReason) { 
+        this.statusReason = statusReason; 
+    }
 }

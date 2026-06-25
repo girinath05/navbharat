@@ -2,94 +2,132 @@
 <?page title="Outward Reports" contentType="text/html;charset=UTF-8"?>
 
 <zk>
-    <zscript>
-        org.zkoss.zk.ui.Sessions.getCurrent().setAttribute("sidebar_report_tab", "CXF_REPORT");
-    </zscript>
-    <div id="outwardReportsRoot" apply="com.cts.outward.composer.OutwardReportComposer"
-         width="100%" sclass="od-page-bg outward-reports-root" style="padding:0;margin:0;">
+	<zscript>
+		org.zkoss.zk.ui.Sessions.getCurrent().setAttribute("sidebar_report_tab",
+		"CXF_REPORT");
+	</zscript>
+	<div id="outwardReportsRoot"
+		apply="com.cts.outward.composer.OutwardReportComposer" width="100%"
+		sclass="od-page-bg outward-reports-root" style="padding:0;margin:0;">
 
-        <style src="/css/outward/outward-reports.css?v=51"/>
+		<style src="/css/outward/outward-reports.css?v=56" />
 
-        <!-- Page Header -->
-        <div sclass="od-page-header">
-            <label id="lblPageTitle" sclass="od-page-title" value="Outward Reports"/>
-        </div>
+		<!-- Page Header -->
+		<div sclass="od-page-header">
+			<label id="lblPageTitle" sclass="od-page-title"
+				value="Outward Reports" />
+		</div>
 
-        <!-- Info / Stats Banner -->
-        <div sclass="od-stats-banner">
-            <div sclass="od-banner-left">
-                <span sclass="od-banner-icon">⚠️</span>
-                <label id="lblPageSubtitle" sclass="od-banner-text" value="CXF / CIBF file generation logs and cheque analytics"/>
-            </div>
-            <div sclass="od-banner-right">
-                <div sclass="od-pill od-pill-batches">
-                    <label id="lblTotalBatches" value="0"/><label value="Batches"/>
-                </div>
-                <div sclass="od-pill od-pill-cheques">
-                    <label id="lblTotalCheques" value="0"/><label value="Cheques"/>
-                </div>
-                <div sclass="od-pill od-pill-amount">
-                    <label value="Total Amt. :"/><label id="lblTotalAmount" value="₹0"/>
-                </div>
-            </div>
-        </div>
+		<!-- Info / Stats Banner -->
+		<div sclass="od-stats-banner">
+			<div sclass="od-banner-left">
+				<span sclass="od-banner-icon">⚠️</span>
+				<label id="lblPageSubtitle" sclass="od-banner-text"
+					value="CXF / CIBF file generation logs and cheque analytics" />
+			</div>
+			<div sclass="od-banner-right">
+				<div sclass="od-pill od-pill-batches">
+					<label id="lblTotalBatches" value="0" />
+					<label value="Batches" />
+				</div>
+				<div sclass="od-pill od-pill-cheques">
+					<label id="lblTotalCheques" value="0" />
+					<label value="Cheques" />
+				</div>
+				<div sclass="od-pill od-pill-amount">
+					<label value="Total Amt. :" />
+					<label id="lblTotalAmount" value="₹0" />
+				</div>
+			</div>
+		</div>
 
-        <!-- List Card Wrapper (Single content area with dynamic display) -->
-        <div sclass="od-list-card">
-            <div sclass="od-list-card-header" style="padding: 10px 16px;">
-                <label id="lblListCardTitle" sclass="od-list-card-title" value="CXF-CIBF Reports"/>
-                
-                <!-- Integrated Filter Bar inside Header -->
-                <div sclass="od-filter-bar-header">
-                    <!-- Search Input Wrap -->
-                    <div sclass="od-search-wrap">
-                        <span sclass="od-search-icon">&#x1F50D;</span>
-                        <textbox id="batchIdFilter" sclass="od-search-input" placeholder="Search Batch ID..."/>
-                    </div>
-                    
-                    <!-- Date Inputs Group -->
-                    <datebox id="fromDate" format="dd-MM-yyyy" placeholder="dd-MM-yyyy" width="100px"/>
-                    <label value="→" style="color:#64748b; font-weight:700; margin: 0;"/>
-                    <datebox id="toDate" format="dd-MM-yyyy" placeholder="dd-MM-yyyy" width="100px"/>
-                    
-                    <button id="btnReset" sclass="od-btn-clear" label="✕ Clear"/>
-                    <button id="btnExport" sclass="od-btn-hdr" label="Download pdf" disabled="true" style="margin-left: 4px;"/>
-                </div>
-            </div>
+		<!-- List Card Wrapper (Single content area with dynamic display) -->
+		<div sclass="od-list-card">
+			<div sclass="od-list-card-header" style="padding: 10px 16px;">
+				<label id="lblListCardTitle" sclass="od-list-card-title"
+					value="CXF-CIBF Reports" />
 
-            <!-- Grid 1: CXF Report -->
-            <listbox id="gridCxf" visible="false"
-                     multiple="true"
-                     emptyMessage="No CXF records found.">
-                <listhead sizable="true">
-                    <listheader width="50px" align="center">
-                        <checkbox id="chkSelectAllCxf" />
-                    </listheader>
-                    <listheader label="BATCH ID"      width="100px" align="center"/>
-                    <listheader label="TOTAL CHEQUES" width="90px" align="center"/>
-                    <listheader label="TOTAL AMOUNT"  width="110px" align="center"/>
-                    <listheader label="CXF FILE NAME" hflex="2" align="center"/>
-                    <listheader label="CIBF FILE NAME" hflex="2" align="center"/>
-                    <listheader label="GENERATED AT"  hflex="1.5" align="center"/>
-                    <listheader label="STATUS"        hflex="1" align="center"/>
-                </listhead>
-            </listbox>
+				<!-- Integrated Filter Bar inside Header -->
+				<div sclass="od-filter-bar-header">
+					<!-- Search Input Wrap -->
+					<div sclass="od-search-wrap">
+						<span sclass="od-search-icon">&#x1F50D;</span>
+						<textbox id="batchIdFilter" sclass="od-search-input"
+							placeholder="Search Batch ID..." />
+					</div>
 
-            <!-- Custom Pagination Bar (Alternative B - Pure ZUL/Java) -->
-            <div id="customPagingBar" sclass="z-paging" visible="false">
-                <label id="lblPagingInfo" sclass="z-paging-info" value="Showing 0-0 of 0 records"/>
-                
-                <div sclass="z-paging-controls" style="display:flex;align-items:center;">
-                    <button id="btnPagingPrev" sclass="z-paging-prev" disabled="true"/>
-                    <label id="lblPagingPageLabel" sclass="custom-paging-page-label" value="Page "/>
-                    <label id="lblPagingCurrentPage" sclass="z-paging-text" value="1" style="font-weight:700;color:#1a3a6e;margin-left:0;margin-right:2px;"/>
-                    <label id="lblPagingText" sclass="z-paging-text" value="of 1" style="margin-left:2px;"/>
-                    <button id="btnPagingNext" sclass="z-paging-next" disabled="true"/>
-                </div>
-            </div>
-        </div>
-        
-        <timer id="outwardReportsTimer" delay="3000" repeats="true" />
+					<!-- Date Inputs Group -->
 
-    </div>
+					<div
+						style="display:inline-flex;align-items:flex-start;flex-direction:column;gap:2px;">
+						<label value="From Date"
+							style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;" />
+						<datebox id="fromDate" format="dd-MM-yyyy"
+							placeholder="dd-MM-yyyy" width="100px" />
+					</div>
+
+					<label value="→"
+						style="color:#64748b; font-weight:700; margin: 0; margin-bottom: 7px;" />
+
+					<div
+						style="display:inline-flex;align-items:flex-start;flex-direction:column;gap:2px;">
+						<label value="To Date"
+							style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;" />
+						<datebox id="toDate" format="dd-MM-yyyy"
+							placeholder="dd-MM-yyyy" width="100px" />
+					</div>
+
+					<button id="btnReset" sclass="od-btn-clear" label="✕ Clear" />
+					<button id="btnExport" sclass="od-btn-hdr"
+						label="Download pdf" disabled="true" style="margin-left: 4px;" />
+				</div>
+			</div>
+
+			<!-- Grid 1: CXF Report -->
+			<listbox id="gridCxf" visible="false" multiple="true"
+				emptyMessage="No CXF records found.">
+				<listhead sizable="true">
+					<listheader width="37px" align="center">
+						<checkbox id="chkSelectAllCxf" />
+					</listheader>
+					<listheader label="BATCH ID" width="80px" align="center" />
+					<listheader label="TOTAL CHEQUES" width="85px"
+						align="center" />
+					<listheader label="TOTAL AMOUNT" width="85px"
+						align="center" />
+					<listheader label="CXF FILE NAME" width="108px"
+						align="center" />
+					<listheader label="CIBF FILE NAME" width="108px"
+						align="center" />
+					<listheader label="GENERATED AT" width="105px"
+						align="center" />
+					<listheader label="STATUS" width="105px" align="center" />
+				</listhead>
+			</listbox>
+
+			<!-- Custom Pagination Bar (Alternative B - Pure ZUL/Java) -->
+			<div id="customPagingBar" sclass="z-paging" visible="false">
+				<label id="lblPagingInfo" sclass="z-paging-info"
+					value="Showing 0-0 of 0 records" />
+
+				<div sclass="z-paging-controls"
+					style="display:flex;align-items:center;">
+					<button id="btnPagingPrev" sclass="z-paging-prev"
+						disabled="true" />
+					<label id="lblPagingPageLabel"
+						sclass="custom-paging-page-label" value="Page " />
+					<label id="lblPagingCurrentPage" sclass="z-paging-text"
+						value="1"
+						style="font-weight:700;color:#1a3a6e;margin-left:0;margin-right:2px;" />
+					<label id="lblPagingText" sclass="z-paging-text" value="of 1"
+						style="margin-left:2px;" />
+					<button id="btnPagingNext" sclass="z-paging-next"
+						disabled="true" />
+				</div>
+			</div>
+		</div>
+
+		<timer id="outwardReportsTimer" delay="3000" repeats="true" />
+
+	</div>
 </zk>
