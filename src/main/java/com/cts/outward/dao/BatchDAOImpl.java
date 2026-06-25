@@ -55,9 +55,21 @@ public class BatchDAOImpl implements BatchDAO {
     // SEQUENCE
     // ─────────────────────────────────────────────────────────────
 
+    /**
+     * Service method: loadMaxBatchSeq
+     *
+     * Reads highest numeric sequence from batch_id column (format BATCH{NNNN}).
+     * Regex filter ^BATCH[0-9]+$ excludes any manually-inserted non-standard IDs.
+     * SUBSTRING(batch_id FROM 6) strips "BATCH" prefix → cast to INT → ORDER DESC.
+     * Returns 100 as floor if table empty or on any exception.
+     *
+     * Called by: BatchServiceImpl.createBatch() → BatchServiceImpl.nextBatchSeq()
+     */
     @Override
     public int loadMaxBatchSeq() {
         try (Session session = HibernateUtil.getSession()) {
+            // Regex filter ensures we only look at well-formed BATCH### IDs,
+            // not manually entered or legacy batch_id values.
             String result = session
                     .createNativeQuery(
                             "SELECT batch_id FROM cts_batches "
@@ -66,6 +78,7 @@ public class BatchDAOImpl implements BatchDAO {
                             + "LIMIT 1",
                             String.class)
                     .uniqueResult();
+            // No rows yet — start sequence at 100 (leaves room for test/seed data)
             if (result == null) return 100;
             return Integer.parseInt(result.substring(5)) + 1;
         } catch (Exception ex) {
@@ -78,12 +91,22 @@ public class BatchDAOImpl implements BatchDAO {
     // WRITE OPERATIONS
     // ─────────────────────────────────────────────────────────────
 
+    /**
+     * Service method: saveBatch
+     *
+     * INSERT or UPDATE via session.merge() — Hibernate decides based on entity state.
+     * Explicit transaction: begin → merge → commit; rollback + rethrow on any failure.
+     * Logs batch_id on success for audit trail.
+     *
+     * Called by: BatchServiceImpl.createBatch()
+     */
     @Override
     public void saveBatch(BatchEntity batch) {
         if (batch == null) throw new IllegalArgumentException("saveBatch: batch must not be null");
         Transaction tx = null;
         try (Session session = HibernateUtil.getSession()) {
             tx = session.beginTransaction();
+            // merge() handles both INSERT (new entity) and UPDATE (detached entity)
             session.merge(batch);
             tx.commit();
             LOG.info("Batch saved: " + batch.getBatchId());
@@ -94,6 +117,15 @@ public class BatchDAOImpl implements BatchDAO {
         }
     }
 
+    /**
+     * Service method: deleteBatchAndCheques
+     *
+     * Two-step delete in one transaction: cts_cheques first (FK child), then cts_batches.
+     * Both deletes must succeed — if either fails, full rollback.
+     * Logs row counts for discard audit.
+     *
+     * Called by: BatchServiceImpl.discardBatch()
+     */
     @Override
     public void deleteBatchAndCheques(String batchId) {
         if (batchId == null || batchId.trim().isEmpty())
@@ -101,6 +133,7 @@ public class BatchDAOImpl implements BatchDAO {
         Transaction tx = null;
         try (Session session = HibernateUtil.getSession()) {
             tx = session.beginTransaction();
+            // Delete cheques first — FK constraint: cts_cheques.batch_id → cts_batches.batch_id
             int chequesDel = session
                     .createNativeMutationQuery("DELETE FROM cts_cheques WHERE batch_id = :batchId")
                     .setParameter("batchId", batchId).executeUpdate();
@@ -116,9 +149,19 @@ public class BatchDAOImpl implements BatchDAO {
         }
     }
 
+    /**
+     * Service method: updateBatchStatus
+     *
+     * Targeted single-column UPDATE: sets status + updated_at = CURRENT_TIMESTAMP.
+     * Silently returns (with warning log) if either arg is null — safe for speculative calls.
+     * Used by all lifecycle transitions: Draft→ReadyForVerification, →Verified, etc.
+     *
+     * Called by: BatchServiceImpl.updateBatchStatus(), submitBatch(), checkAndFinalizeBatch()
+     */
     @Override
     public void updateBatchStatus(String batchId, String status) {
         if (batchId == null || status == null) {
+            // Caller may pass null defensively — warn but don't throw so flow continues
             LOG.warning("updateBatchStatus: null batchId or status — skipped");
             return;
         }
@@ -138,6 +181,16 @@ public class BatchDAOImpl implements BatchDAO {
         }
     }
 
+    /**
+     * Service method: updateBatch
+     *
+     * Full multi-field UPDATE: branch_code, total_cheques, total_amount,
+     * control_amount, batch_type, status, updated_at in one query.
+     * Defaults status to "Pending" if batch.getStatus() is null.
+     * Rethrows on failure — callers must handle.
+     *
+     * Called by: composers or service when multiple fields change together
+     */
     @Override
     public void updateBatch(BatchEntity batch) {
         if (batch == null || batch.getBatchId() == null)
@@ -145,6 +198,8 @@ public class BatchDAOImpl implements BatchDAO {
         Transaction tx = null;
         try (Session session = HibernateUtil.getSession()) {
             tx = session.beginTransaction();
+            // Explicit column list — never SELECT * on update so new columns added
+            // later don't silently clobber unloaded fields.
             session.createNativeMutationQuery(
                     "UPDATE cts_batches SET "
                     + "  branch_code     = :branchCode, "
@@ -160,6 +215,7 @@ public class BatchDAOImpl implements BatchDAO {
                     .setParameter("totalAmount",  batch.getTotalAmount())
                     .setParameter("controlAmount", batch.getControlAmount())
                     .setParameter("batchType",    batch.getBatchType())
+                    // Default to 'Pending' if caller passed null status
                     .setParameter("status",       batch.getStatus() != null ? batch.getStatus() : "Pending")
                     .setParameter("batchId",      batch.getBatchId())
                     .executeUpdate();
@@ -172,12 +228,24 @@ public class BatchDAOImpl implements BatchDAO {
         }
     }
 
+    /**
+     * Service method: updateBatchActualCounts
+     *
+     * Targeted UPDATE for post-ZIP-import reconciliation: sets total_cheques,
+     * total_amount, status, updated_at in one query.
+     * Lighter than full updateBatch() — only touches count/amount/status columns.
+     * Rethrows on failure.
+     *
+     * Called by: ZipImportServiceImpl after parsing ZIP scan bundle
+     */
     @Override
     public void updateBatchActualCounts(String batchId, int actualCheques, BigDecimal actualAmount, String status) {
         if (batchId == null) throw new IllegalArgumentException("updateBatchActualCounts: batchId null");
         Transaction tx = null;
         try (Session session = HibernateUtil.getSession()) {
             tx = session.beginTransaction();
+            // Updates counts after ZIP parsing completes — at this point total_cheques
+            // reflects the actual parsed count, not the maker's declared control count.
             session.createNativeMutationQuery(
                     "UPDATE cts_batches SET "
                     + "  total_cheques = :tc, "
@@ -200,9 +268,19 @@ public class BatchDAOImpl implements BatchDAO {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // READ — LEGACY (used internally / by non-list callers)
+    // READ — LEGACY
     // ─────────────────────────────────────────────────────────────
 
+    /**
+     * Service method: loadAllBatches
+     *
+     * SELECT * FROM cts_batches ORDER BY created_at DESC — no filters, no pagination.
+     * Full table load into memory. Acceptable only for BatchChequeEntryComposer
+     * which does its own in-memory filtering on a small dataset.
+     * For UI list screens use loadBatchesPage() instead.
+     *
+     * Called by: BatchServiceImpl.getAllBatches() → BatchChequeEntryComposer
+     */
     @Override
     public List<BatchEntity> loadAllBatches() {
         try (Session session = HibernateUtil.getSession()) {
@@ -215,6 +293,15 @@ public class BatchDAOImpl implements BatchDAO {
         }
     }
 
+    /**
+     * Service method: findBatchById
+     *
+     * SELECT * FROM cts_batches WHERE batch_id = :batchId — single row lookup.
+     * Returns null if not found or batchId is null/blank.
+     * uniqueResult() throws if >1 row matched (impossible; batch_id is PK).
+     *
+     * Called by: getBatchById() and BatchServiceImpl.getBatchById()
+     */
     @Override
     public BatchEntity findBatchById(String batchId) {
         if (batchId == null || batchId.trim().isEmpty()) return null;
@@ -229,15 +316,33 @@ public class BatchDAOImpl implements BatchDAO {
         }
     }
 
-    /** Delegates to findBatchById — was previously unimplemented (returned null). */
+    /**
+     * Service method: getBatchById
+     *
+     * Alias — delegates entirely to findBatchById().
+     * Exists to satisfy BatchDAO interface; was previously unimplemented (returned null).
+     *
+     * Called by: BatchServiceImpl.getBatchById() → BatchDetailComposer
+     */
     @Override
     public BatchEntity getBatchById(String batchId) {
         return findBatchById(batchId);
     }
 
+    /**
+     * Service method: loadBatchesWithHvCheques
+     *
+     * Returns all batches containing at least one high_value cheque.
+     * EXISTS subquery on cts_cheques.high_value = true — avoids JOIN duplication.
+     * Ordered by created_at DESC.
+     *
+     * Called by: reporting / HV-specific batch list screens
+     */
     @Override
     public List<BatchEntity> loadBatchesWithHvCheques() {
         try (Session session = HibernateUtil.getSession()) {
+            // EXISTS subquery avoids returning duplicate batch rows when a batch
+            // has multiple HV cheques — cheaper than DISTINCT on a full join.
             return session.createNativeQuery(
                     "SELECT b.* FROM cts_batches b WHERE EXISTS ("
                     + "  SELECT 1 FROM cts_cheques c "
@@ -251,22 +356,18 @@ public class BatchDAOImpl implements BatchDAO {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // READ — PAGINATED (use this for all UI list screens)
+    // READ — PAGINATED
     // ─────────────────────────────────────────────────────────────
 
     /**
-     * Builds a dynamic WHERE clause from the supplied filters and delegates
-     * LIMIT/OFFSET to Postgres. All user-supplied values bound as named
-     * parameters — never string-interpolated.
+     * Service method: loadBatchesPage
      *
-     * Filter semantics
-     * ────────────────
-     *  searchQuery  — ILIKE match on batch_id OR branch_code
-     *  statusFilter — exact equality on status column (DB value, not display label)
-     *  fromDate     — created_at::date >= fromDate  (format: 'YYYY-MM-DD')
-     *  toDate       — created_at::date <= toDate
+     * Builds dynamic WHERE clause via buildWhere() then appends ORDER BY + LIMIT/OFFSET.
+     * All user-supplied filter values bound as named params — never string-interpolated.
+     * pageSize/pageNumber both floor-clamped to 1 if ≤ 0.
+     * Returns empty list (never null) on DB error.
      *
-     * NULL or blank values for any filter = that filter omitted.
+     * Called by: BatchServiceImpl.getBatchesPage() → MyBatchesComposer.loadPage()
      */
     @Override
     public List<BatchEntity> loadBatchesPage(
@@ -277,6 +378,7 @@ public class BatchDAOImpl implements BatchDAO {
             int pageSize,
             int pageNumber) {
 
+        // Defensive defaults — callers sometimes pass 0 on first load
         if (pageSize <= 0) pageSize = 5;
         if (pageNumber <= 0) pageNumber = 1;
 
@@ -300,6 +402,15 @@ public class BatchDAOImpl implements BatchDAO {
         }
     }
 
+    /**
+     * Service method: countBatches
+     *
+     * SELECT COUNT(*) reusing same WHERE clause from buildWhere() as loadBatchesPage().
+     * Must be called with identical filter args to produce consistent "Page X of Y" math.
+     * Returns 0 on DB error — callers treat 0 as "no results, 1 page".
+     *
+     * Called by: BatchServiceImpl.countBatches() → MyBatchesComposer.loadPage()
+     */
     @Override
     public long countBatches(
             String searchQuery,
@@ -308,6 +419,8 @@ public class BatchDAOImpl implements BatchDAO {
             String toDate) {
 
         try (Session session = HibernateUtil.getSession()) {
+            // Re-use the same WHERE builder as loadBatchesPage() so total count
+            // is always consistent with the current page slice.
             FilterClause f = buildWhere(searchQuery, statusFilter, fromDate, toDate);
             String sql = "SELECT COUNT(*) FROM cts_batches" + f.whereClause;
 
@@ -338,6 +451,14 @@ public class BatchDAOImpl implements BatchDAO {
         }
     }
 
+    /**
+     * Builds a WHERE clause string + param map from nullable filter inputs.
+     * Each active filter appends one condition; inactive filters (null/blank) are skipped.
+     * "All Status" string also treated as no-filter for statusFilter.
+     * Conditions joined with AND; empty conditions → whereClause = "" (no WHERE).
+     *
+     * Used by: loadBatchesPage(), countBatches()
+     */
     private FilterClause buildWhere(
             String searchQuery,
             String statusFilter,
@@ -380,37 +501,41 @@ public class BatchDAOImpl implements BatchDAO {
         return new FilterClause(whereClause, params);
     }
 
+    /**
+     * Binds all entries from params map onto a NativeQuery using setParameter().
+     * Called after buildWhere() to apply the dynamic param set in one pass.
+     * Works for both SELECT (loadBatchesPage/countBatches) call sites.
+     */
     private void applyParams(NativeQuery<?> q, Map<String, Object> params) {
         for (Map.Entry<String, Object> e : params.entrySet()) {
             q.setParameter(e.getKey(), e.getValue());
         }
     }
-    
-    
- // ══════════════════════════════════════════════════════════════════════
-  	// ANUSHA — Verification I (V1) Methods
-  	// ══════════════════════════════════════════════════════════════════════
 
-  	// Fetches exactly the batch rows whose batch_id is in the given set.
-  	// Called by getVerifiableBatchSummaries() after the service has already
-  	// identified which batch IDs have V1 cheques — no status filter needed here.
-  	@Override
-  	public List<BatchEntity> loadBatchesByIds(Set<String> batchIds) {
-  		if (batchIds == null || batchIds.isEmpty()) {
-  			LOG.warning("loadBatchesByIds: empty or null batchIds — returning empty list");
-  			return Collections.emptyList();
-  		}
-  		try (Session session = HibernateUtil.getSession()) {
-  			return session.createNativeQuery(
-  					"SELECT * FROM cts_batches "
-  					+ "WHERE batch_id IN :ids "
-  					+ "ORDER BY created_at DESC",
-  					BatchEntity.class)
-  					.setParameter("ids", new ArrayList<>(batchIds))
-  					.list();
-  		} catch (Exception ex) {
-  			LOG.severe("loadBatchesByIds error: " + ex.getMessage());
-  			return Collections.emptyList();
-  		}
-  	}
+    // ══════════════════════════════════════════════════════════════════════
+    // ANUSHA — Verification I (V1) Methods
+    // ══════════════════════════════════════════════════════════════════════
+
+    // Fetches exactly the batch rows whose batch_id is in the given set.
+    // Called by getVerifiableBatchSummaries() after the service has already
+    // identified which batch IDs have V1 cheques — no status filter needed here.
+    @Override
+    public List<BatchEntity> loadBatchesByIds(Set<String> batchIds) {
+        if (batchIds == null || batchIds.isEmpty()) {
+            LOG.warning("loadBatchesByIds: empty or null batchIds — returning empty list");
+            return Collections.emptyList();
+        }
+        try (Session session = HibernateUtil.getSession()) {
+            return session.createNativeQuery(
+                    "SELECT * FROM cts_batches "
+                    + "WHERE batch_id IN :ids "
+                    + "ORDER BY created_at DESC",
+                    BatchEntity.class)
+                    .setParameter("ids", new ArrayList<>(batchIds))
+                    .list();
+        } catch (Exception ex) {
+            LOG.severe("loadBatchesByIds error: " + ex.getMessage());
+            return Collections.emptyList();
+        }
+    }
 }

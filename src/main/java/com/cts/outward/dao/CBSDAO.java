@@ -15,8 +15,20 @@
 
 package com.cts.outward.dao;
 
+// JsonNode: Jackson tree-model type returned by getAccountDetails.
+// Callers navigate the Firestore field envelope using .path() chains.
 import com.fasterxml.jackson.databind.JsonNode;
 
+/**
+ * CBSDAO — Core Banking System Data Access interface.
+ *
+ * Defines the contract for all raw CBS lookups against Firestore.
+ * No business logic here — only data retrieval primitives.
+ * CBSDAOImpl provides the HTTP + JSON implementation.
+ *
+ * Callers (CBSService) depend on this interface, not the impl,
+ * enabling mock injection in tests without a live Firestore connection.
+ */
 public interface CBSDAO {
 
     // ══════════════════════════════════════════════════════════
@@ -25,24 +37,41 @@ public interface CBSDAO {
 
     /**
      * Fetches the Firestore "fields" node for the given account number.
-     * Returns null if account not found (HTTP 404) or on any error.
      *
-     * Callers read typed values using the Firestore envelope pattern:
-     *   fields.path("accountHolderName").path("stringValue").asText()
-     *   fields.path("active").path("booleanValue").asBoolean(false)
-     *   fields.path("balance").path("integerValue").asDouble(0)
+     * Firestore stores each document as:
+     *   { "name": "...", "fields": { fieldName: { typeKey: value }, ... } }
+     * This method returns only the inner "fields" map so callers don't
+     * need to unwrap the envelope themselves.
      *
-     * @param accountNumber the bank account number
-     * @return JsonNode of the document's "fields" object, or null
+     * Caller usage pattern:
+     *   JsonNode fields = dao.getAccountDetails("1234567890");
+     *   if (fields == null) { // account not found or CBS unreachable }
+     *   String name    = fields.path("accountHolderName").path("stringValue").asText();
+     *   boolean active = fields.path("active").path("booleanValue").asBoolean(false);
+     *   double balance = fields.path("balance").path("integerValue").asDouble(0);
+     *
+     * Returns null if:
+     *   - Firestore returns HTTP non-200 (account absent / access denied)
+     *   - Any network or JSON parse exception occurs (fail-closed)
+     *
+     * @param accountNumber the bank account number (Firestore document ID)
+     * @return JsonNode of the document's "fields" object, or null on any failure
      */
     JsonNode getAccountDetails(String accountNumber);
 
     /**
-     * Returns true if a Firestore document exists for the account (HTTP 200).
-     * Fail-closed: returns false on any network/parse exception.
+     * Checks whether an account document exists in Firestore.
      *
-     * @param accountNumber the account number to check
-     * @return true if account document exists; false otherwise
+     * Lighter than getAccountDetails — only inspects HTTP status code,
+     * does not parse the response body. Use this when you only need
+     * existence confirmation, not the actual field values.
+     *
+     * Fail-closed: returns false on any network/parse exception.
+     * Callers should treat false as "cannot confirm existence" —
+     * never grant access based on an ambiguous result.
+     *
+     * @param accountNumber the account number to check (Firestore document ID)
+     * @return true if account document exists (HTTP 200); false if absent or error
      */
     boolean isAccountExists(String accountNumber);
 
@@ -51,13 +80,19 @@ public interface CBSDAO {
     // ══════════════════════════════════════════════════════════
 
     /**
-     * Returns true if a cheque document exists in Firestore for the
-     * given account + cheque number pair.
+     * Checks whether a cheque document exists in Firestore.
      *
-     * Document ID convention: "{accountNumber}_{chequeNumber}"
+     * Firestore document ID convention for cheques:
+     *   "{accountNumber}_{chequeNumber}"
+     *   e.g. account "1234567890", cheque "000123" → doc "1234567890_000123"
+     *
+     * Only checks HTTP 200/non-200 — does not parse body.
+     * Use this before getChequeStatus to avoid parsing a 404 body.
+     *
+     * Fail-closed: returns false on any exception.
      *
      * @param accountNumber the account number the cheque belongs to
-     * @param chequeNumber  the cheque serial number
+     * @param chequeNumber  the cheque serial number (MICR field)
      * @return true if cheque document exists (HTTP 200); false otherwise
      */
     boolean isChequeExists(String accountNumber, String chequeNumber);
@@ -65,19 +100,22 @@ public interface CBSDAO {
     /**
      * Returns the status string of a cheque from Firestore.
      *
-     * Return values:
-     *   "ACTIVE"     — valid and in circulation
-     *   "STOPPED"    — stop payment issued
-     *   "CLEARED"    — already presented
-     *   "NOT_FOUND"  — HTTP non-200
-     *   "UNKNOWN"    — document found but status field absent
-     *   "ERROR"      — network or parse exception
+     * Reads the "status" → "stringValue" field from the cheque document.
      *
-     * Never returns null.
+     * Return value contract (never returns null):
+     *   "ACTIVE"     — cheque is valid and in circulation; can be presented
+     *   "STOPPED"    — stop payment order issued by account holder; reject
+     *   "CLEARED"    — cheque already presented once; reject as duplicate
+     *   "NOT_FOUND"  — Firestore returned non-200 (cheque not registered in CBS)
+     *   "UNKNOWN"    — document found but "status" field absent (data integrity issue)
+     *   "ERROR"      — network timeout, DNS failure, or JSON parse exception
+     *
+     * Callers must distinguish "NOT_FOUND" (cheque absent) from "ERROR"
+     * (CBS unreachable) to decide between rejection and retry/escalation.
      *
      * @param accountNumber the account number the cheque belongs to
-     * @param chequeNumber  the cheque serial number
-     * @return status string
+     * @param chequeNumber  the cheque serial number (MICR field)
+     * @return status string — one of ACTIVE / STOPPED / CLEARED / NOT_FOUND / UNKNOWN / ERROR
      */
     String getChequeStatus(String accountNumber, String chequeNumber);
 }
