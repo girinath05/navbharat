@@ -248,8 +248,10 @@ html, body {
     padding: 8px 16px !important; font-size: 13px !important;
     font-weight: 700 !important; font-family: 'Inter', sans-serif !important;
     box-shadow: 0 2px 8px rgba(15,35,71,.18) !important;
-    display: inline-flex !important; align-items: center !important;
+    display: inline-flex !important; align-items: center !important; justify-content: center !important;
 }
+
+
 .btn-primary.z-button:hover { background: var(--navy2) !important; }
 
 /* ── ZK button overrides — outline ──────────────────────────── */
@@ -1597,8 +1599,30 @@ html, body {
 .bce-md-actions { padding: 16px 24px 22px; display: flex; gap: 12px; justify-content: center; }
 /* Accept: navy filled */
 .bce-md-actions .btn-primary { background: #0f2347; color: #fff; border: none; border-radius: 8px; padding: 10px 28px; font-size: 13px; font-weight: 700; min-width: 110px; text-align: center; }
+/* Discard: red outline — destructive action is visually distinct 
+.bce-md-actions .btn-outline { background: #fff; color: #ef4444; border: 2px solid #ef4444; border-radius: 8px; padding: 10px 28px; font-size: 13px; font-weight: 700; min-width: 110px; text-align: center; }
+*/
+
+
 /* Discard: red outline — destructive action is visually distinct */
 .bce-md-actions .btn-outline { background: #fff; color: #ef4444; border: 2px solid #ef4444; border-radius: 8px; padding: 10px 28px; font-size: 13px; font-weight: 700; min-width: 110px; text-align: center; }
+
+/* Center label text — ZK z-button inline-flex defaults to flex-start */
+.bce-md-actions .btn-primary.z-button,
+.bce-md-actions .btn-outline.z-button {
+    justify-content: center !important;
+}
+
+
+.bce-md-actions .btn-primary .z-button-cm,
+.bce-md-actions .btn-outline .z-button-cm {
+    display: block !important;
+    width: 100% !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+}
+
+
 
 
 /* ════════════════════════════════════════════════════════════════

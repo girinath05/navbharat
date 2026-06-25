@@ -46,8 +46,8 @@
         my-batches.css  → page-specific layout: card, toolbar,
                           listbox, pagination bar, status badges
     -->
-    <n:link rel="stylesheet" href="/navbharat/css/outward/cheque-scan.css"/>
-    <n:link rel="stylesheet" href="/navbharat/css/outward/my-batches.css"/>
+    <style src="/css/outward/cheque-scan.css"/>
+    <style src="/css/outward/my-batches.css"/>
 
     <!--
       Root container — mbRoot

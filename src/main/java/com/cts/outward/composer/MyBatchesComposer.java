@@ -552,7 +552,7 @@ public class MyBatchesComposer extends SelectorComposer<Component> {
     @Listen("onClick = #btnCreateBatch")
     public void onCreateBatch() {
         Sessions.getCurrent().setAttribute("autoOpenBatchModal", true);
-        com.cts.composer.DashboardComposer.navigateTo("/zul/outward/scanModule.zul");
+        com.cts.composer.DashboardComposer.navigateTo("/zul/outward/cheque-scan.zul");
     }
 
     // ══════════════════════════════════════════════════════════════════════

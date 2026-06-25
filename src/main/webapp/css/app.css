@@ -11,12 +11,54 @@ body,
   font-family: "Segoe UI", sans-serif;
 }
 
+/* ── ZK Loading Overlay — fullscreen centered spinner ── */
 .z-loading {
-  background: transparent !important;
-  overflow: auto;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(10, 28, 60, 0.55) !important;
+  backdrop-filter: blur(3px) !important;
+  -webkit-backdrop-filter: blur(3px) !important;
   display: flex !important;
+  flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
+  z-index: 99999 !important;
+  overflow: hidden !important;
+  gap: 18px !important;
+}
+
+/* Hide ZK's default tiny GIF/text — replaced by pseudo-elements */
+.z-loading > * {
+  display: none !important;
+}
+
+/* Spinner ring */
+.z-loading::before {
+  content: "" !important;
+  display: block !important;
+  width: 56px !important;
+  height: 56px !important;
+  border: 5px solid rgba(255, 255, 255, 0.18) !important;
+  border-top-color: #4a9eff !important;
+  border-radius: 50% !important;
+  animation: cts-spin 0.85s linear infinite !important;
+}
+
+/* "Processing…" label */
+.z-loading::after {
+  content: "Processing\2026" !important;
+  display: block !important;
+  color: #d0e6ff !important;
+  font-family: "Segoe UI", sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.04em !important;
+}
+
+@keyframes cts-spin {
+  to { transform: rotate(360deg); }
 }
 .z-page {
   background: #edf2f8 !important;

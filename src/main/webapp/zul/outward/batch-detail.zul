@@ -93,9 +93,9 @@
         3. batch-detail.css  → page-specific overrides: filter bar,
                                MICR field widths, image viewer, payee lookup
     -->
-    <n:link rel="stylesheet" href="/navbharat/css/outward/cheque-scan.css" />
-    <n:link rel="stylesheet" href="/navbharat/css/outward/my-batches.css" />
-    <n:link rel="stylesheet" href="/navbharat/css/outward/batch-detail.css" />
+    <style src="/css/outward/cheque-scan.css" />
+    <style src="/css/outward/my-batches.css" />
+    <style src="/css/outward/batch-detail.css" />
 
     <!--
       Root container — bdRoot
@@ -105,7 +105,10 @@
       Executions.getCurrent().getArg() passed by MyBatchesComposer
       when navigating here via Executions.createComponents().
     -->
-    <div id="bdRoot" apply="com.cts.outward.composer.BatchDetailComposer">
+
+<div id="bdRoot" apply="com.cts.outward.composer.BatchDetailComposer"
+     style="padding: 20px;">
+
 
         <!-- ============================================================
              SECTION: Page Header
