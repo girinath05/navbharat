@@ -1,13 +1,42 @@
 /*
- * Project     : Navbharat CTS Outward
  * File        : VerificationOneComposer.java
  * Package     : com.cts.outward.composer
- * Author      : Anusha M.
- * Created     : June 2026
- * Description : ZK SelectorComposer for the Verification I (Checker) screen.
- *               Manages two-phase UI: batch list (Phase 1) → cheque list (Phase 2)
- *               → cheque verification popup. All business logic is delegated to
- *               VerificationOneService; this class handles only UI state and events.
+ * Description : ZK SelectorComposer (controller) for the Verification I (Checker) screen.
+ *
+ *               This class is responsible ONLY for UI concerns:
+ *               ─────────────────────────────────────────────────────────────
+ *               • Wiring ZK components to Java fields (@Wire).
+ *               • Listening to ZK events (@Listen) and calling the service.
+ *               • Building Listitem / Listcell rows for the batch and cheque tables.
+ *               • Translating service results (booleans, enums) into ZK
+ *                 sclass strings and Labels.
+ *               • Controlling which panel (Phase 1 vs Phase 2) or popup is visible.
+ *
+ *               What this class must NOT do
+ *               ─────────────────────────────────────────────────────────────
+ *               • Directly compare ChequeStatus or BatchStatus enum values to
+ *                 make business decisions — call the service for that.
+ *               • Contain any "if status == X then Y" rules that belong in the
+ *                 domain model.
+ *               • Access the database or call CBS directly.
+ *
+ *               Two-phase navigation
+ *               ─────────────────────────────────────────────────────────────
+ *               Phase 1 — Batch list:  the verifier sees all V1 batches in a
+ *                         searchable, paginated table and clicks "Process" /
+ *                         "Resume" / "View" to enter Phase 2.
+ *               Phase 2 — Cheque list: shows every cheque in the selected batch.
+ *                         Clicking "Open" on a pending cheque opens the popup.
+ *               Popup   — Verification popup: displays the cheque image and
+ *                         detail fields; provides Accept / Reject / Refer buttons.
+ *
+ *               User Resolution
+ *               ─────────────────────────────────────────────────────────────
+ *               The logged-in username is resolved fresh from the ZK session on
+ *               every action (Accept / Reject / Refer) via getSessionUser().
+ *               This matches the pattern used in VerificationIIComposer and
+ *               ensures the correct user is recorded even if the session changes
+ *               (e.g. token refresh) after the composer was initialised.
  */
 package com.cts.outward.composer;
 
@@ -18,11 +47,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import org.zkoss.zk.ui.Component;
-import org.zkoss.zk.ui.Session;
-import org.zkoss.zk.ui.Sessions;
 import org.zkoss.zk.ui.select.SelectorComposer;
 import org.zkoss.zk.ui.select.annotation.Listen;
 import org.zkoss.zk.ui.select.annotation.Wire;
@@ -46,6 +72,7 @@ import com.cts.outward.enums.BatchStatus;
 import com.cts.outward.enums.ChequeStatus;
 import com.cts.outward.model.BatchSummary;
 import com.cts.outward.model.CbsAccountDetails;
+import com.cts.outward.model.CbsAccountDetails.LookupState;
 import com.cts.outward.service.CBSServiceImpl;
 import com.cts.outward.service.VerificationOneService;
 import com.cts.outward.service.VerificationOneServiceImpl;
@@ -53,207 +80,380 @@ import com.cts.outward.service.VerificationOneServiceImpl;
 public class VerificationOneComposer extends SelectorComposer<Component> {
 
     private static final long serialVersionUID = 1L;
-    private static final String CHEQUE_IMAGE_SERVLET = "/chequeImage";
-    private static final String DEFAULT_USER = "SYSTEM";
-    private static final Logger LOG = Logger.getLogger(VerificationOneComposer.class.getName());
 
-    private static final int BATCH_PAGE_SIZE = 5;
-    private static final int CHEQUE_PAGE_SIZE = 5;
+    /** URL path of the servlet that streams cheque images from the file store. */
+    private static final String CHEQUE_IMAGE_SERVLET = "/chequeImage";
 
     /**
-     * Single service dependency — handles all business logic for Verification I.
+     * Fallback username used if the security context cannot provide a logged-in user.
+     * Applied only when getSessionUser() finds no session — should not occur in normal flow.
+     */
+    private static final String DEFAULT_USER = "SYSTEM";
+
+    private static final Logger LOG = Logger.getLogger(VerificationOneComposer.class.getName());
+
+    /** Number of batch rows shown per page in the Phase-1 table. */
+    private static final int BATCH_PAGE_SIZE  = 5;
+
+    /** Number of cheque rows shown per page in the Phase-2 table. */
+    private static final int CHEQUE_PAGE_SIZE = 5;
+
+    /*
+     * The service is the single point of entry for all business logic.
+     * The composer never touches the DAO or CBS layers directly.
      */
     private final VerificationOneService verificationService = new VerificationOneServiceImpl(
             new BatchDAOImpl(),
             new ChequeDAOImpl(),
             new CBSServiceImpl(new CBSDAOImpl()));
 
-    // ── Phase 1: Batch list panel ─────────────────────────────────────────
-    @Wire
-    private Div pnlBatchList;
-    @Wire
-    private Listbox lbBatches;
-    @Wire
-    private Label lblBatchPagingInfo;
-    @Wire
-    private Label lblBatchPageNum;
-    @Wire
-    private Button btnBatchPrev;
-    @Wire
-    private Button btnBatchNext;
+    // ══════════════════════════════════════════════════════════════════════
+    // WIRED ZK COMPONENTS  — Phase 1: Batch list panel
+    // ══════════════════════════════════════════════════════════════════════
+
+    /** Outer container for the Phase-1 batch list.  Hidden during Phase 2. */
+    @Wire private Div     panelBatchList;
+
+    /** Table that holds batch rows built by renderBatchPage(). */
+    @Wire private Listbox listBatches;
+
+    /** Shows "Showing X – Y of Z batches". */
+    @Wire private Label   labelBatchPagingInfo;
+
+    /** Shows "Page X of Y". */
+    @Wire private Label   labelBatchPageNumber;
+
+    /** Navigates to the previous page of batches. */
+    @Wire private Button  buttonBatchPrev;
+
+    /** Navigates to the next page of batches. */
+    @Wire private Button  buttonBatchNext;
 
     // ── Phase 1: Batch filter controls ───────────────────────────────────
-    @Wire
-    private Textbox txBatchSearch;
-    @Wire
-    private Datebox dtBatchFromDate;
-    @Wire
-    private Datebox dtBatchToDate;
-    @Wire
-    private Combobox cmbBatchStatusFilter;
-    @Wire
-    private Button btnBatchDateClear;
 
-    // ── Phase 2: Cheque list panel ────────────────────────────────────────
-    @Wire
-    private Div pnlChequeList;
-    @Wire
-    private Listbox lbCheques;
-    @Wire
-    private Label spCntPending;
-    @Wire
-    private Label spCntPassed;
-    @Wire
-    private Label spCntRejected;
-    @Wire
-    private Label lblBatchTitle;
-    @Wire
-    private Label lblChequePagingInfo;
-    @Wire
-    private Label lblChequePageNum;
-    @Wire
-    private Button btnChequePrev;
-    @Wire
-    private Button btnChequeNext;
+    /** Free-text search box — filters by Batch ID. */
+    @Wire private Textbox  searchBatch;
+
+    /** Date-range lower bound for the batch creation date filter. */
+    @Wire private Datebox  dateFromBatch;
+
+    /** Date-range upper bound for the batch creation date filter. */
+    @Wire private Datebox  dateToBatch;
+
+    /** Drop-down to filter batches by their current status. */
+    @Wire private Combobox comboBatchStatus;
+
+    /** Clears all Phase-1 filter controls and reloads the full list. */
+    @Wire private Button   buttonBatchFilterClear;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // WIRED ZK COMPONENTS  — Phase 2: Cheque list panel
+    // ══════════════════════════════════════════════════════════════════════
+
+    /** Outer container for the Phase-2 cheque list.  Hidden during Phase 1. */
+    @Wire private Div     panelChequeList;
+
+    /** Table that holds cheque rows built by renderChequePage(). */
+    @Wire private Listbox listCheques;
+
+    /** Shows the count of V1_PENDING cheques in the active batch. */
+    @Wire private Label   counterPending;
+
+    /** Shows the count of VERIFIED (accepted) cheques in the active batch. */
+    @Wire private Label   counterAccepted;
+
+    /** Shows the count of REJECTED cheques in the active batch. */
+    @Wire private Label   counterRejected;
+
+    /** Shows the count of REFERRED cheques in the active batch (may be null in some ZUL versions). */
+    @Wire private Label   counterReferred;
+
+    /** Shows the Batch ID of the batch currently being worked on. */
+    @Wire private Label   labelActiveBatchId;
+
+    /** Shows "Showing X – Y of Z cheques". */
+    @Wire private Label   labelChequePagingInfo;
+
+    /** Shows "Page X of Y". */
+    @Wire private Label   labelChequePageNumber;
+
+    /** Navigates to the previous page of cheques. */
+    @Wire private Button  buttonChequePrev;
+
+    /** Navigates to the next page of cheques. */
+    @Wire private Button  buttonChequeNext;
 
     // ── Phase 2: Cheque filter controls ──────────────────────────────────
-    @Wire
-    private Textbox txChequeSearch;
-    @Wire
-    private Datebox dtChequeFromDate;
-    @Wire
-    private Datebox dtChequeToDate;
-    @Wire
-    private Combobox cmbChequeStatusFilter;
-    @Wire
-    private Button btnChequeDateClear;
 
-    // ── Verification popup ────────────────────────────────────────────────
-    @Wire
-    private Div dlgChequeVerify;
-    @Wire
-    private Div dlgBackdrop;
-    @Wire
-    private Label dlgBatchPill;
-    @Wire
-    private Label dlgRecordPos;
-    @Wire
-    private Div dlgImageBox;
-    @Wire
-    private Image dlgImage;
-    @Wire
-    private Label dlgImagePh;
+    /** Free-text search box — filters cheques by number, payee name, or amount. */
+    @Wire private Textbox  searchCheque;
 
-    @Wire
-    private Label dlgChequeNo;
-    @Wire
-    private Label dlgCityCode;
-    @Wire
-    private Label dlgBankCode;
-    @Wire
-    private Label dlgBranchCode;
-    @Wire
-    private Label dlgTcCode;
+    /** Date-range lower bound for the cheque date filter. */
+    @Wire private Datebox  dateFromCheque;
 
-    @Wire
-    private Label dlgPayeeName;
-    @Wire
-    private Label dlgCbsAccName;
-    @Wire
-    private Label dlgCbsPayeeMatch;
-    @Wire
-    private Label dlgAccountNo;
-    @Wire
-    private Label dlgChequeDate;
-    @Wire
-    private Label dlgCbsAccStatus;
-    @Wire
-    private Label dlgCbsNewAcc;
-    @Wire
-    private Label dlgAmount;
-    @Wire
-    private Label dlgAmountWords;
+    /** Date-range upper bound for the cheque date filter. */
+    @Wire private Datebox  dateToCheque;
 
-    @Wire
-    private Button btnDlgPrev;
-    @Wire
-    private Button btnDlgNext;
-    @Wire
-    private Button btnDlgAccept;
-    @Wire
-    private Combobox cmbRejectReason;
-    @Wire
-    private Button btnDlgReject;
-    @Wire
-    private Combobox cmbReferReason;
-    @Wire
-    private Button btnDlgRefer;
-    @Wire
-    private Button btnToggleSide;
+    /** Drop-down to filter cheques by their current status (Pending / Accepted / Rejected / Referred). */
+    @Wire private Combobox comboChequeStatus;
 
-    // ── Composer state ────────────────────────────────────────────────────
-    private String currentUser;
+    /** Clears all Phase-2 filter controls and re-renders the full cheque list. */
+    @Wire private Button   buttonChequeFilterClear;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // WIRED ZK COMPONENTS  — Verification popup
+    // ══════════════════════════════════════════════════════════════════════
+
+    /** The popup panel that contains the cheque detail fields and action buttons. */
+    @Wire private Div   popupChequeVerify;
+
+    /** Semi-transparent overlay behind the popup that blocks interaction with the list below. */
+    @Wire private Div   popupBackdrop;
+
+    /** Small pill label showing the active Batch ID inside the popup header. */
+    @Wire private Label popupBatchPill;
+
+    /** Shows "3 / 10" — which cheque is currently open out of how many are visible. */
+    @Wire private Label popupRecordPosition;
+
+    /** Displays the scanned cheque image (front or rear). */
+    @Wire private Image popupChequeImage;
+
+    /** Placeholder text shown when no image is available for the cheque. */
+    @Wire private Label popupImagePlaceholder;
+
+    // ── MICR / sort-code fields shown in the popup ──────────────────────
+
+    /** First 3 digits of the 9-digit sort code — represents the city code. */
+    @Wire private Label fieldChequeNo;
+    @Wire private Label fieldCityCode;
+    @Wire private Label fieldBankCode;
+    @Wire private Label fieldBranchCode;
+    @Wire private Label fieldTcCode;
+
+    // ── Payee and amount fields ───────────────────────────────────────────
+
+    @Wire private Label fieldPayeeName;
+
+    /** Account holder name returned by CBS for the account on the cheque. */
+    @Wire private Label fieldCbsAccountName;
+
+    /** "Match" or "Mismatch" — whether the CBS name matches the cheque payee name. */
+    @Wire private Label fieldCbsPayeeMatch;
+
+    @Wire private Label fieldAccountNo;
+    @Wire private Label fieldChequeDate;
+
+    /** "Active" or "Inactive" — account status from CBS. */
+    @Wire private Label fieldCbsAccountStatus;
+
+    /** "Yes" or "No" — whether the CBS account was opened recently. */
+    @Wire private Label fieldCbsNewAccount;
+
+    @Wire private Label fieldAmount;
+    @Wire private Label fieldAmountInWords;
+
+    // ── Popup navigation and action controls ─────────────────────────────
+
+    /** Opens the previous cheque in the filtered list without closing the popup. */
+    @Wire private Button   buttonPopupPrev;
+
+    /** Opens the next cheque in the filtered list without closing the popup. */
+    @Wire private Button   buttonPopupNext;
+
+    /** Accepts the cheque (CBS validation is run first). */
+    @Wire private Button   buttonAccept;
+
+    /** Drop-down listing the available rejection reasons. Must be selected before rejecting. */
+    @Wire private Combobox comboRejectReason;
+
+    /** Rejects the cheque using the reason chosen in comboRejectReason. */
+    @Wire private Button   buttonReject;
+
+    /** Drop-down listing the available refer reasons. Must be selected before referring. */
+    @Wire private Combobox comboReferReason;
+
+    /** Refers the cheque to Verification II using the reason chosen in comboReferReason. */
+    @Wire private Button   buttonRefer;
+
+    /** Toggles the cheque image between front and rear scans. */
+    @Wire private Button   buttonToggleImageSide;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // COMPOSER STATE  (in-memory fields kept between ZK event calls)
+    // ══════════════════════════════════════════════════════════════════════
+
+    /**
+     * NOTE: currentUser field has been intentionally removed.
+     *
+     * Previously the username was resolved once in doAfterCompose() and cached
+     * here as a String field.  That approach risks using a stale username if the
+     * session is refreshed after the composer is initialised.
+     *
+     * The username is now resolved fresh from the ZK session on every action
+     * (Accept / Reject / Refer) via getSessionUser().  This matches the pattern
+     * used in VerificationIIComposer.getVerifierUsername() and guarantees the
+     * correct user is written to the audit trail at the exact moment of the action.
+     */
+
+    /** The Batch ID the verifier is currently working on (null when in Phase 1). */
     private String activeBatchId;
 
-    private List<BatchSummary> batchSummaryList = new ArrayList<>();
-    private List<ChequeEntity> pendingChequeList = new ArrayList<>();
+    /**
+     * Complete list of V1 cheques for the active batch, loaded once when the
+     * batch is opened and kept in memory for the duration of the session.
+     *
+     * IMPORTANT: this list is NEVER filtered in-place.  Filters are applied
+     * to produce filteredChequeList; this list remains the authoritative source.
+     * Renamed from "pendingChequeList" to avoid confusion — it holds ALL V1
+     * cheques (pending + accepted + rejected + referred), not only pending ones.
+     */
+    private List<ChequeEntity> allChequesForBatch = new ArrayList<>();
 
-    // Filtered views used for display (derived from the master lists above)
-    private List<BatchSummary> filteredBatchList = new ArrayList<>();
+    /**
+     * The subset of allChequesForBatch that passes the current filter selections.
+     * Re-computed by applyChequeFiltersAndRender() on every filter change or action.
+     * The cheque table and popup always operate on this list.
+     */
     private List<ChequeEntity> filteredChequeList = new ArrayList<>();
 
-    private int batchCurrentPage = 1;
-    private int batchTotalPages = 1;
+    /**
+     * Complete batch summary list from the service, loaded once on screen init
+     * and on each return to Phase 1.  Filtering is applied in memory to produce
+     * filteredBatchList.
+     */
+    private List<BatchSummary> allBatchSummaries  = new ArrayList<>();
 
+    /**
+     * The subset of allBatchSummaries that passes the current filter selections.
+     * Re-computed by applyBatchFiltersAndRender() on every filter change.
+     */
+    private List<BatchSummary> filteredBatchList  = new ArrayList<>();
+
+    /** Current page number in the Phase-1 batch table (1-based). */
+    private int batchCurrentPage  = 1;
+
+    /** Total number of pages in the Phase-1 batch table (at least 1 even when empty). */
+    private int batchTotalPages   = 1;
+
+    /** Current page number in the Phase-2 cheque table (1-based). */
     private int chequeCurrentPage = 1;
-    private int chequeTotalPages = 1;
 
-    private int popupChequeIndex = 0;
+    /** Total number of pages in the Phase-2 cheque table (at least 1 even when empty). */
+    private int chequeTotalPages  = 1;
+
+    /**
+     * Index into filteredChequeList of the cheque currently displayed in the popup.
+     * Updated by openChequePopup() and the Prev / Next popup buttons.
+     */
+    private int     popupChequeIndex   = 0;
+
+    /**
+     * True when the rear (back) side of the cheque image is currently showing.
+     * False means the front side is showing.
+     */
     private boolean isRearImageVisible = false;
+
+    /**
+     * True when the active batch has status VERIFIED — means the verifier opened
+     * it in "View" mode and the Accept / Reject / Refer buttons must be hidden.
+     */
+    private boolean isBatchReadOnly = false;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SESSION USER HELPER
+    // ══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Resolves the currently logged-in verifier's username fresh from the ZK session
+     * on every call.
+     *
+     * This mirrors VerificationIIComposer.getVerifierUsername() and replaces the old
+     * approach of caching the username in a field during doAfterCompose().
+     *
+     * Why read fresh on every action?
+     *   • The ZK session can be refreshed (token re-issue, re-login in another tab)
+     *     after the composer was initialised.  A cached field would silently record
+     *     the wrong username on the audit trail.
+     *   • SecurityUtil.getCurrentUserId() is a lightweight session attribute read —
+     *     there is no DB round-trip or meaningful overhead to justify caching it.
+     *
+     * Falls back to DEFAULT_USER ("SYSTEM") if the session holds no logged-in user,
+     * which should only happen during integration tests or misconfigured deployments.
+     *
+     * @return the username of the currently logged-in user, or "SYSTEM" as fallback
+     */
+    private String getSessionUser() {
+        String username = com.cts.util.SecurityUtil.getCurrentUserId();
+        return (username == null || username.isBlank() || "unknown".equals(username))
+                ? DEFAULT_USER
+                : username;
+    }
 
     // ══════════════════════════════════════════════════════════════════════
     // LIFECYCLE
     // ══════════════════════════════════════════════════════════════════════
 
+    /**
+     * Called by ZK after all @Wire components have been injected.
+     * This is the entry point for initial screen setup.
+     *
+     * Order of operations:
+     *   1. Log the currently logged-in user (resolved live from session).
+     *   2. Configure table components to not auto-resize (vflex="false").
+     *   3. Set the status filter to its default "ALL" option.
+     *   4. Reset all in-memory state to clean values.
+     *   5. Hide the popup and backdrop.
+     *   6. Show Phase 1 and load the batch list.
+     *
+     * NOTE: The username is NO LONGER stored as a field here.  It is resolved
+     * fresh via getSessionUser() at the moment each action button is clicked.
+     */
     @Override
     public void doAfterCompose(Component comp) throws Exception {
         super.doAfterCompose(comp);
 
-        Session session = Sessions.getCurrent();
-        com.cts.uam.model.User loggedInUser = com.cts.util.SecurityUtil.getCurrentUser();
-        currentUser = (loggedInUser != null) ? loggedInUser.getUsername() : DEFAULT_USER;
-        // Disable vflex on listboxes to prevent unwanted scrollable expansion
-        lbBatches.setVflex("false");
-        lbCheques.setVflex("false");
+        // Log the current user at startup for diagnostics — resolved live from session,
+        // not stored as a field (see getSessionUser() for the rationale).
+        LOG.info("VerificationOneComposer initialised — logged-in user: " + getSessionUser());
 
-        resetState();
-        dlgChequeVerify.setVisible(false);
-        dlgBackdrop.setVisible(false);
+        // Set the status drop-down to "ALL" (index 0) so no filter is active by default
+        if (comboBatchStatus.getItemCount() > 0) {
+            comboBatchStatus.setSelectedIndex(0);
+        }
+
+        resetAllState();
+        popupChequeVerify.setVisible(false);
+        popupBackdrop.setVisible(false);
 
         showPhase(1);
         loadBatchList();
-        LOG.info("VerificationOneComposer initialized — user=" + currentUser);
-    }
-
-    /** Resets all navigation and selection state to initial values. */
-    private void resetState() {
-        activeBatchId = null;
-        pendingChequeList = new ArrayList<>();
-        batchSummaryList = new ArrayList<>();
-        filteredBatchList = new ArrayList<>();
-        filteredChequeList = new ArrayList<>();
-        popupChequeIndex = 0;
-        batchCurrentPage = 1;
-        chequeCurrentPage = 1;
     }
 
     /**
-     * Shows Phase 1 (batch list) or Phase 2 (cheque list) by toggling panel
-     * visibility.
+     * Resets every piece of in-memory state to its initial empty value.
+     * Called on composer startup and whenever the verifier returns to Phase 1
+     * after working on a batch.
+     */
+    private void resetAllState() {
+        activeBatchId      = null;
+        allChequesForBatch = new ArrayList<>();
+        allBatchSummaries  = new ArrayList<>();
+        filteredBatchList  = new ArrayList<>();
+        filteredChequeList = new ArrayList<>();
+        popupChequeIndex   = 0;
+        batchCurrentPage   = 1;
+        chequeCurrentPage  = 1;
+    }
+
+    /**
+     * Switches the visible panel between Phase 1 (batch list) and Phase 2 (cheque list).
+     *
+     * @param phase 1 to show the batch list, 2 to show the cheque list
      */
     private void showPhase(int phase) {
-        pnlBatchList.setVisible(phase == 1);
-        pnlChequeList.setVisible(phase == 2);
+        panelBatchList.setVisible(phase == 1);
+        panelChequeList.setVisible(phase == 2);
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -261,63 +461,53 @@ public class VerificationOneComposer extends SelectorComposer<Component> {
     // ══════════════════════════════════════════════════════════════════════
 
     /**
-     * Fetches verifiable batch summaries from the service and re-renders the batch
-     * table.
+     * Fetches the full batch summary list from the service, applies the current
+     * filter state, and renders the first page of results.
+     * Called on initial load and on every return to Phase 1.
      */
     private void loadBatchList() {
-        batchSummaryList = verificationService.getVerifiableBatchSummaries();
+        allBatchSummaries = verificationService.getVerifiableBatchSummaries();
         applyBatchFiltersAndRender();
     }
 
     /**
-     * Applies the active batch search text, date range, and status filter to
-     * {@code batchSummaryList}, then re-renders the current page.
+     * Reads the current values of all four Phase-1 filter controls, delegates
+     * filtering to the service, recalculates pagination, and re-renders the
+     * first page of the filtered result.
+     *
+     * Called on every filter control change event so the table updates instantly
+     * without the verifier pressing a separate "Search" button.
      */
     private void applyBatchFiltersAndRender() {
-        String searchText = txBatchSearch != null ? txBatchSearch.getValue().trim().toLowerCase() : "";
-        String statusValue = getComboSelectedValue(cmbBatchStatusFilter);
-        Date fromDate = dtBatchFromDate != null ? dtBatchFromDate.getValue() : null;
-        Date toDate = dtBatchToDate != null ? dtBatchToDate.getValue() : null;
+        String searchText  = searchBatch   != null ? searchBatch.getValue().trim() : "";
+        String statusValue = getComboSelectedValue(comboBatchStatus);
+        Date   fromDate    = dateFromBatch != null ? dateFromBatch.getValue() : null;
+        Date   toDate      = dateToBatch   != null ? dateToBatch.getValue()   : null;
 
-        filteredBatchList = batchSummaryList.stream()
-                .filter(summary -> {
-                    // ── text search: match on Batch ID ──
-                    if (!searchText.isEmpty()
-                            && !summary.getBatchId().toLowerCase().contains(searchText)) {
-                        return false;
-                    }
-                    // ── status filter ──
-                    if (statusValue != null && !"ALL".equals(statusValue)) {
-                        BatchStatus selected = BatchStatus.fromDb(statusValue);
-                        if (summary.getStatus() != selected)
-                            return false;
-                    }
-                    // ── date range: filter on createdAt string (dd/MM/yyyy or timestamp) ──
-                    if (fromDate != null || toDate != null) {
-                        Date rowDate = parseSummaryDate(summary.getCreatedAt());
-                        if (rowDate != null) {
-                            if (fromDate != null && rowDate.before(fromDate))
-                                return false;
-                            if (toDate != null && rowDate.after(toDate))
-                                return false;
-                        }
-                    }
-                    return true;
-                })
-                .collect(Collectors.toList());
+        // Filtering is a pure business concern — delegate to the service
+        filteredBatchList = verificationService.filterBatchSummaries(
+                allBatchSummaries, searchText, statusValue, fromDate, toDate);
 
-        batchTotalPages = Math.max(1, (int) Math.ceil((double) filteredBatchList.size() / BATCH_PAGE_SIZE));
-        batchCurrentPage = 1;
+        batchTotalPages  = Math.max(1, (int) Math.ceil((double) filteredBatchList.size() / BATCH_PAGE_SIZE));
+        batchCurrentPage = 1; // always jump back to page 1 after a filter change
         renderBatchPage();
     }
 
-    /** Renders the current page of batch summaries into the batch listbox. */
+    /**
+     * Clears the Phase-1 table and fills it with the rows for the current page.
+     *
+     * Each row shows: Batch ID | Total | Pending | Processed | Date | Status | Action button.
+     * The action button label changes based on batch status:
+     *   "Process" — batch has not been opened yet (READY_FOR_VERIFICATION)
+     *   "Resume"  — batch is partially worked on (VERIFICATION_IN_PROGRESS)
+     *   "View"    — batch is fully verified; opens in read-only mode (VERIFIED)
+     */
     private void renderBatchPage() {
-        lbBatches.getItems().clear();
+        listBatches.getItems().clear();
 
         int totalBatches = filteredBatchList.size();
-        int pageStart = (batchCurrentPage - 1) * BATCH_PAGE_SIZE;
-        int pageEnd = Math.min(pageStart + BATCH_PAGE_SIZE, totalBatches);
+        int pageStart    = (batchCurrentPage - 1) * BATCH_PAGE_SIZE;
+        int pageEnd      = Math.min(pageStart + BATCH_PAGE_SIZE, totalBatches);
 
         for (BatchSummary summary : filteredBatchList.subList(pageStart, pageEnd)) {
             Listitem row = new Listitem();
@@ -325,98 +515,91 @@ public class VerificationOneComposer extends SelectorComposer<Component> {
             row.appendChild(cellCenter(String.valueOf(summary.getTotalCheques())));
             row.appendChild(cellCenter(String.valueOf(summary.getPendingCount())));
             row.appendChild(cellCenter(String.valueOf(summary.getProcessedCount())));
-            row.appendChild(cell(summary.getCreatedAt()));
+            row.appendChild(cell(verificationService.formatDisplayDate(summary.getCreatedAt())));
 
-            Listcell statusCell = new Listcell();
-            Label statusLabel = new Label(summary.getStatus().getLabel());
-            statusLabel.setSclass("batch-pill " + batchStatusPillClass(summary.getStatus()));
+            // Colour-coded status badge — CSS class is resolved by a UI helper in this composer
+            Listcell statusCell  = new Listcell();
+            Label    statusLabel = new Label(summary.getStatus().getLabel());
+            statusLabel.setSclass("batch-pill " + resolveBatchStatusPillClass(summary.getStatus()));
             statusCell.appendChild(statusLabel);
             row.appendChild(statusCell);
 
-            Listcell actionCell = new Listcell();
-            String buttonLabel = summary.getStatus() == BatchStatus.VERIFICATION_IN_PROGRESS ? "Resume" : "Process";
-            Button processButton = new Button(buttonLabel);
-            processButton.setSclass("v1-action-process-btn");
+            // Button label communicates what will happen when clicked
+            // Label mapping is a UI display decision — kept here in the composer, not the service
+            String actionButtonLabel = resolveBatchActionButtonLabel(summary.getStatus());
+
+            Listcell actionCell    = new Listcell();
+            Button   actionButton  = new Button(actionButtonLabel);
+            actionButton.setSclass("v1-action-process-btn");
             final String batchId = summary.getBatchId();
-            processButton.addEventListener(org.zkoss.zk.ui.event.Events.ON_CLICK, e -> openBatchChequeList(batchId));
-            actionCell.appendChild(processButton);
+            actionButton.addEventListener(org.zkoss.zk.ui.event.Events.ON_CLICK,
+                    event -> openBatchChequeList(batchId));
+            actionCell.appendChild(actionButton);
             row.appendChild(actionCell);
 
-            row.setParent(lbBatches);
+            row.setParent(listBatches);
         }
 
+        // Update paging labels and enable / disable navigation buttons
         if (totalBatches == 0) {
-            lblBatchPagingInfo.setValue("Showing 0 \u2013 0 of 0 batches");
+            labelBatchPagingInfo.setValue("Showing 0 \u2013 0 of 0 batches");
         } else {
-            lblBatchPagingInfo
-                    .setValue("Showing " + (pageStart + 1) + " \u2013 " + pageEnd + " of " + totalBatches + " batches");
+            labelBatchPagingInfo.setValue(
+                    "Showing " + (pageStart + 1) + " \u2013 " + pageEnd
+                    + " of " + totalBatches + " batches");
         }
-        lblBatchPageNum.setValue("Page " + batchCurrentPage + " of " + batchTotalPages);
-        btnBatchPrev.setDisabled(batchCurrentPage <= 1);
-        btnBatchNext.setDisabled(batchCurrentPage >= batchTotalPages);
+        labelBatchPageNumber.setValue("Page " + batchCurrentPage + " of " + batchTotalPages);
+        buttonBatchPrev.setDisabled(batchCurrentPage <= 1);
+        buttonBatchNext.setDisabled(batchCurrentPage >= batchTotalPages);
     }
 
-    // ── Batch filter event listeners ──────────────────────────────────────
+    // ── Phase 1: Filter event listeners ─────────────────────────────────
+    // Each listener simply calls applyBatchFiltersAndRender() so the table
+    // updates live as the verifier types or changes a filter control.
 
-    /** Fires on every keystroke in the batch search box (instant="true" in ZUL). */
-    @Listen("onChanging = #txBatchSearch")
+    /** Fires on every keystroke in the batch search box (live filtering). */
+    @Listen("onChanging = #searchBatch")
     public void onBatchSearchChanging(org.zkoss.zk.ui.event.InputEvent event) {
         applyBatchFiltersAndRender();
     }
 
-    @Listen("onChange = #txBatchSearch")
-    public void onBatchSearchChange() {
-        applyBatchFiltersAndRender();
-    }
+    /** Fires when the batch search box loses focus (handles paste / autofill). */
+    @Listen("onChange = #searchBatch")
+    public void onBatchSearchChange() { applyBatchFiltersAndRender(); }
 
-    // FIX: Split into two separate methods — ZK does not allow combining
-    // multiple event names in a single @Listen annotation.
-    @Listen("onChange = #cmbBatchStatusFilter")
-    public void onBatchStatusFilterChange() {
-        applyBatchFiltersAndRender();
-    }
+    /** Fires when the user types into the status combo box. */
+    @Listen("onChange = #comboBatchStatus")
+    public void onBatchStatusFilterChange() { applyBatchFiltersAndRender(); }
 
-    @Listen("onSelect = #cmbBatchStatusFilter")
-    public void onBatchStatusFilterSelect() {
-        applyBatchFiltersAndRender();
-    }
+    /** Fires when the user picks an item from the status combo drop-down. */
+    @Listen("onSelect = #comboBatchStatus")
+    public void onBatchStatusFilterSelect() { applyBatchFiltersAndRender(); }
 
-    @Listen("onChange = #dtBatchFromDate")
-    public void onBatchFromDateChange() {
-        applyBatchFiltersAndRender();
-    }
+    @Listen("onChange = #dateFromBatch")
+    public void onBatchFromDateChange() { applyBatchFiltersAndRender(); }
 
-    @Listen("onChange = #dtBatchToDate")
-    public void onBatchToDateChange() {
-        applyBatchFiltersAndRender();
-    }
+    @Listen("onChange = #dateToBatch")
+    public void onBatchToDateChange() { applyBatchFiltersAndRender(); }
 
-    /** Clears all batch filters and reloads the full unfiltered list. */
-    @Listen("onClick = #btnBatchDateClear")
-    public void onBatchDateClear() {
-        txBatchSearch.setValue("");
-        dtBatchFromDate.setValue(null);
-        dtBatchToDate.setValue(null);
-        cmbBatchStatusFilter.setValue("");
-        cmbBatchStatusFilter.setSelectedItem(null);
+    /** Resets every Phase-1 filter control to its default and reloads the full batch list. */
+    @Listen("onClick = #buttonBatchFilterClear")
+    public void onBatchFilterClear() {
+        searchBatch.setValue("");
+        dateFromBatch.setValue(null);
+        dateToBatch.setValue(null);
+        if (comboBatchStatus.getItemCount() > 0) comboBatchStatus.setSelectedIndex(0);
         batchCurrentPage = 1;
         applyBatchFiltersAndRender();
     }
 
-    @Listen("onClick = #btnBatchPrev")
+    @Listen("onClick = #buttonBatchPrev")
     public void onBatchPrev() {
-        if (batchCurrentPage > 1) {
-            batchCurrentPage--;
-            renderBatchPage();
-        }
+        if (batchCurrentPage > 1) { batchCurrentPage--; renderBatchPage(); }
     }
 
-    @Listen("onClick = #btnBatchNext")
+    @Listen("onClick = #buttonBatchNext")
     public void onBatchNext() {
-        if (batchCurrentPage < batchTotalPages) {
-            batchCurrentPage++;
-            renderBatchPage();
-        }
+        if (batchCurrentPage < batchTotalPages) { batchCurrentPage++; renderBatchPage(); }
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -424,101 +607,89 @@ public class VerificationOneComposer extends SelectorComposer<Component> {
     // ══════════════════════════════════════════════════════════════════════
 
     /**
-     * Opens the cheque list for the selected batch (Phase 1 → Phase 2 transition).
-     * The service transitions the batch to VERIFICATION_IN_PROGRESS on first open.
-     * Stays on Phase 1 with a message if no V1-pending cheques remain.
+     * Transitions from Phase 1 to Phase 2 for the selected batch.
+     *
+     * Steps:
+     *   1. Ask the service whether this batch is read-only (VERIFIED).
+     *   2. If not read-only, trigger the READY → IN_PROGRESS status transition.
+     *   3. Load all V1 cheques for the batch into in-memory state.
+     *   4. If no cheques exist, show a message and stay in Phase 1.
+     *   5. Clear the cheque filter controls (left over from a previous batch).
+     *   6. Render the cheque table and switch to Phase 2.
+     *
+     * @param batchId the Batch ID chosen by the verifier in the batch table
      */
     private void openBatchChequeList(String batchId) {
-        List<ChequeEntity> v1PendingCheques = verificationService.openBatchForVerification(batchId);
+        // Ask the service — composer does not compare BatchStatus values directly
+        isBatchReadOnly = verificationService.isBatchReadOnly(batchId);
 
-        if (v1PendingCheques.isEmpty()) {
-            Messagebox.show("No V1 pending cheques in batch " + batchId + ".",
-                    "Nothing to Verify", Messagebox.OK, Messagebox.INFORMATION);
-            return;
+        if (!isBatchReadOnly) {
+            // Marks the batch as in-progress on first open; no-op on subsequent opens
+            verificationService.openBatchForVerification(batchId);
         }
 
-        activeBatchId = batchId;
-        pendingChequeList = v1PendingCheques;
-        chequeCurrentPage = 1;
+        List<ChequeEntity> loadedCheques = verificationService.getAllV1ChequesForBatch(batchId);
 
-        // Reset cheque filters when opening a new batch
-        if (txChequeSearch != null)
-            txChequeSearch.setValue("");
-        if (dtChequeFromDate != null)
-            dtChequeFromDate.setValue(null);
-        if (dtChequeToDate != null)
-            dtChequeToDate.setValue(null);
-        if (cmbChequeStatusFilter != null) {
-            cmbChequeStatusFilter.setValue("");
-            cmbChequeStatusFilter.setSelectedItem(null);
+        if (loadedCheques.isEmpty()) {
+            String message = (isBatchReadOnly ? "No V1 cheques found for batch " : "No V1 cheques in batch ")
+                    + batchId + ".";
+            String title   = isBatchReadOnly ? "No Data" : "Nothing to Verify";
+            Messagebox.show(message, title, Messagebox.OK, Messagebox.INFORMATION);
+            return; // stay in Phase 1
         }
 
-        lblBatchTitle.setValue(batchId);
-        updateStatusCounters();
-        applyChequeFitlersAndRender();
+        activeBatchId      = batchId;
+        allChequesForBatch = loadedCheques;
+        chequeCurrentPage  = 1;
+
+        // Clear cheque filter controls so they do not carry over from a previous batch
+        clearChequeFilters();
+
+        labelActiveBatchId.setValue(batchId);
+        refreshStatusCounters();
+        applyChequeFiltersAndRender();
         showPhase(2);
     }
 
     /**
-     * Applies the active cheque search text, date range, and status filter to
-     * {@code pendingChequeList}, then re-renders the current page.
+     * Reads the current values of all four Phase-2 filter controls, delegates
+     * filtering to the service, recalculates pagination, and re-renders the
+     * first page of the filtered cheque list.
+     *
+     * Called on every filter change and after every accept / reject / refer action.
      */
-    private void applyChequeFitlersAndRender() {
-        String searchText = txChequeSearch != null ? txChequeSearch.getValue().trim().toLowerCase() : "";
-        String statusValue = getComboSelectedValue(cmbChequeStatusFilter);
-        Date fromDate = dtChequeFromDate != null ? dtChequeFromDate.getValue() : null;
-        Date toDate = dtChequeToDate != null ? dtChequeToDate.getValue() : null;
+    private void applyChequeFiltersAndRender() {
+        String searchText  = searchCheque   != null ? searchCheque.getValue().trim() : "";
+        String statusValue = getComboSelectedValue(comboChequeStatus);
+        Date   fromDate    = dateFromCheque != null ? dateFromCheque.getValue() : null;
+        Date   toDate      = dateToCheque   != null ? dateToCheque.getValue()   : null;
 
-        filteredChequeList = pendingChequeList.stream()
-                .filter(cheque -> {
-                    // ── text search: cheque no., payee name, amount ──
-                    if (!searchText.isEmpty()) {
-                        boolean matchesChequeNo = cheque.getChequeNo() != null
-                                && cheque.getChequeNo().toLowerCase().contains(searchText);
-                        boolean matchesPayee = cheque.getPayeeName() != null
-                                && cheque.getPayeeName().toLowerCase().contains(searchText);
-                        boolean matchesAmount = cheque.getAmount() != null
-                                && cheque.getAmount().toPlainString().contains(searchText);
-                        if (!matchesChequeNo && !matchesPayee && !matchesAmount)
-                            return false;
-                    }
-                    // ── status filter ──
-                    if (statusValue != null && !"ALL".equals(statusValue)) {
-                        ChequeStatus selected = ChequeStatus.valueOf(statusValue);
-                        if (!selected.db().equals(cheque.getStatus()))
-                            return false;
-                    }
-                    // ── date range: filter on cheque date string ──
-                    if (fromDate != null || toDate != null) {
-                        Date chequeDate = parseChequeDate(cheque.getChequeDate());
-                        if (chequeDate != null) {
-                            if (fromDate != null && chequeDate.before(fromDate))
-                                return false;
-                            if (toDate != null && chequeDate.after(toDate))
-                                return false;
-                        }
-                    }
-                    return true;
-                })
-                .collect(Collectors.toList());
+        // Filtering is a pure business concern — delegate to the service
+        filteredChequeList = verificationService.filterCheques(
+                allChequesForBatch, searchText, statusValue, fromDate, toDate);
 
-        chequeTotalPages = Math.max(1, (int) Math.ceil((double) filteredChequeList.size() / CHEQUE_PAGE_SIZE));
+        chequeTotalPages  = Math.max(1, (int) Math.ceil((double) filteredChequeList.size() / CHEQUE_PAGE_SIZE));
         chequeCurrentPage = 1;
         renderChequePage();
     }
 
-    /** Renders the current page of cheques into the cheque listbox. */
+    /**
+     * Clears the Phase-2 table and fills it with cheque rows for the current page.
+     *
+     * Each row shows: # | Cheque No | Payee Name | Amount | Cheque Date | Status | Open button.
+     * The "Open" button is disabled for cheques that are not V1_PENDING, or when
+     * the batch is read-only (VERIFIED).
+     */
     private void renderChequePage() {
-        lbCheques.getItems().clear();
+        listCheques.getItems().clear();
 
         int totalCheques = filteredChequeList.size();
-        int pageStart = (chequeCurrentPage - 1) * CHEQUE_PAGE_SIZE;
-        int pageEnd = Math.min(pageStart + CHEQUE_PAGE_SIZE, totalCheques);
+        int pageStart    = (chequeCurrentPage - 1) * CHEQUE_PAGE_SIZE;
+        int pageEnd      = Math.min(pageStart + CHEQUE_PAGE_SIZE, totalCheques);
 
         for (int i = 0; i < pageEnd - pageStart; i++) {
-            ChequeEntity cheque = filteredChequeList.get(pageStart + i);
-            // absoluteIdx refers to position in filteredChequeList for popup navigation
-            final int absoluteIdx = pageStart + i;
+            ChequeEntity cheque      = filteredChequeList.get(pageStart + i);
+            final int    absoluteIdx = pageStart + i; // index into filteredChequeList for popup
 
             Listitem row = new Listitem();
             row.appendChild(cellCenter(String.valueOf(absoluteIdx + 1)));
@@ -527,127 +698,128 @@ public class VerificationOneComposer extends SelectorComposer<Component> {
             row.appendChild(cellAmt(formatAmount(cheque.getAmount())));
             row.appendChild(cell(blankToEmDash(cheque.getChequeDate())));
 
+            // Status badge — colour resolved by a UI helper in this composer
             ChequeStatus chequeStatus = ChequeStatus.fromDb(cheque.getStatus());
-            Listcell verificationStatusCell = new Listcell();
-            Label verificationStatusLabel = new Label(chequeStatus.getLabel());
-            verificationStatusLabel.setSclass("v1-row-status-badge " + chequeBadgeClass(chequeStatus));
-            verificationStatusCell.appendChild(verificationStatusLabel);
-            row.appendChild(verificationStatusCell);
+            Listcell statusCell  = new Listcell();
+            Label    statusLabel = new Label(chequeStatus.getLabel());
+            statusLabel.setSclass("v1-row-status-badge " + resolveChequeBadgeClass(chequeStatus));
+            statusCell.appendChild(statusLabel);
+            row.appendChild(statusCell);
 
+            // "Open" is only enabled for pending cheques in a non-read-only batch
             Listcell actionCell = new Listcell();
-            Button openButton = new Button("Open");
+            Button   openButton = new Button("Open");
             openButton.setSclass("v1-action-open-btn");
-            openButton.setDisabled(chequeStatus != ChequeStatus.V1_PENDING);
-            openButton.addEventListener(org.zkoss.zk.ui.event.Events.ON_CLICK, e -> openChequePopup(absoluteIdx));
+            openButton.setDisabled(isBatchReadOnly || chequeStatus != ChequeStatus.V1_PENDING);
+            openButton.addEventListener(org.zkoss.zk.ui.event.Events.ON_CLICK,
+                    event -> openChequePopup(absoluteIdx));
             actionCell.appendChild(openButton);
             row.appendChild(actionCell);
 
-            row.setParent(lbCheques);
+            row.setParent(listCheques);
         }
 
+        // Update paging labels and navigation buttons
         if (totalCheques == 0) {
-            lblChequePagingInfo.setValue("Showing 0 \u2013 0 of 0 cheques");
+            labelChequePagingInfo.setValue("Showing 0 \u2013 0 of 0 cheques");
         } else {
-            lblChequePagingInfo
-                    .setValue("Showing " + (pageStart + 1) + " \u2013 " + pageEnd + " of " + totalCheques + " cheques");
+            labelChequePagingInfo.setValue(
+                    "Showing " + (pageStart + 1) + " \u2013 " + pageEnd
+                    + " of " + totalCheques + " cheques");
         }
-        lblChequePageNum.setValue("Page " + chequeCurrentPage + " of " + chequeTotalPages);
-        btnChequePrev.setDisabled(chequeCurrentPage <= 1);
-        btnChequeNext.setDisabled(chequeCurrentPage >= chequeTotalPages);
+        labelChequePageNumber.setValue("Page " + chequeCurrentPage + " of " + chequeTotalPages);
+        buttonChequePrev.setDisabled(chequeCurrentPage <= 1);
+        buttonChequeNext.setDisabled(chequeCurrentPage >= chequeTotalPages);
     }
 
-    // ── Cheque filter event listeners ─────────────────────────────────────
+    // ── Phase 2: Filter event listeners ──────────────────────────────────
 
-    /**
-     * Fires on every keystroke in the cheque search box (instant="true" in ZUL).
-     */
-    @Listen("onChanging = #txChequeSearch")
+    @Listen("onChanging = #searchCheque")
     public void onChequeSearchChanging(org.zkoss.zk.ui.event.InputEvent event) {
-        applyChequeFitlersAndRender();
+        applyChequeFiltersAndRender();
     }
 
-    @Listen("onChange = #txChequeSearch")
-    public void onChequeSearchChange() {
-        applyChequeFitlersAndRender();
-    }
+    @Listen("onChange = #searchCheque")
+    public void onChequeSearchChange() { applyChequeFiltersAndRender(); }
 
-    // FIX: Split into two separate methods — ZK does not allow combining
-    // multiple event names in a single @Listen annotation.
-    @Listen("onChange = #cmbChequeStatusFilter")
-    public void onChequeStatusFilterChange() {
-        applyChequeFitlersAndRender();
-    }
+    @Listen("onChange = #comboChequeStatus")
+    public void onChequeStatusFilterChange() { applyChequeFiltersAndRender(); }
 
-    @Listen("onSelect = #cmbChequeStatusFilter")
-    public void onChequeStatusFilterSelect() {
-        applyChequeFitlersAndRender();
-    }
+    @Listen("onSelect = #comboChequeStatus")
+    public void onChequeStatusFilterSelect() { applyChequeFiltersAndRender(); }
 
-    @Listen("onChange = #dtChequeFromDate")
-    public void onChequeFromDateChange() {
-        applyChequeFitlersAndRender();
-    }
+    @Listen("onChange = #dateFromCheque")
+    public void onChequeFromDateChange() { applyChequeFiltersAndRender(); }
 
-    @Listen("onChange = #dtChequeToDate")
-    public void onChequeToDateChange() {
-        applyChequeFitlersAndRender();
-    }
+    @Listen("onChange = #dateToCheque")
+    public void onChequeToDateChange() { applyChequeFiltersAndRender(); }
 
-    /** Clears all cheque filters and re-renders the full unfiltered cheque list. */
-    @Listen("onClick = #btnChequeDateClear")
-    public void onChequeDateClear() {
-        txChequeSearch.setValue("");
-        dtChequeFromDate.setValue(null);
-        dtChequeToDate.setValue(null);
-        cmbChequeStatusFilter.setValue("");
-        cmbChequeStatusFilter.setSelectedItem(null);
+    /** Resets every Phase-2 filter control and re-renders the full cheque list. */
+    @Listen("onClick = #buttonChequeFilterClear")
+    public void onChequeFilterClear() {
+        clearChequeFilters();
         chequeCurrentPage = 1;
-        applyChequeFitlersAndRender();
+        applyChequeFiltersAndRender();
     }
 
-    @Listen("onClick = #btnChequePrev")
+    @Listen("onClick = #buttonChequePrev")
     public void onChequePrev() {
-        if (chequeCurrentPage > 1) {
-            chequeCurrentPage--;
-            renderChequePage();
-        }
+        if (chequeCurrentPage > 1) { chequeCurrentPage--; renderChequePage(); }
     }
 
-    @Listen("onClick = #btnChequeNext")
+    @Listen("onClick = #buttonChequeNext")
     public void onChequeNext() {
-        if (chequeCurrentPage < chequeTotalPages) {
-            chequeCurrentPage++;
-            renderChequePage();
+        if (chequeCurrentPage < chequeTotalPages) { chequeCurrentPage++; renderChequePage(); }
+    }
+
+    /**
+     * Resets all Phase-2 filter input controls to their empty / default state.
+     * Extracted as a helper because it is called both from the "Clear" button
+     * listener and from openBatchChequeList() when switching batches.
+     */
+    private void clearChequeFilters() {
+        if (searchCheque      != null) searchCheque.setValue("");
+        if (dateFromCheque    != null) dateFromCheque.setValue(null);
+        if (dateToCheque      != null) dateToCheque.setValue(null);
+        if (comboChequeStatus != null) {
+            comboChequeStatus.setValue("");
+            comboChequeStatus.setSelectedItem(null);
         }
     }
 
     /**
-     * Updates the Pending / Accepted / Rejected counter chips above the cheque
-     * list.
+     * Updates the four status-counter labels (Pending / Accepted / Rejected / Referred)
+     * above the cheque table.  Counts are always taken from the FULL in-memory list
+     * (allChequesForBatch), not the filtered subset, so the counters always reflect
+     * the true batch totals regardless of which filter is active.
      */
-    private void updateStatusCounters() {
-        long pendingCount = countChequesByStatus(ChequeStatus.V1_PENDING);
-        long acceptedCount = countChequesByStatus(ChequeStatus.VERIFIED);
-        long rejectedCount = countChequesByStatus(ChequeStatus.REJECTED);
-        spCntPending.setValue(pendingCount + " Pending");
-        spCntPassed.setValue(acceptedCount + " Accepted");
-        spCntRejected.setValue(rejectedCount + " Rejected");
+    private void refreshStatusCounters() {
+        counterPending.setValue(
+                verificationService.countByStatus(allChequesForBatch, ChequeStatus.V1_PENDING)  + " Pending");
+        counterAccepted.setValue(
+                verificationService.countByStatus(allChequesForBatch, ChequeStatus.VERIFIED)   + " Accepted");
+        counterRejected.setValue(
+                verificationService.countByStatus(allChequesForBatch, ChequeStatus.REJECTED)   + " Rejected");
+        if (counterReferred != null) {
+            counterReferred.setValue(
+                    verificationService.countByStatus(allChequesForBatch, ChequeStatus.REFERRED) + " Referred");
+        }
     }
 
-    private long countChequesByStatus(ChequeStatus status) {
-        return pendingChequeList.stream()
-                .filter(cheque -> status.db().equals(cheque.getStatus()))
-                .count();
-    }
-
+    /**
+     * Returns to Phase 1 (the batch list) from Phase 2 (the cheque list).
+     * Closes any open popup, resets cheque-related state, and reloads the
+     * batch list so updated pending counts are shown.
+     */
     @Listen("onClick = #btnBackToBatches")
     public void onBackToBatches() {
-        closePopup();
-        activeBatchId = null;
-        pendingChequeList = new ArrayList<>();
+        closeVerificationPopup();
+        activeBatchId      = null;
+        allChequesForBatch = new ArrayList<>();
         filteredChequeList = new ArrayList<>();
-        chequeCurrentPage = 1;
-        batchCurrentPage = 1;
+        chequeCurrentPage  = 1;
+        batchCurrentPage   = 1;
+        isBatchReadOnly    = false;
         showPhase(1);
         loadBatchList();
     }
@@ -657,134 +829,221 @@ public class VerificationOneComposer extends SelectorComposer<Component> {
     // ══════════════════════════════════════════════════════════════════════
 
     /**
-     * Opens the cheque verification popup for the cheque at the given index
-     * inside {@code filteredChequeList}.
+     * Opens the verification popup for the cheque at the given index in
+     * filteredChequeList.
+     *
+     * @param indexInFilteredList zero-based position in the current filtered list
      */
-    private void openChequePopup(int index) {
-        if (filteredChequeList == null || index < 0 || index >= filteredChequeList.size())
+    private void openChequePopup(int indexInFilteredList) {
+        if (filteredChequeList == null
+                || indexInFilteredList < 0
+                || indexInFilteredList >= filteredChequeList.size())
             return;
-        popupChequeIndex = index;
-        isRearImageVisible = false;
-        renderPopup();
-        dlgBackdrop.setVisible(true);
-        dlgChequeVerify.setVisible(true);
-    }
 
-    private void closePopup() {
-        dlgChequeVerify.setVisible(false);
-        dlgBackdrop.setVisible(false);
-    }
-
-    @Listen("onClick = #btnCloseDlg")
-    public void onCloseDlg() {
-        closePopup();
+        popupChequeIndex   = indexInFilteredList;
+        isRearImageVisible = false; // always start with the front image
+        renderVerificationPopup();
+        popupBackdrop.setVisible(true);
+        popupChequeVerify.setVisible(true);
     }
 
     /**
-     * Populates all popup fields with MICR data, cheque information, and live CBS
-     * account details.
+     * Hides the verification popup and its backdrop.
+     * Called by the Close button, by action handlers after an action, and
+     * when navigating back to Phase 1.
      */
-    private void renderPopup() {
+    private void closeVerificationPopup() {
+        popupChequeVerify.setVisible(false);
+        popupBackdrop.setVisible(false);
+    }
+
+    @Listen("onClick = #btnClosePopup")
+    public void onClosePopup() { closeVerificationPopup(); }
+
+    /**
+     * Populates every field in the verification popup with data from the
+     * cheque currently indicated by popupChequeIndex.
+     *
+     * Steps:
+     *   1. Fill in the MICR / sort-code fields.
+     *   2. Fill in payee name, account, date, amount fields.
+     *   3. Fetch CBS account details from the service and populate CBS fields.
+     *   4. Show or hide the action buttons depending on isBatchReadOnly.
+     *   5. Load the front cheque image.
+     */
+    private void renderVerificationPopup() {
         ChequeEntity cheque = getPopupCheque();
-        if (cheque == null)
-            return;
+        if (cheque == null) return;
 
-        dlgBatchPill.setValue("Batch: " + activeBatchId);
-        dlgRecordPos.setValue((popupChequeIndex + 1) + " / " + filteredChequeList.size());
+        popupBatchPill.setValue("Batch: " + activeBatchId);
+        popupRecordPosition.setValue((popupChequeIndex + 1) + " / " + filteredChequeList.size());
 
-        dlgChequeNo.setValue(blankToEmDash(cheque.getChequeNo()));
+        fieldChequeNo.setValue(blankToEmDash(cheque.getChequeNo()));
 
-        // Extract 9-digit sort code and split into city (0–3) / bank (3–6) / branch
-        // (6–9) segments
-        String sortCode = cheque.getSortCode() != null ? cheque.getSortCode().replaceAll("[^0-9]", "") : "";
-        dlgCityCode.setValue(sortCodeSegment(sortCode, 0, 3));
-        dlgBankCode.setValue(sortCodeSegment(sortCode, 3, 6));
-        dlgBranchCode.setValue(sortCodeSegment(sortCode, 6, 9));
-        dlgTcCode.setValue(blankToEmDash(cheque.getTransactionCode()));
+        // Sort code is stored as a 9-digit string: digits 0-2 = city, 3-5 = bank, 6-8 = branch
+        String sortCode = cheque.getSortCode() != null
+                ? cheque.getSortCode().replaceAll("[^0-9]", "")
+                : "";
+        fieldCityCode.setValue(extractSortCodeSegment(sortCode, 0, 3));
+        fieldBankCode.setValue(extractSortCodeSegment(sortCode, 3, 6));
+        fieldBranchCode.setValue(extractSortCodeSegment(sortCode, 6, 9));
+        fieldTcCode.setValue(blankToEmDash(cheque.getTransactionCode()));
 
-        dlgPayeeName.setValue(blankToEmDash(cheque.getPayeeName()));
-        dlgAccountNo.setValue(blankToEmDash(cheque.getPayeeAccountNo()));
-        dlgChequeDate.setValue(blankToEmDash(cheque.getChequeDate()));
-        dlgAmount.setValue(formatAmount(cheque.getAmount()));
-        dlgAmountWords.setValue(blankToEmDash(cheque.getAmountInWords()));
+        fieldPayeeName.setValue(blankToEmDash(cheque.getPayeeName()));
+        fieldAccountNo.setValue(blankToEmDash(cheque.getPayeeAccountNo()));
+        fieldChequeDate.setValue(blankToEmDash(cheque.getChequeDate()));
+        fieldAmount.setValue(formatAmount(cheque.getAmount()));
+        fieldAmountInWords.setValue(blankToEmDash(cheque.getAmountInWords()));
 
-        // Fetch live CBS account data; DTO is always non-null (has safe fallback
-        // states)
+        // CBS lookup — pure business result from the service; composer maps it to sclass strings
         CbsAccountDetails cbsDetails = verificationService.getCbsAccountDetails(
                 cheque.getPayeeAccountNo(), cheque.getPayeeName());
+        populateCbsFields(cbsDetails);
 
-        dlgCbsAccName.setValue(cbsDetails.getAccountHolderName());
-        dlgCbsAccStatus.setValue(cbsDetails.getAccountStatus());
-        dlgCbsAccStatus.setSclass(cbsDetails.getAccountStatusSclass());
-        dlgCbsNewAcc.setValue(cbsDetails.getIsNewAccount());
-        dlgCbsNewAcc.setSclass(cbsDetails.getIsNewAccountSclass());
-        dlgCbsPayeeMatch.setValue(cbsDetails.getPayeeMatchLabel());
-        dlgCbsPayeeMatch.setSclass(cbsDetails.getPayeeMatchSclass());
+        // Reset reason drop-downs so stale selections from the previous cheque are cleared
+        comboRejectReason.setValue("");
+        comboRejectReason.setSelectedItem(null);
+        comboReferReason.setValue("");
+        comboReferReason.setSelectedItem(null);
 
-        cmbRejectReason.setValue("");
-        cmbRejectReason.setSelectedItem(null);
-        cmbReferReason.setValue("");
-        cmbReferReason.setSelectedItem(null);
+        // Action buttons are hidden for read-only (fully verified) batches
+        boolean showActionButtons = !isBatchReadOnly;
+        buttonAccept.setVisible(showActionButtons);
+        buttonReject.setVisible(showActionButtons);
+        buttonRefer.setVisible(showActionButtons);
+        comboRejectReason.setVisible(showActionButtons);
+        comboReferReason.setVisible(showActionButtons);
+
         isRearImageVisible = false;
         loadChequeImage(cheque, "front");
-        btnToggleSide.setLabel("\u21c4 Show BACK");
+        buttonToggleImageSide.setLabel("\u21c4 Show BACK");
     }
 
+    /**
+     * Translates a CbsAccountDetails result object (returned by the service) into
+     * ZK Label values and sclass strings for the CBS section of the popup.
+     *
+     * CSS class mapping rules (presentation only — must not live in the service):
+     *   Account status:   active → "ch-active"    | inactive → "ch-inactive" | unknown → "ch-cbs-unknown"
+     *   New account flag: Yes   → "ch-new-acc"    | No       → "ch-not-new"  | unknown → "ch-cbs-unknown"
+     *   Payee name match: Match → "cbs-match-ok"  | Mismatch → "cbs-match-fail" | unknown → ""
+     *
+     * @param cbsDetails the result object produced by VerificationOneService.getCbsAccountDetails()
+     */
+    private void populateCbsFields(CbsAccountDetails cbsDetails) {
+        fieldCbsAccountName.setValue(cbsDetails.getAccountHolderName());
+
+        // Account active status
+        fieldCbsAccountStatus.setValue(cbsDetails.getAccountStatus());
+        if (cbsDetails.getLookupState() == LookupState.FOUND) {
+            fieldCbsAccountStatus.setSclass(cbsDetails.isAccountActive() ? "ch-active" : "ch-inactive");
+        } else {
+            fieldCbsAccountStatus.setSclass("ch-cbs-unknown");
+        }
+
+        // New account flag
+        fieldCbsNewAccount.setValue(cbsDetails.getIsNewAccount());
+        if (cbsDetails.getLookupState() == LookupState.FOUND) {
+            fieldCbsNewAccount.setSclass(cbsDetails.isNewAccountFlag() ? "ch-new-acc" : "ch-not-new");
+        } else {
+            fieldCbsNewAccount.setSclass("ch-cbs-unknown");
+        }
+
+        // Payee name match
+        fieldCbsPayeeMatch.setValue(cbsDetails.getPayeeMatchLabel());
+        if (cbsDetails.getLookupState() == LookupState.FOUND) {
+            fieldCbsPayeeMatch.setSclass(cbsDetails.isPayeeNamesMatch() ? "cbs-match-ok" : "cbs-match-fail");
+        } else {
+            fieldCbsPayeeMatch.setSclass("");
+        }
+    }
+
+    /**
+     * Sets the src attribute of the cheque image component to load the specified
+     * side of the cheque from the image servlet.
+     *
+     * A cache-busting timestamp query parameter is appended so the browser always
+     * fetches the latest image rather than serving a stale cached copy.
+     *
+     * @param cheque the entity whose image should be loaded
+     * @param side   "front" or "rear"
+     */
     private void loadChequeImage(ChequeEntity cheque, String side) {
         if (cheque.getId() == null) {
-            dlgImagePh.setValue("No image");
-            dlgImagePh.setVisible(true);
-            dlgImage.setVisible(false);
+            // No image available for this cheque — show the placeholder text instead
+            popupImagePlaceholder.setValue("No image available");
+            popupImagePlaceholder.setVisible(true);
+            popupChequeImage.setVisible(false);
             return;
         }
-        dlgImage.setSrc(
-                CHEQUE_IMAGE_SERVLET + "?id=" + cheque.getId() + "&side=" + side + "&t=" + System.currentTimeMillis());
-        dlgImage.setVisible(true);
-        dlgImagePh.setVisible(false);
+        // Cache-busting: append current time so each request is treated as unique by the browser
+        popupChequeImage.setSrc(CHEQUE_IMAGE_SERVLET
+                + "?id="   + cheque.getId()
+                + "&side=" + side
+                + "&t="    + System.currentTimeMillis());
+        popupChequeImage.setVisible(true);
+        popupImagePlaceholder.setVisible(false);
     }
 
-    @Listen("onClick = #btnToggleSide")
-    public void onToggleSide() {
+    /** Toggles the cheque image between front and rear scans. */
+    @Listen("onClick = #buttonToggleImageSide")
+    public void onToggleImageSide() {
         ChequeEntity cheque = getPopupCheque();
-        if (cheque == null)
-            return;
+        if (cheque == null) return;
         isRearImageVisible = !isRearImageVisible;
         loadChequeImage(cheque, isRearImageVisible ? "rear" : "front");
-        btnToggleSide.setLabel(isRearImageVisible ? "\u21c4 Show FRONT" : "\u21c4 Show BACK");
+        buttonToggleImageSide.setLabel(isRearImageVisible ? "\u21c4 Show FRONT" : "\u21c4 Show BACK");
     }
 
-    @Listen("onClick = #btnDlgPrev")
-    public void onDlgPrev() {
+    /** Moves to the previous cheque in the filtered list without closing the popup. */
+    @Listen("onClick = #buttonPopupPrev")
+    public void onPopupPrev() {
         if (popupChequeIndex > 0) {
             popupChequeIndex--;
             isRearImageVisible = false;
-            renderPopup();
+            renderVerificationPopup();
         }
     }
 
-    @Listen("onClick = #btnDlgNext")
-    public void onDlgNext() {
+    /** Moves to the next cheque in the filtered list without closing the popup. */
+    @Listen("onClick = #buttonPopupNext")
+    public void onPopupNext() {
         if (popupChequeIndex < filteredChequeList.size() - 1) {
             popupChequeIndex++;
             isRearImageVisible = false;
-            renderPopup();
+            renderVerificationPopup();
         }
     }
 
-    /**
-     * Validates the CBS account (active + found) and marks the cheque as VERIFIED
-     * if it passes.
-     */
-    @Listen("onClick = #btnDlgAccept")
-    public void onDlgAccept() {
-        ChequeEntity cheque = getPopupCheque();
-        if (cheque == null)
-            return;
+    // ── Accept / Reject / Refer action handlers ───────────────────────────
 
+    /**
+     * Handles the Accept button click.
+     * Resolves the logged-in username fresh from the ZK session at click-time
+     * via getSessionUser() — not from a cached field — to ensure the correct
+     * user is written to the audit trail.
+     * Delegates CBS validation and persistence to the service.
+     * On success, applies the status change in memory and advances to the next cheque.
+     * On failure, shows the validation error message in a dialog.
+     */
+    @Listen("onClick = #buttonAccept")
+    public void onAccept() {
+        ChequeEntity cheque = getPopupCheque();
+        if (cheque == null) return;
+
+        // Resolve the username fresh from the ZK session at the moment of the action.
+        // This matches the pattern in VerificationIIComposer.getVerifierUsername().
+        String actionUser = getSessionUser();
+        LOG.fine("Accept action — session user: " + actionUser
+                + " | chequeId: " + cheque.getId()
+                + " | batchId: "  + activeBatchId);
+
+        // The service validates CBS rules and persists the accept decision
         String validationError = verificationService.validateAndAcceptCheque(
-                cheque.getId(), cheque.getPayeeAccountNo(), currentUser);
+                cheque.getId(), cheque.getPayeeAccountNo(), actionUser);
 
         if (validationError != null) {
+            // Validation failed — show the reason to the verifier and keep the popup open
             Messagebox.show(validationError, "CBS Validation Failed",
                     Messagebox.OK, Messagebox.EXCLAMATION);
             return;
@@ -792,245 +1051,315 @@ public class VerificationOneComposer extends SelectorComposer<Component> {
         applyActionAndAdvance(ChequeStatus.VERIFIED.db());
     }
 
-    /** Marks the cheque as REJECTED with the selected rejection reason. */
-    @Listen("onClick = #btnDlgReject")
-    public void onDlgReject() {
+    /**
+     * Handles the Reject button click.
+     * Resolves the logged-in username fresh from the ZK session at click-time
+     * via getSessionUser().
+     * A rejection reason must be selected from the drop-down before rejecting.
+     */
+    @Listen("onClick = #buttonReject")
+    public void onReject() {
         ChequeEntity cheque = getPopupCheque();
-        if (cheque == null)
-            return;
-        String rejectionReason = getComboSelectedValue(cmbRejectReason);
+        if (cheque == null) return;
+
+        String rejectionReason = getComboSelectedValue(comboRejectReason);
         if (rejectionReason == null) {
-            Messagebox.show("Select a rejection reason.", "Validation", Messagebox.OK, Messagebox.EXCLAMATION);
+            Messagebox.show("Please select a rejection reason before rejecting.",
+                    "Reason Required", Messagebox.OK, Messagebox.EXCLAMATION);
             return;
         }
-        verificationService.rejectCheque(cheque.getId(), currentUser, rejectionReason);
+
+        // Resolve the username fresh from the ZK session at the moment of the action.
+        String actionUser = getSessionUser();
+        LOG.fine("Reject action — session user: " + actionUser
+                + " | chequeId: " + cheque.getId()
+                + " | reason: "   + rejectionReason);
+
+        verificationService.rejectCheque(cheque.getId(), actionUser, rejectionReason);
         applyActionAndAdvance(ChequeStatus.REJECTED.db());
     }
 
     /**
-     * Escalates the cheque to Verification II (V2_PENDING) with the selected refer
-     * reason.
+     * Handles the Refer button click.
+     * Resolves the logged-in username fresh from the ZK session at click-time
+     * via getSessionUser().
+     * A refer reason must be selected from the drop-down before referring.
      */
-    @Listen("onClick = #btnDlgRefer")
-    public void onDlgRefer() {
+    @Listen("onClick = #buttonRefer")
+    public void onRefer() {
         ChequeEntity cheque = getPopupCheque();
-        if (cheque == null)
-            return;
-        String referReason = getComboSelectedValue(cmbReferReason);
+        if (cheque == null) return;
+
+        String referReason = getComboSelectedValue(comboReferReason);
         if (referReason == null) {
-            Messagebox.show("Select a refer reason.", "Validation", Messagebox.OK, Messagebox.EXCLAMATION);
+            Messagebox.show("Please select a refer reason before referring.",
+                    "Reason Required", Messagebox.OK, Messagebox.EXCLAMATION);
             return;
         }
-        verificationService.referCheque(cheque.getId(), currentUser, referReason);
-        applyActionAndAdvance(ChequeStatus.V2_PENDING.db());
+
+        // Resolve the username fresh from the ZK session at the moment of the action.
+        String actionUser = getSessionUser();
+        LOG.fine("Refer action — session user: " + actionUser
+                + " | chequeId: " + cheque.getId()
+                + " | reason: "   + referReason);
+
+        verificationService.referCheque(cheque.getId(), actionUser, referReason);
+        // Use REFERRED (not V2_PENDING) for the in-memory status so the badge shows "Referred"
+        // for the rest of this session, even though the DB now stores V2_PENDING
+        applyActionAndAdvance(ChequeStatus.REFERRED.db());
     }
 
     /**
-     * Updates the in-memory cheque status after an accept/reject/refer action,
-     * refreshes
-     * the counters and cheque list, closes the popup, then auto-advances to the
-     * next
-     * V1-pending cheque.
+     * Common handler called after every successful accept / reject / refer action:
+     *   1. Updates the entity in the in-memory list (no extra DB round-trip needed).
+     *   2. Asks the service to check whether the batch is now fully complete.
+     *   3. Refreshes the status counters and cheque table.
+     *   4. Closes the popup.
+     *   5. Automatically opens the next pending cheque, or shows a completion message.
+     *
+     * @param newStatus the DB status string to apply (e.g. "VERIFIED", "REJECTED", "REFERRED")
      */
     private void applyActionAndAdvance(String newStatus) {
-        ChequeEntity cheque = getPopupCheque();
-        if (cheque != null) {
-            cheque.setStatus(newStatus);
-            cheque.setVerStatus(newStatus);
+        ChequeEntity actioned = getPopupCheque();
+        if (actioned != null) {
+            // Business rules for in-memory update live in the service
+            verificationService.applyActionToInMemoryCheque(actioned, newStatus);
         }
+
+        // Ask service whether all cheques are done; it will update batch status if so
         verificationService.checkAndFinalizeBatch(activeBatchId);
-        updateStatusCounters();
-        // Re-apply filters so the updated status is reflected in the filtered view
-        applyChequeFitlersAndRender();
-        closePopup();
-        advanceToNextPendingOrShowCompletion();
+
+        refreshStatusCounters();
+        applyChequeFiltersAndRender();
+        closeVerificationPopup();
+        openNextPendingOrShowCompletion();
     }
 
     /**
-     * Opens the next V1-pending cheque in the popup, or shows a batch-complete
-     * message if all are actioned.
+     * After an action, finds the next V1_PENDING cheque and opens it automatically.
+     * If the next pending cheque is hidden by the current filter, the filter is reset
+     * first so the cheque becomes visible.
+     * If no pending cheques remain, shows a "Batch Complete" message.
      */
-    private void advanceToNextPendingOrShowCompletion() {
-        for (int i = 0; i < pendingChequeList.size(); i++) {
-            if (ChequeStatus.V1_PENDING.db().equals(pendingChequeList.get(i).getStatus())) {
-                // Find its position in filteredChequeList and open from there
-                ChequeEntity next = pendingChequeList.get(i);
-                for (int j = 0; j < filteredChequeList.size(); j++) {
-                    if (filteredChequeList.get(j) == next) {
-                        openChequePopup(j);
-                        return;
-                    }
-                }
-                // Not visible in current filter — open without filter restriction
-                openChequePopupFromMaster(i);
+    private void openNextPendingOrShowCompletion() {
+        // The service knows the business rule for "what is the next pending cheque"
+        int nextPendingIndexInMasterList =
+                verificationService.findNextPendingChequeIndex(allChequesForBatch);
+
+        if (nextPendingIndexInMasterList == -1) {
+            // -1 means every cheque has been actioned
+            Messagebox.show(
+                    "All cheques in batch " + activeBatchId + " have been actioned.",
+                    "Batch Complete", Messagebox.OK, Messagebox.INFORMATION);
+            return;
+        }
+
+        // Check whether the next pending cheque is visible in the current filtered list
+        ChequeEntity nextPendingCheque = allChequesForBatch.get(nextPendingIndexInMasterList);
+        for (int j = 0; j < filteredChequeList.size(); j++) {
+            if (filteredChequeList.get(j) == nextPendingCheque) {
+                openChequePopup(j); // cheque is in the filtered list — open it directly
                 return;
             }
         }
-        Messagebox.show("All cheques in batch " + activeBatchId + " have been actioned.",
-                "Batch Complete", Messagebox.OK, Messagebox.INFORMATION);
+
+        // Next pending cheque is hidden by the current filter — reset the filter first
+        resetChequeFiltersToShowAll(nextPendingIndexInMasterList);
     }
 
     /**
-     * Opens the popup directly from the master {@code pendingChequeList} when the
-     * next
-     * pending cheque is hidden by the current filter. Temporarily bypasses the
-     * filter
-     * by updating {@code filteredChequeList} to include that specific entry.
+     * Resets filteredChequeList to the full master list and opens the popup at the
+     * given index.  Called when the next pending cheque is not visible under the
+     * current filter — the filter is silently cleared so the verifier is not stuck.
+     *
+     * @param indexInMasterList position of the next pending cheque in allChequesForBatch
      */
-    private void openChequePopupFromMaster(int masterIndex) {
-        filteredChequeList = new ArrayList<>(pendingChequeList);
-        chequeTotalPages = Math.max(1, (int) Math.ceil((double) filteredChequeList.size() / CHEQUE_PAGE_SIZE));
-        chequeCurrentPage = 1;
+    private void resetChequeFiltersToShowAll(int indexInMasterList) {
+        filteredChequeList = new ArrayList<>(allChequesForBatch);
+        chequeTotalPages   = Math.max(1,
+                (int) Math.ceil((double) filteredChequeList.size() / CHEQUE_PAGE_SIZE));
+        chequeCurrentPage  = 1;
         renderChequePage();
-        openChequePopup(masterIndex);
+        openChequePopup(indexInMasterList);
     }
 
     /**
-     * Returns the cheque currently shown in the popup, or null if the index is out
-     * of range.
+     * Returns the ChequeEntity currently shown in the popup.
+     * Returns null if the popup index is out of range (defensive guard).
      */
     private ChequeEntity getPopupCheque() {
-        if (filteredChequeList == null || popupChequeIndex < 0 || popupChequeIndex >= filteredChequeList.size())
+        if (filteredChequeList == null
+                || popupChequeIndex < 0
+                || popupChequeIndex >= filteredChequeList.size())
             return null;
         return filteredChequeList.get(popupChequeIndex);
     }
 
-    /**
-     * Returns the selected value from a combobox, or null if nothing is selected.
-     * FIX: Uses toString() instead of cast to safely handle non-String value
-     * objects,
-     * and falls back to the raw typed text when no item is formally selected.
-     */
-    private String getComboSelectedValue(Combobox combobox) {
-        if (combobox == null)
-            return null;
-        if (combobox.getSelectedItem() != null) {
-            Object val = combobox.getSelectedItem().getValue();
-            return val != null ? val.toString() : null;
-        }
-        // Fallback: user may have typed a value directly
-        String raw = combobox.getValue();
-        return (raw != null && !raw.isBlank()) ? raw.trim() : null;
-    }
-
     // ══════════════════════════════════════════════════════════════════════
-    // DATE PARSE HELPERS
+    // UI HELPERS  (presentation only — no business rules)
     // ══════════════════════════════════════════════════════════════════════
 
     /**
-     * Parses the {@code createdAt} string from a {@link BatchSummary} into a
-     * {@link Date}
-     * so it can be compared against the date-range filter.
-     * Supports ISO timestamp strings produced by {@code LocalDateTime.toString()}.
+     * Returns the display label for the action button in the Phase-1 batch table.
+     * The label tells the verifier what will happen when they click the button.
+     *
+     *   VERIFIED                 → "View"    (batch is fully done; opens in read-only mode)
+     *   VERIFICATION_IN_PROGRESS → "Resume"  (work started but not finished)
+     *   anything else            → "Process" (batch has not been opened yet)
+     *
+     * This is a UI display decision (which English word to show), not a business
+     * rule — it belongs in the composer, not the service.
+     *
+     * @param batchStatus current status of the batch row
+     * @return display label string for the action button
      */
-    private Date parseSummaryDate(String dateStr) {
-        if (dateStr == null || dateStr.isBlank() || "\u2014".equals(dateStr))
-            return null;
-        try {
-            // LocalDateTime.toString() → "2026-06-15T09:30:00" or "2026-06-15"
-            String datePart = dateStr.contains("T") ? dateStr.substring(0, 10) : dateStr.trim();
-            java.time.LocalDate ld = java.time.LocalDate.parse(datePart);
-            return java.util.Date.from(ld.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant());
-        } catch (Exception ex) {
-            LOG.fine("parseSummaryDate: cannot parse '" + dateStr + "' — " + ex.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Parses the {@code chequeDate} string from a {@link ChequeEntity} into a
-     * {@link Date}.
-     * Tries dd/MM/yyyy first (common cheque format), then yyyy-MM-dd as a fallback.
-     */
-    private Date parseChequeDate(String dateStr) {
-        if (dateStr == null || dateStr.isBlank() || "\u2014".equals(dateStr))
-            return null;
-        try {
-            java.time.format.DateTimeFormatter fmt = dateStr.contains("/")
-                    ? java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
-                    : java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            java.time.LocalDate ld = java.time.LocalDate.parse(dateStr.trim(), fmt);
-            return java.util.Date.from(ld.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant());
-        } catch (Exception ex) {
-            LOG.fine("parseChequeDate: cannot parse '" + dateStr + "' — " + ex.getMessage());
-            return null;
-        }
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    // UI HELPERS
-    // ══════════════════════════════════════════════════════════════════════
-
-    /** Returns the CSS class for the batch status pill badge. */
-    private String batchStatusPillClass(BatchStatus batchStatus) {
+    private String resolveBatchActionButtonLabel(BatchStatus batchStatus) {
         switch (batchStatus) {
-            case VERIFICATION_IN_PROGRESS:
-                return "batch-pill-blue";
-            case READY_FOR_VERIFICATION:
-                return "batch-pill-amber";
-            case VERIFIED:
-                return "batch-pill-green";
-            default:
-                return "batch-pill-gray";
-        }
-    }
-
-    /** Returns the CSS class for the cheque verification status badge. */
-    private String chequeBadgeClass(ChequeStatus chequeStatus) {
-        switch (chequeStatus) {
-            case VERIFIED:
-                return "badge-green";
-            case REJECTED:
-                return "badge-red";
-            case PENDING:
-                return "badge-gray";
-            default:
-                return "badge-amber";
+            case VERIFIED:                 return "View";
+            case VERIFICATION_IN_PROGRESS: return "Resume";
+            default:                       return "Process";
         }
     }
 
     /**
-     * Extracts a substring segment from a 9-digit numeric sort code.
-     * Returns em-dash if the sort code is missing or shorter than the requested
-     * start index.
+     * Returns the CSS class name for the colour-coded status pill shown in the
+     * Phase-1 batch table.  Colour rules are presentation decisions and belong
+     * in the composer (not the service).
+     *
+     *   VERIFICATION_IN_PROGRESS → blue  (work in progress)
+     *   READY_FOR_VERIFICATION   → amber (waiting to be started)
+     *   VERIFIED / post-verified  → green (complete)
+     *   anything else             → gray
+     *
+     * @param batchStatus the current status of the batch row
+     * @return a CSS class name string to append to the label's sclass
      */
-    private String sortCodeSegment(String sortCode, int fromIndex, int toIndex) {
+    private String resolveBatchStatusPillClass(BatchStatus batchStatus) {
+        switch (batchStatus) {
+            case VERIFICATION_IN_PROGRESS: return "batch-pill-blue";
+            case READY_FOR_VERIFICATION:   return "batch-pill-amber";
+            case VERIFIED:
+            case CXF_CIBF_GENERATED:
+            case DISPATCHED:               return "batch-pill-green";
+            default:                       return "batch-pill-gray";
+        }
+    }
+
+    /**
+     * Returns the CSS class name for the colour-coded status badge shown in the
+     * Phase-2 cheque table and popup.
+     *
+     *   VERIFIED   → green
+     *   REJECTED   → red
+     *   REFERRED   → blue
+     *   V1_PENDING → amber
+     *   anything else → gray
+     *
+     * @param chequeStatus the current status of the cheque row
+     * @return a CSS class name string to append to the label's sclass
+     */
+    private String resolveChequeBadgeClass(ChequeStatus chequeStatus) {
+        switch (chequeStatus) {
+            case VERIFIED:   return "badge-green";
+            case REJECTED:   return "badge-red";
+            case REFERRED:   return "badge-blue";
+            case V1_PENDING: return "badge-amber";
+            default:         return "badge-gray";
+        }
+    }
+
+    /**
+     * Extracts a slice of the 9-digit MICR sort code for display in the
+     * City Code / Bank Code / Branch Code fields of the popup.
+     *
+     * Returns an em-dash if the sort code is shorter than the requested start
+     * position, so the popup never shows an empty or blank field.
+     *
+     * @param sortCode  the cleaned sort code string (digits only, 9 chars expected)
+     * @param fromIndex start of the slice (inclusive)
+     * @param toIndex   end of the slice (exclusive)
+     * @return the sort code slice, or "—" if out of range
+     */
+    private String extractSortCodeSegment(String sortCode, int fromIndex, int toIndex) {
         if (sortCode == null || sortCode.isEmpty() || sortCode.length() <= fromIndex)
-            return "\u2014";
+            return "\u2014"; // em-dash
         return sortCode.substring(fromIndex, Math.min(toIndex, sortCode.length()));
     }
 
+    /**
+     * Returns the value of the item currently selected in a Combobox.
+     *
+     * ZK Combobox has two ways to carry a value:
+     *   (a) selectedItem — set when the user picks from the drop-down list
+     *   (b) raw text in the input field — set when the user types manually
+     *
+     * This helper checks (a) first and falls back to (b), returning null if
+     * neither carries a non-blank value.
+     *
+     * @param combobox the ZK Combobox component to read
+     * @return the selected value string, or null if nothing is selected / typed
+     */
+    private String getComboSelectedValue(Combobox combobox) {
+        if (combobox == null) return null;
+        if (combobox.getSelectedItem() != null) {
+            Object value = combobox.getSelectedItem().getValue();
+            return value != null ? value.toString() : null;
+        }
+        String rawText = combobox.getValue();
+        return (rawText != null && !rawText.isBlank()) ? rawText.trim() : null;
+    }
+
+    // ── Listcell factory helpers ──────────────────────────────────────────
+    // These small helpers keep the renderBatchPage / renderChequePage methods
+    // clean by removing repetitive Listcell construction code.
+
+    /** Creates a standard left-aligned Listcell; shows em-dash for null input. */
     private Listcell cell(String text) {
         return new Listcell(text == null ? "\u2014" : text);
     }
 
+    /** Creates a centre-aligned Listcell — used for numeric count columns. */
     private Listcell cellCenter(String text) {
-        Listcell lc = cell(text);
-        lc.setStyle("text-align:center");
-        return lc;
+        Listcell listCell = cell(text);
+        listCell.setStyle("text-align:center");
+        return listCell;
     }
 
+    /** Creates a monospace-font Listcell — used for the cheque number column. */
     private Listcell cellMono(String text) {
-        Listcell lc = cell(text);
-        lc.setSclass("mono");
-        return lc;
+        Listcell listCell = cell(text);
+        listCell.setSclass("mono");
+        return listCell;
     }
 
+    /** Creates a right-aligned Listcell styled for currency amounts. */
     private Listcell cellAmt(String text) {
-        Listcell lc = cell(text);
-        lc.setSclass("amt");
-        return lc;
+        Listcell listCell = cell(text);
+        listCell.setSclass("amt");
+        return listCell;
     }
 
-    /** Formats a BigDecimal amount as Indian rupees (e.g., "Rs. 1,23,456.78"). */
+    // ── Value formatting helpers ──────────────────────────────────────────
+
+    /**
+     * Formats a BigDecimal amount as Indian currency (e.g. "Rs. 1,23,456.00").
+     * Returns "Rs. 0.00" for null amounts so the table cell is never empty.
+     *
+     * @param amount the cheque amount; may be null
+     * @return formatted currency string
+     */
     private String formatAmount(BigDecimal amount) {
-        return amount == null ? "Rs. 0.00"
-                : "Rs. " + NumberFormat.getNumberInstance(new Locale("en", "IN")).format(amount);
+        if (amount == null) return "Rs. 0.00";
+        return "Rs. " + NumberFormat.getNumberInstance(new Locale("en", "IN")).format(amount);
     }
 
     /**
-     * Returns the value as-is, or an em-dash (\u2014) if the value is null or
-     * blank.
+     * Returns the input string unchanged, or an em-dash ("—") if the string
+     * is null or blank.  Used to ensure no popup or table field ever shows
+     * empty or whitespace content.
+     *
+     * @param value the raw string value from the entity
+     * @return the value, or "—" if absent
      */
     private String blankToEmDash(String value) {
         return (value == null || value.isBlank()) ? "\u2014" : value;

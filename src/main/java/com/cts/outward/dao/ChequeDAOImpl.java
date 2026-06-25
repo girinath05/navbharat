@@ -536,97 +536,9 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
-	@Override
-	public List<ChequeEntity> loadChequesByVerLevel(String verLevel, String status) {
-		try (Session session = HibernateUtil.getSession()) {
-			List<Object[]> rows = session.createNativeQuery(
-					"SELECT " + PROJECTION_COLS + " FROM cts_cheques"
-					+ " WHERE ver_level = :verLevel AND status = :status"
-					+ " ORDER BY batch_id ASC, id ASC",
-					Object[].class)
-					.setParameter("verLevel", verLevel)
-					.setParameter("status", status)
-					.getResultList();
+	
 
-			List<ChequeEntity> results = new ArrayList<>(rows.size());
-			for (Object[] r : rows)
-				results.add(mapProjectionRow(r));
-
-			if (!results.isEmpty()) {
-				List<Long> ids = results.stream().map(ChequeEntity::getId).toList();
-				List<Object[]> verRows = session.createNativeQuery(
-						"SELECT id, ver_action, ver_by, ver_remarks FROM cts_cheques WHERE id IN :ids",
-						Object[].class)
-						.setParameter("ids", ids).getResultList();
-				Map<Long, Object[]> verMap = new HashMap<>();
-				for (Object[] row : verRows)
-					verMap.put(toLong(row[0]), row);
-				results.forEach(c -> {
-					Object[] row = verMap.get(c.getId());
-					if (row != null) {
-						c.setVerAction(row[1] != null ? row[1].toString() : null);
-						c.setVerBy(row[2] != null ? row[2].toString() : null);
-						c.setVerRemarks(row[3] != null ? row[3].toString() : null);
-					}
-				});
-			}
-			return results;
-		} catch (Exception ex) {
-			LOG.severe("loadChequesByVerLevel error: " + ex.getMessage());
-			return Collections.emptyList();
-		}
-	}
-
-	@Override
-	public long countPendingVerificationForBatch(String batchId) {
-		try (Session session = HibernateUtil.getSession()) {
-			Number result = (Number) session.createNativeQuery(
-					"SELECT COUNT(*) FROM cts_cheques"
-					+ " WHERE batch_id = :batchId"
-					+ " AND status IN ('V1_PENDING', 'V2_PENDING')",
-					Object.class)
-					.setParameter("batchId", batchId)
-					.uniqueResult();
-			return result != null ? result.longValue() : 0L;
-		} catch (Exception ex) {
-			LOG.severe("countPendingVerificationForBatch error: " + ex.getMessage());
-			return -1L;
-		}
-	}
-
-	@Override
-	public void applyVerifierAction(Long chequeId, String status, String verLevel,
-			String verAction, String verBy, String verRemarks) {
-		Transaction tx = null;
-		try (Session session = HibernateUtil.getSession()) {
-			tx = session.beginTransaction();
-			session.createNativeMutationQuery(
-					"UPDATE cts_cheques SET"
-					+ "  status      = :status,"
-					+ "  ver_status  = :status,"
-					+ "  ver_level   = :verLevel,"
-					+ "  ver_action  = :verAction,"
-					+ "  ver_by      = :verBy,"
-					+ "  ver_remarks = :verRemarks,"
-					+ "  updated_at  = CURRENT_TIMESTAMP"
-					+ " WHERE id = :id")
-					.setParameter("status",     status)
-					.setParameter("verLevel",   verLevel)
-					.setParameter("verAction",  verAction)
-					.setParameter("verBy",      verBy)
-					.setParameter("verRemarks", verRemarks)
-					.setParameter("id",         chequeId)
-					.executeUpdate();
-			tx.commit();
-			LOG.info("applyVerifierAction: cheque=" + chequeId + " action=" + verAction + " by=" + verBy);
-		} catch (Exception ex) {
-			if (tx != null)
-				tx.rollback();
-			LOG.severe("applyVerifierAction error: " + ex.getMessage());
-			throw new RuntimeException("Failed to apply verifier action: " + ex.getMessage(), ex);
-		}
-	}
-
+	
 	@Override
 	public List<ChequeEntity> loadAcceptedInstrumentsForCxf() {
 		try (Session session = HibernateUtil.getSession()) {
@@ -662,57 +574,7 @@ public class ChequeDAOImpl implements ChequeDAO {
 		}
 	}
 
-	@Override
-	public void referToVerificationTwo(Long chequeId, String verBy, String verRemarks) {
-		Transaction tx = null;
-		try (Session session = HibernateUtil.getSession()) {
-			tx = session.beginTransaction();
-			session.createNativeMutationQuery(
-					"UPDATE cts_cheques SET"
-					+ "  status      = :status,"
-					+ "  ver_status  = :status,"
-					+ "  ver_level   = :verLevel,"
-					+ "  is_referred = true,"
-					+ "  ver_action  = :verAction,"
-					+ "  ver_by      = :verBy,"
-					+ "  ver_remarks = :verRemarks,"
-					+ "  updated_at  = CURRENT_TIMESTAMP"
-					+ " WHERE id = :id")
-					.setParameter("status",     "V2_PENDING")
-					.setParameter("verLevel",   "V2")
-					.setParameter("verAction",  "Refer")
-					.setParameter("verBy",      verBy)
-					.setParameter("verRemarks", verRemarks)
-					.setParameter("id",         chequeId)
-					.executeUpdate();
-			tx.commit();
-			LOG.info("referToVerificationTwo: cheque=" + chequeId + " by=" + verBy);
-		} catch (Exception ex) {
-			if (tx != null)
-				tx.rollback();
-			LOG.severe("referToVerificationTwo error: " + ex.getMessage());
-			throw new RuntimeException("Failed to refer cheque to V2: " + ex.getMessage(), ex);
-		}
-	}
 	
-	@Override
-	public long countV1ProcessedForBatch(String batchId) {
-	    try (Session session = HibernateUtil.getSession()) {
-	        Number result = (Number) session.createNativeQuery(
-	                "SELECT COUNT(*) FROM cts_cheques"
-	                + " WHERE batch_id = :batchId"
-	                + "   AND ver_level = 'V1'"
-	                + "   AND status IN ('VERIFIED', 'REJECTED', 'V2_PENDING')",
-	                Object.class)
-	                .setParameter("batchId", batchId)
-	                .uniqueResult();
-	        return result != null ? result.longValue() : 0L;
-	    } catch (Exception ex) {
-	        LOG.severe("countV1ProcessedForBatch error: " + ex.getMessage());
-	        return 0L;
-	    }
-	}
-
 	@Override
 	public void updateVerRouting(Long chequeId, String status, String verLevel, String verStatus) {
 		Transaction tx = null;
@@ -738,4 +600,255 @@ public class ChequeDAOImpl implements ChequeDAO {
 			throw new RuntimeException("updateVerRouting failed: " + ex.getMessage(), ex);
 		}
 	}
+	
+	
+	
+	// ══════════════════════════════════════════════════════════════════════
+			// ANUSHA — Verification I (V1) Methods
+			// ══════════════════════════════════════════════════════════════════════
+
+			// Loads cheques across ALL batches filtered by ver_level and status.
+			// Called by getVerifiableBatchSummaries() to get all V1_PENDING cheques
+			// and group them by batch ID to build the Phase 1 batch summary list.
+			@Override
+			public List<ChequeEntity>loadAllPendingV1ChequesAcrossAllBatches(String verLevel, String status) {
+				try (Session session = HibernateUtil.getSession()) {
+					List<Object[]> rows = session.createNativeQuery(
+							"SELECT " + PROJECTION_COLS + " FROM cts_cheques"
+							+ " WHERE ver_level = :verLevel AND status = :status"
+							+ " ORDER BY batch_id ASC, id ASC",
+							Object[].class)
+							.setParameter("verLevel", verLevel)
+							.setParameter("status", status)
+							.getResultList();
+
+					List<ChequeEntity> results = new ArrayList<>(rows.size());
+					for (Object[] r : rows)
+						results.add(mapProjectionRow(r));
+
+					if (!results.isEmpty()) {
+						List<Long> ids = results.stream().map(ChequeEntity::getId).toList();
+						List<Object[]> verRows = session.createNativeQuery(
+								"SELECT id, ver_action, ver_by, ver_remarks FROM cts_cheques WHERE id IN :ids",
+								Object[].class)
+								.setParameter("ids", ids).getResultList();
+						Map<Long, Object[]> verMap = new HashMap<>();
+						for (Object[] row : verRows)
+							verMap.put(toLong(row[0]), row);
+						results.forEach(c -> {
+							Object[] row = verMap.get(c.getId());
+							if (row != null) {
+								c.setVerAction(row[1] != null ? row[1].toString() : null);
+								c.setVerBy(row[2] != null ? row[2].toString() : null);
+								c.setVerRemarks(row[3] != null ? row[3].toString() : null);
+							}
+						});
+					}
+					return results;
+				} catch (Exception ex) {
+					LOG.severe("loadChequesByVerLevel error: " + ex.getMessage());
+					return Collections.emptyList();
+				}
+			}
+
+			// Loads ALL V1 cheques (V1_PENDING, VERIFIED, REJECTED) for ONE specific batch.
+			// Single query fetches 22 columns including extra fields (transactionCode,
+			// amountInWords, payeeAccountNo, baseNo) needed to populate the verification popup.
+			// Called by getAllV1ChequesForBatch() when verifier opens a batch in Phase 2.
+			@Override
+			public List<ChequeEntity> loadAllV1ChequesForBatch(String batchId) {
+				try (Session session = HibernateUtil.getSession()) {
+					List<Object[]> rows = session.createNativeQuery(
+							"SELECT id, batch_id, cheque_id, cheque_no, account_no, "
+							+ "sort_code, amount, cheque_date, drawer_name, payee_name, "
+							+ "iqa_status, ver_status, status, high_value, duplicate_flag, "
+							+ "created_at, updated_at, "
+							+ "transaction_code, amount_in_words, amount_words_mismatch, "
+							+ "payee_account_no, base_no "
+							+ "FROM cts_cheques "
+							+ "WHERE batch_id = :batchId AND ver_level = 'V1' "
+							+ "ORDER BY id ASC",
+							Object[].class)
+							.setParameter("batchId", batchId)
+							.getResultList();
+
+					List<ChequeEntity> results = new ArrayList<>(rows.size());
+					for (Object[] r : rows) {
+						ChequeEntity c = mapProjectionRow(r);    // maps r[0]–r[16]
+						c.setTransactionCode(r[17] != null ? r[17].toString() : null);
+						c.setAmountInWords(r[18] != null ? r[18].toString() : null);
+						c.setAmountWordsMismatch(r[19] != null && (Boolean) r[19]);
+						c.setPayeeAccountNo(r[20] != null ? r[20].toString() : null);
+						c.setBaseNo(r[21] != null ? r[21].toString() : null);
+						results.add(c);
+					}
+					return results;
+				} catch (Exception ex) {
+					LOG.severe("loadV1ChequesForBatch error: " + ex.getMessage());
+					return Collections.emptyList();
+				}
+			}
+
+			// Counts cheques in a batch still awaiting action (V1_PENDING or V2_PENDING).
+			// Called by checkAndFinalizeBatch() after every verifier action to decide
+			// whether all cheques are done and the batch can advance to VERIFIED.
+			@Override
+			public long countPendingVerificationForBatch(String batchId) {
+				try (Session session = HibernateUtil.getSession()) {
+					Number result = (Number) session.createNativeQuery(
+							"SELECT COUNT(*) FROM cts_cheques"
+							+ " WHERE batch_id = :batchId"
+							+ " AND status IN ('V1_PENDING', 'V2_PENDING')",
+							Object.class)
+							.setParameter("batchId", batchId)
+							.uniqueResult();
+					return result != null ? result.longValue() : 0L;
+				} catch (Exception ex) {
+					LOG.severe("countPendingVerificationForBatch error: " + ex.getMessage());
+					return -1L;
+				}
+			}
+
+			// Saves verifier action (Accept/Reject) on a cheque — updates status, ver_level,
+			// ver_action, ver_by, ver_remarks in one UPDATE.
+			// Called by validateAndAcceptCheque() and rejectCheque() in the service.
+			@Override
+			public void applyVerifierAction(Long chequeId, String status, String verLevel,
+					String verAction, String verBy, String verRemarks) {
+				Transaction tx = null;
+				try (Session session = HibernateUtil.getSession()) {
+					tx = session.beginTransaction();
+					session.createNativeMutationQuery(
+							"UPDATE cts_cheques SET"
+							+ "  status      = :status,"
+							+ "  ver_status  = :status,"
+							+ "  ver_level   = :verLevel,"
+							+ "  ver_action  = :verAction,"
+							+ "  ver_by      = :verBy,"
+							+ "  ver_remarks = :verRemarks,"
+							+ "  updated_at  = CURRENT_TIMESTAMP"
+							+ " WHERE id = :id")
+							.setParameter("status",     status)
+							.setParameter("verLevel",   verLevel)
+							.setParameter("verAction",  verAction)
+							.setParameter("verBy",      verBy)
+							.setParameter("verRemarks", verRemarks)
+							.setParameter("id",         chequeId)
+							.executeUpdate();
+					tx.commit();
+					LOG.info("applyVerifierAction: cheque=" + chequeId + " action=" + verAction + " by=" + verBy);
+				} catch (Exception ex) {
+					if (tx != null) tx.rollback();
+					LOG.severe("applyVerifierAction error: " + ex.getMessage());
+					throw new RuntimeException("Failed to apply verifier action: " + ex.getMessage(), ex);
+				}
+			}
+
+			// Escalates a cheque from V1 to V2 — flips ver_level to V2, sets is_referred=true,
+			// and status/ver_status to V2_PENDING. Called by referCheque() in the service.
+			@Override
+			public void referToVerificationTwo(Long chequeId, String verBy, String verRemarks) {
+				Transaction tx = null;
+				try (Session session = HibernateUtil.getSession()) {
+					tx = session.beginTransaction();
+					session.createNativeMutationQuery(
+							"UPDATE cts_cheques SET"
+							+ "  status      = :status,"
+							+ "  ver_status  = :status,"
+							+ "  ver_level   = :verLevel,"
+							+ "  is_referred = true,"
+							+ "  ver_action  = :verAction,"
+							+ "  ver_by      = :verBy,"
+							+ "  ver_remarks = :verRemarks,"
+							+ "  updated_at  = CURRENT_TIMESTAMP"
+							+ " WHERE id = :id")
+							.setParameter("status",     "V2_PENDING")
+							.setParameter("verLevel",   "V2")
+							.setParameter("verAction",  "Refer")
+							.setParameter("verBy",      verBy)
+							.setParameter("verRemarks", verRemarks)
+							.setParameter("id",         chequeId)
+							.executeUpdate();
+					tx.commit();
+					LOG.info("referToVerificationTwo: cheque=" + chequeId + " by=" + verBy);
+				} catch (Exception ex) {
+					if (tx != null) tx.rollback();
+					LOG.severe("referToVerificationTwo error: " + ex.getMessage());
+					throw new RuntimeException("Failed to refer cheque to V2: " + ex.getMessage(), ex);
+				}
+			}
+
+			// Counts V1-actioned cheques (VERIFIED + REJECTED + V2_PENDING) for a single batch.
+			// Called by getVerifiableBatchSummaries() to show processed count per batch row.
+			@Override
+			public long countV1ProcessedForBatch(String batchId) {
+				try (Session session = HibernateUtil.getSession()) {
+					Number result = (Number) session.createNativeQuery(
+							"SELECT COUNT(*) FROM cts_cheques"
+							+ " WHERE batch_id = :batchId"
+							+ "   AND ver_level = 'V1'"
+							+ "   AND status IN ('VERIFIED', 'REJECTED', 'V2_PENDING')",
+							Object.class)
+							.setParameter("batchId", batchId)
+							.uniqueResult();
+					return result != null ? result.longValue() : 0L;
+				} catch (Exception ex) {
+					LOG.severe("countV1ProcessedForBatch error: " + ex.getMessage());
+					return 0L;
+				}
+			}
+
+			// Returns distinct batch IDs that have at least one V1 cheque already actioned.
+			// Called by getVerifiableBatchSummaries() to include fully-verified batches
+			// in the Phase 1 history list without pulling in HV-only or V2-only batches.
+			@Override
+			public Set<String> loadBatchIdsWithV1ProcessedCheques() {
+				try (Session session = HibernateUtil.getSession()) {
+					List<String> rows = session.createNativeQuery(
+							"SELECT DISTINCT batch_id "
+							+ "FROM cts_cheques "
+							+ "WHERE ver_level = 'V1' "
+							+ "  AND status IN ('VERIFIED', 'REJECTED', 'V2_PENDING')",
+							String.class)
+							.getResultList();
+					return new HashSet<>(rows);
+				} catch (Exception ex) {
+					LOG.severe("loadBatchIdsWithV1ProcessedCheques error: " + ex.getMessage());
+					return Collections.emptySet();
+				}
+			}
+
+			// Returns V1 processed counts for ALL given batch IDs in one query — no N+1.
+			// Called by getVerifiableBatchSummaries() to populate the processed count
+			// column for every batch in the Phase 1 list at once.
+			@Override
+			public Map<String, Long> countV1ProcessedForBatches(Set<String> batchIds) {
+				if (batchIds == null || batchIds.isEmpty())
+					return Collections.emptyMap();
+				try (Session session = HibernateUtil.getSession()) {
+					List<Object[]> rows = session.createNativeQuery(
+							"SELECT batch_id, COUNT(*) "
+							+ "FROM cts_cheques "
+							+ "WHERE batch_id  IN :ids "
+							+ "  AND ver_level = 'V1' "
+							+ "  AND status    IN ('VERIFIED', 'REJECTED', 'V2_PENDING') "
+							+ "GROUP BY batch_id",
+							Object[].class)
+							.setParameter("ids", new ArrayList<>(batchIds))
+							.getResultList();
+
+					Map<String, Long> result = new HashMap<>();
+					for (Object[] row : rows) {
+						String batchId = (String) row[0];
+						Long   count   = ((Number) row[1]).longValue();
+						result.put(batchId, count);
+					}
+					return result;
+				} catch (Exception ex) {
+					LOG.severe("countV1ProcessedForBatches error: " + ex.getMessage());
+					return Collections.emptyMap();
+				}
+			}
+			
+			
 }
