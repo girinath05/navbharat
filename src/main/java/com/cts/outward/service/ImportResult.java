@@ -311,9 +311,7 @@ public class ImportResult {
         this.parsedTotalAmount = (parsedTotalAmount != null) ? parsedTotalAmount : BigDecimal.ZERO;
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    // CONVENIENCE PREDICATE
-    // ══════════════════════════════════════════════════════════════════
+    
 
     /**
      * Returns {@code true} when every cheque in the uploaded ZIP was already

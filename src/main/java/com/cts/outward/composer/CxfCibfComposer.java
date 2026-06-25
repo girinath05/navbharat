@@ -1,7 +1,5 @@
 package com.cts.outward.composer;
 
-import com.cts.outward.dao.CxfCibfDAO;
-import com.cts.outward.dao.CxfCibfDAOImpl;
 import com.cts.outward.dto.CxfBatchDTO;
 import com.cts.outward.service.CxfCibfService;
 import com.cts.outward.service.CxfCibfServiceImpl;
@@ -101,7 +99,6 @@ public class CxfCibfComposer extends SelectorComposer<Component> {
     private final org.zkoss.zk.ui.event.EventListener<org.zkoss.zk.ui.event.Event> doneListener = event -> onClickDone();
 
     private CxfCibfService service;
-    private CxfCibfDAO dao;
 
     private String currentStatusFilter = STATUS_PENDING;
     private String searchBatchId = "";
@@ -118,7 +115,6 @@ public class CxfCibfComposer extends SelectorComposer<Component> {
     @Override
     public void doAfterCompose(Component component) throws Exception {
         super.doAfterCompose(component);
-        dao = new CxfCibfDAOImpl();
         service = new CxfCibfServiceImpl();
 
         // Set default selection
@@ -135,9 +131,9 @@ public class CxfCibfComposer extends SelectorComposer<Component> {
      */
     private void refreshPageData() {
         try {
-            // 1. Fetch raw data for each category to calculate stats under the active filters
-            List<CxfBatchDTO> rawPending = dao.findPendingBatches();
-            List<CxfBatchDTO> rawCompleted = dao.findCompletedBatches();
+            // 1. Fetch raw data via service layer (Composer must never call DAO directly)
+            List<CxfBatchDTO> rawPending = service.findPendingBatches();
+            List<CxfBatchDTO> rawCompleted = service.findCompletedBatches();
 
             // Apply active filters to count stats dynamically
             long countPending = rawPending.stream().filter(this::matchesFilters).count();

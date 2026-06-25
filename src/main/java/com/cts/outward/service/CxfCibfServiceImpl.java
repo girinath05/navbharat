@@ -91,6 +91,32 @@ public class CxfCibfServiceImpl implements CxfCibfService {
 	}
 
 	// ═══════════════════════════════════════════════════════
+	// LIST QUERIES (delegated to DAO — used by Composer for page data)
+	// ═══════════════════════════════════════════════════════
+
+	/**
+	 * Returns all verified batches pending CXF-CIBF file generation.
+	 * Delegates to DAO — no business logic here.
+	 *
+	 * @return list of pending batch DTOs
+	 */
+	@Override
+	public List<CxfBatchDTO> findPendingBatches() {
+		return dao.findPendingBatches();
+	}
+
+	/**
+	 * Returns all batches that have completed CXF-CIBF file generation.
+	 * Delegates to DAO — no business logic here.
+	 *
+	 * @return list of completed batch DTOs
+	 */
+	@Override
+	public List<CxfBatchDTO> findCompletedBatches() {
+		return dao.findCompletedBatches();
+	}
+
+	// ═══════════════════════════════════════════════════════
 	// GENERATION
 	// ═══════════════════════════════════════════════════════
 
