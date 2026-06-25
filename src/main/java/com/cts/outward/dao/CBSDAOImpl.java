@@ -35,24 +35,36 @@
 
 package com.cts.outward.dao;
 
+// Jackson tree-model node — used to navigate Firestore's nested JSON envelope
 import com.fasterxml.jackson.databind.JsonNode;
+// Deserializes the raw HTTP response body (String) into a traversable JsonNode tree
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+// Converts the Firestore REST URL string into a typed URI for HttpRequest
 import java.net.URI;
+// Java 11+ built-in HTTP client — sends blocking HTTP requests without external libs
 import java.net.http.HttpClient;
+// Immutable HTTP request builder — sets URI, method (GET), and headers
 import java.net.http.HttpRequest;
+// Typed HTTP response container — holds status code + body string
 import java.net.http.HttpResponse;
+// JUL logger — logs errors without crashing the caller (fail-closed pattern)
 import java.util.logging.Logger;
 
+// Implements CBSDAO — all CBS data access goes through this class
 public class CBSDAOImpl implements CBSDAO {
 
+    // Class-level logger; name tied to class so log output identifies source precisely
     private static final Logger LOG = Logger.getLogger(CBSDAOImpl.class.getName());
 
+    // Root REST URL for the Firestore project "express-clear-cbs", default database
+    // All collection/document paths are appended to this base (e.g. + "/accounts/1234567890")
     private static final String FIRESTORE_BASE_URL =
         "https://firestore.googleapis.com/v1/projects/express-clear-cbs/databases/(default)/documents";
 
-    // Thread-safe singletons — expensive to create, safe to share.
+    // HttpClient: thread-safe, reused across all calls — avoids connection setup overhead per request
     private final HttpClient   httpClient  = HttpClient.newHttpClient();
+    // ObjectMapper: thread-safe after construction — shared to avoid repeated instantiation cost
     private final ObjectMapper jsonMapper  = new ObjectMapper();
 
     // ══════════════════════════════════════════════════════════
@@ -75,20 +87,28 @@ public class CBSDAOImpl implements CBSDAO {
     @Override
     public JsonNode getAccountDetails(String accountNumber) {
         try {
+            // Build a GET request to: .../documents/accounts/{accountNumber}
+            // Firestore REST: GET on a document URL returns the full document JSON
             HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(FIRESTORE_BASE_URL + "/accounts/" + accountNumber))
                 .GET()
                 .build();
 
+            // Send synchronously; body handler collects response as a plain String
             HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
 
+            // Firestore returns 200 for found, 404 for missing — any non-200 = not usable
             if (res.statusCode() != 200) {
-                return null;
+                return null; // caller treats null as "account not found"
             }
 
+            // Parse JSON body and navigate directly to "fields" node.
+            // Firestore envelope: { "name": "...", "fields": { ... }, "createTime": "..." }
+            // Returning only "fields" hides the envelope from callers — they work with field map directly
             return jsonMapper.readTree(res.body()).path("fields");
 
         } catch (Exception ex) {
+            // Network timeout, DNS failure, JSON parse error — log and return null (fail-closed)
             LOG.severe("CBSDaoImpl.getAccountDetails error for account=" + accountNumber + ": " + ex.getMessage());
             return null;
         }
@@ -106,17 +126,20 @@ public class CBSDAOImpl implements CBSDAO {
     @Override
     public boolean isAccountExists(String accountNumber) {
         try {
+            // Same URL as getAccountDetails — we only care about HTTP status, not the body
             HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(FIRESTORE_BASE_URL + "/accounts/" + accountNumber))
                 .GET()
                 .build();
 
             HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            // HTTP 200 = document exists; 404 = no such account; anything else = treat as absent
             return res.statusCode() == 200;
 
         } catch (Exception ex) {
+            // Any exception (network/timeout) = fail-closed: assume account does NOT exist
             LOG.severe("CBSDaoImpl.isAccountExists error for account=" + accountNumber + ": " + ex.getMessage());
-            return false; // fail closed
+            return false; // fail closed — deny on uncertainty, never approve blindly
         }
     }
 
@@ -137,16 +160,22 @@ public class CBSDAOImpl implements CBSDAO {
     @Override
     public boolean isChequeExists(String accountNumber, String chequeNumber) {
         try {
+            // Firestore document ID for cheques is composite: "{accountNumber}_{chequeNumber}"
+            // e.g. account "1234567890", cheque "000123" → docId = "1234567890_000123"
             String docId = accountNumber + "_" + chequeNumber;
+
+            // Build GET request to: .../documents/cheques/{accountNumber}_{chequeNumber}
             HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(FIRESTORE_BASE_URL + "/cheques/" + docId))
                 .GET()
                 .build();
 
             HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            // 200 = cheque document found; anything else = cheque not registered in CBS
             return res.statusCode() == 200;
 
         } catch (Exception ex) {
+            // Fail-closed: on any error, report cheque as non-existent (safer than assuming valid)
             LOG.severe("CBSDaoImpl.isChequeExists error for cheque=" + accountNumber + "_" + chequeNumber + ": " + ex.getMessage());
             return false; // fail closed
         }
@@ -171,7 +200,10 @@ public class CBSDAOImpl implements CBSDAO {
     @Override
     public String getChequeStatus(String accountNumber, String chequeNumber) {
         try {
+            // Same composite key as isChequeExists — consistent document ID convention
             String docId = accountNumber + "_" + chequeNumber;
+
+            // GET the cheque document from Firestore /cheques collection
             HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(FIRESTORE_BASE_URL + "/cheques/" + docId))
                 .GET()
@@ -179,19 +211,25 @@ public class CBSDAOImpl implements CBSDAO {
 
             HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
 
+            // Non-200 means cheque document absent — not an error, just not registered
             if (res.statusCode() != 200) {
-                return "NOT_FOUND";
+                return "NOT_FOUND"; // sentinel: cheque not in CBS (distinct from ERROR)
             }
 
+            // Navigate Firestore envelope: body → "fields" → "status" → "stringValue"
+            // Example body: { "fields": { "status": { "stringValue": "ACTIVE" } } }
+            // asText("UNKNOWN") — safe default if "status" field missing from document
             return jsonMapper.readTree(res.body())
-                .path("fields")
-                .path("status")
-                .path("stringValue")
-                .asText("UNKNOWN");
+                .path("fields")   // unwrap Firestore envelope
+                .path("status")   // locate the status field map
+                .path("stringValue") // extract the actual string value from Firestore type wrapper
+                .asText("UNKNOWN"); // "UNKNOWN" if path missing (field absent but doc exists)
 
         } catch (Exception ex) {
+            // Network/parse failure — return "ERROR" sentinel so caller can distinguish
+            // "cheque not found" (NOT_FOUND) from "CBS unreachable" (ERROR)
             LOG.severe("CBSDaoImpl.getChequeStatus error for cheque=" + accountNumber + "_" + chequeNumber + ": " + ex.getMessage());
-            return "ERROR";
+            return "ERROR"; // fail-closed: caller must treat ERROR as unverifiable
         }
     }
 }
