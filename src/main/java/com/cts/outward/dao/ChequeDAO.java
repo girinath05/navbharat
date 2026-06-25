@@ -18,6 +18,7 @@ package com.cts.outward.dao;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.cts.outward.entity.ChequeEntity;
@@ -83,9 +84,33 @@ public interface ChequeDAO {
 	// Author : Anusha (V1) / Girinath (V2)
 	// ══════════════════════════════════════════════════════════
 
-	List<ChequeEntity> loadChequesByVerLevel(String verLevel, String status);
+	
+	List<ChequeEntity> loadAllPendingV1ChequesAcrossAllBatches(String verLevel, String status);
+	
+	List<ChequeEntity> loadAllV1ChequesForBatch(String batchId);
 
 	long countPendingVerificationForBatch(String batchId);
+	
+	/**
+	 * Returns processed V1 cheque counts for ALL given batch IDs in one query.
+	 * Processed means verifier performed Accept / Reject / Refer on that cheque.
+	 * Replaces the per-batch countV1ProcessedForBatch() loop — fixes N+1 problem.
+	 *
+	 * @param batchIds set of batch IDs to count for
+	 * @return map of batchId to processed count; missing entry means zero
+	 */
+	
+	Map<String, Long> countV1ProcessedForBatches(Set<String> batchIds);
+	
+	long countV1ProcessedForBatch(String batchId);
+	
+	/**
+	 * Returns distinct batch IDs that have at least one V1 cheque
+	 * that was already actioned (VERIFIED / REJECTED / V2_PENDING).
+	 * Used to include fully-verified V1 batches in the history list
+	 * without pulling in HV-only or V2-only batches.
+	 */
+	Set<String> loadBatchIdsWithV1ProcessedCheques();
 
 	/**
 	 * Persists verifier action on a single cheque.
@@ -123,5 +148,5 @@ public interface ChequeDAO {
 
 	void updateVerRouting(Long chequeId, String status, String verLevel, String verStatus);
 
-	long countV1ProcessedForBatch(String batchId);
+	
 }

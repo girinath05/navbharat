@@ -17,6 +17,7 @@ package com.cts.outward.dao;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 
 import com.cts.outward.entity.BatchEntity;
 
@@ -74,4 +75,7 @@ public interface BatchDAO {
 
     /** Batches that have at least one high_value cheque */
     List<BatchEntity> loadBatchesWithHvCheques();
+    
+    //v1
+	List<BatchEntity> loadBatchesByIds(Set<String> batchIds);
 }

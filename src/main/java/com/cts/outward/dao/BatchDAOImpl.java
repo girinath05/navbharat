@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import org.hibernate.Session;
@@ -384,4 +385,32 @@ public class BatchDAOImpl implements BatchDAO {
             q.setParameter(e.getKey(), e.getValue());
         }
     }
+    
+    
+ // ══════════════════════════════════════════════════════════════════════
+  	// ANUSHA — Verification I (V1) Methods
+  	// ══════════════════════════════════════════════════════════════════════
+
+  	// Fetches exactly the batch rows whose batch_id is in the given set.
+  	// Called by getVerifiableBatchSummaries() after the service has already
+  	// identified which batch IDs have V1 cheques — no status filter needed here.
+  	@Override
+  	public List<BatchEntity> loadBatchesByIds(Set<String> batchIds) {
+  		if (batchIds == null || batchIds.isEmpty()) {
+  			LOG.warning("loadBatchesByIds: empty or null batchIds — returning empty list");
+  			return Collections.emptyList();
+  		}
+  		try (Session session = HibernateUtil.getSession()) {
+  			return session.createNativeQuery(
+  					"SELECT * FROM cts_batches "
+  					+ "WHERE batch_id IN :ids "
+  					+ "ORDER BY created_at DESC",
+  					BatchEntity.class)
+  					.setParameter("ids", new ArrayList<>(batchIds))
+  					.list();
+  		} catch (Exception ex) {
+  			LOG.severe("loadBatchesByIds error: " + ex.getMessage());
+  			return Collections.emptyList();
+  		}
+  	}
 }

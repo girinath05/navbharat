@@ -7,7 +7,7 @@
 <div id="v1Root" apply="com.cts.outward.composer.VerificationOneComposer">
 
     <!-- PHASE 1 — BATCH LIST -->
-    <div id="pnlBatchList" visible="true" style="padding:18px 22px; box-sizing:border-box; width:100%;">
+    <div id="panelBatchList" visible="true" style="padding:18px 22px; box-sizing:border-box; width:100%;">
 
         <!-- PAGE TITLE -->
         <hbox align="center" spacing="0" width="100%" style="margin-bottom:14px;">
@@ -29,44 +29,45 @@
                     <!-- Search -->
                     <div sclass="v1-search-bar-inner">
                         <span sclass="v1-search-icon">🔍</span>
-                        <textbox id="txBatchSearch"
+                        <textbox id="searchBatch"
                                  sclass="v1-search-input"
                                  placeholder="Search Batch ID..."
                                  instant="true"/>
                     </div>
 
                     <!-- Date range -->
-                    <datebox id="dtBatchFromDate"
+                    <datebox id="dateFromBatch"
                              sclass="v1-date-box"
                              format="dd/MM/yyyy"
                              width="116px"
                              placeholder="dd/MM/yy"/>
                     <label value="→" sclass="v1-date-arrow"/>
-                    <datebox id="dtBatchToDate"
+                    <datebox id="dateToBatch"
                              sclass="v1-date-box"
                              format="dd/MM/yyyy"
                              width="116px"
                              placeholder="dd/MM/yy"/>
 
                     <!-- Status combobox -->
-                    <combobox id="cmbBatchStatusFilter"
+                    <!-- NOTE: Only READY_FOR_VERIFICATION and VERIFICATION_IN_PROGRESS
+                         are returned by getVerifiableBatchSummaries(). "Verified" batches
+                         are excluded by the service, so that option is intentionally omitted. -->
+                    <combobox id="comboBatchStatus"
                               sclass="v1-status-cmb"
                               readonly="true"
-                              width="160px"
-                              placeholder="All">
-                        <comboitem label="All"                      value="ALL"/>
-                        <comboitem label="Ready for Verification"   value="READY_FOR_VERIFICATION"/>
-                        <comboitem label="Verification In Progress" value="VERIFICATION_IN_PROGRESS"/>
-                        <comboitem label="Verified"                 value="VERIFIED"/>
+                              width="180px">
+                        <comboitem label="All Statuses"             value="ALL"/>
+                        <comboitem label="Ready for Verification"   value="ReadyForVerification"/>
+                        <comboitem label="Verification In Progress" value="VerificationInProgress"/>
                     </combobox>
 
                     <!-- Clear button -->
-                    <button id="btnBatchDateClear" sclass="v1-date-clear-btn" label="✕ Clear"/>
+                    <button id="buttonBatchFilterClear" sclass="v1-date-clear-btn" label="✕ Clear"/>
                 </div>
             </div>
 
             <!-- BATCH LISTBOX -->
-            <listbox id="lbBatches" sclass="v1-listbox v1-batch-lb"
+            <listbox id="listBatches" sclass="v1-listbox v1-batch-lb"
                      style="width:100%;" emptyMessage="No batches available for verification.">
                 <listhead sizable="false" sclass="v1-lh-row">
                     <listheader label="BATCH ID"      sclass="v1-lh" width="19%"/>
@@ -81,11 +82,11 @@
 
             <!-- BATCH CUSTOM PAGINATION BAR -->
             <div id="batchPagingBar" sclass="v1-custom-paging">
-                <label id="lblBatchPagingInfo" sclass="v1-paging-info" value="Showing 0 – 0 of 0 batches"/>
+                <label id="labelBatchPagingInfo" sclass="v1-paging-info" value="Showing 0 – 0 of 0 batches"/>
                 <div sclass="v1-paging-nav">
-                    <button id="btnBatchPrev" sclass="v1-paging-btn" label="‹ Prev"/>
-                    <label  id="lblBatchPageNum" sclass="v1-paging-page-label" value="Page 1 of 1"/>
-                    <button id="btnBatchNext" sclass="v1-paging-btn" label="Next ›"/>
+                    <button id="buttonBatchPrev" sclass="v1-paging-btn" label="‹ Prev"/>
+                    <label  id="labelBatchPageNumber" sclass="v1-paging-page-label" value="Page 1 of 1"/>
+                    <button id="buttonBatchNext" sclass="v1-paging-btn" label="Next ›"/>
                 </div>
             </div>
 
@@ -93,21 +94,21 @@
     </div>
 
     <!-- PHASE 2 — CHEQUE LIST -->
-    <div id="pnlChequeList" visible="false" style="padding:18px 22px; box-sizing:border-box; width:100%;">
+    <div id="panelChequeList" visible="false" style="padding:18px 22px; box-sizing:border-box; width:100%;">
 
         <!-- NAV BAR -->
         <hbox sclass="v1-queue-nav" align="center" spacing="0" width="100%" style="margin-bottom:10px;">
             <hbox sclass="v1-counter-group" align="center" spacing="6px">
-                <label id="spCntPending"  sclass="v1-cnt-chip v1-cnt-pending"  value="0 Pending"/>
-                <label id="spCntPassed"   sclass="v1-cnt-chip v1-cnt-passed"   value="0 Accepted"/>
-                <label id="spCntRejected" sclass="v1-cnt-chip v1-cnt-rejected" value="0 Rejected"/>
+                <label id="counterPending"  sclass="v1-cnt-chip v1-cnt-pending"  value="0 Pending"/>
+                <label id="counterAccepted" sclass="v1-cnt-chip v1-cnt-passed"   value="0 Accepted"/>
+                <label id="counterRejected" sclass="v1-cnt-chip v1-cnt-rejected" value="0 Rejected"/>
             </hbox>
             <div hflex="1"/>
             <button id="btnBackToBatches" sclass="v1-back-btn" label="← Back to Batches"/>
-            <label id="lblBatchTitle"    value="" visible="false"/>
-            <label id="lblBatchMeta"     value="" visible="false"/>
-            <label id="lblChequeCount"   value="" visible="false"/>
-            <label id="lblBatchProgress" value="" visible="false"/>
+            <label id="labelActiveBatchId"   value="" visible="false"/>
+            <label id="lblBatchMeta"         value="" visible="false"/>
+            <label id="lblChequeCount"       value="" visible="false"/>
+            <label id="lblBatchProgress"     value="" visible="false"/>
         </hbox>
 
         <div sclass="v1-card">
@@ -125,14 +126,14 @@
                     <!-- Search -->
                     <div sclass="v1-search-bar-inner">
                         <span sclass="v1-search-icon">🔍</span>
-                        <textbox id="txChequeSearch"
+                        <textbox id="searchCheque"
                                  sclass="v1-search-input"
                                  placeholder="Search by Cheque No., payee name, amount..."
                                  instant="true"/>
                     </div>
 
                     <!-- Date range -->
-                    <datebox id="dtChequeFromDate"
+                    <datebox id="dateFromCheque"
                              sclass="v1-date-box"
                              format="dd/MM/yyyy"
                              width="116px"
@@ -140,14 +141,14 @@
 
                     <label value="→" sclass="v1-date-arrow"/>
 
-                    <datebox id="dtChequeToDate"
+                    <datebox id="dateToCheque"
                              sclass="v1-date-box"
                              format="dd/MM/yyyy"
                              width="116px"
                              placeholder="dd/MM/yy"/>
 
                     <!-- Status -->
-                    <combobox id="cmbChequeStatusFilter"
+                    <combobox id="comboChequeStatus"
                               sclass="v1-status-cmb"
                               readonly="true"
                               width="160px"
@@ -160,14 +161,14 @@
                     </combobox>
 
                     <!-- Clear -->
-                    <button id="btnChequeDateClear"
+                    <button id="buttonChequeFilterClear"
                             sclass="v1-date-clear-btn"
                             label="✕ Clear"/>
                 </div>
             </div>
 
             <!-- CHEQUE LISTBOX -->
-            <listbox id="lbCheques" sclass="v1-listbox v1-cheque-lb"
+            <listbox id="listCheques" sclass="v1-listbox v1-cheque-lb"
                      style="width:100%;" emptyMessage="No cheques match the current filter.">
                 <listhead sizable="false" sclass="v1-lh-row">
                     <listheader label="S.NO"       sclass="v1-lh" width="8%"/>
@@ -182,11 +183,11 @@
 
             <!-- CHEQUE CUSTOM PAGINATION BAR -->
             <div id="chequePagingBar" sclass="v1-custom-paging">
-                <label id="lblChequePagingInfo" sclass="v1-paging-info" value="Showing 0 – 0 of 0 cheques"/>
+                <label id="labelChequePagingInfo" sclass="v1-paging-info" value="Showing 0 – 0 of 0 cheques"/>
                 <div sclass="v1-paging-nav">
-                    <button id="btnChequePrev" sclass="v1-paging-btn" label="‹ Prev"/>
-                    <label  id="lblChequePageNum" sclass="v1-paging-page-label" value="Page 1 of 1"/>
-                    <button id="btnChequeNext" sclass="v1-paging-btn" label="Next ›"/>
+                    <button id="buttonChequePrev" sclass="v1-paging-btn" label="‹ Prev"/>
+                    <label  id="labelChequePageNumber" sclass="v1-paging-page-label" value="Page 1 of 1"/>
+                    <button id="buttonChequeNext" sclass="v1-paging-btn" label="Next ›"/>
                 </div>
             </div>
 
@@ -194,38 +195,39 @@
     </div>
 
     <!-- ── BACKDROP ── -->
-    <div id="dlgBackdrop" visible="false"
+    <div id="popupBackdrop" visible="false"
          style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh;
                 background:rgba(0,0,0,0.55); z-index:999;"/>
 
     <!-- VERIFICATION POPUP -->
-    <div id="dlgChequeVerify" visible="false" sclass="v1-verify-window"
+    <div id="popupChequeVerify" visible="false" sclass="v1-verify-window"
          style="display:none; position:fixed; top:50%; left:50%;
                 transform:translate(-50%,-50%); z-index:1000;">
 
         <!-- 1. TITLE BAR -->
         <div sclass="vw-header" style="position:relative; flex-shrink:0;">
-            <label id="dlgBatchPill" sclass="vw-batch-pill" value="—"/>
-            <button id="btnCloseDlg" sclass="vw-close-btn" label="✕"/>
+            <label id="popupBatchPill" sclass="vw-batch-pill" value="—"/>
+            <button id="btnClosePopup" sclass="vw-close-btn" label="✕"/>
         </div>
 
         <!-- 2. IMAGE ROW -->
         <div sclass="vw-img-row">
             <div sclass="vw-img-toggle-wrap">
-                <button id="btnToggleSide" sclass="vw-toggle-side-btn" label="⇄ Show BACK"/>
+                <button id="buttonToggleImageSide" sclass="vw-toggle-side-btn" label="⇄ Show BACK"/>
             </div>
-            <div id="dlgImageBox" sclass="vw-img-box">
-                <label id="dlgImagePh"
+            <div id="popupImageBox" sclass="vw-img-box">
+                <label id="popupImagePlaceholder"
                        style="font-size:11px; color:#9CA3AF; padding:16px;"
                        value="Image loading..."/>
-                <image id="dlgImage"
+                <image id="popupChequeImage"
                        style="width:100%; height:100%; object-fit:contain; display:block;"
                        visible="false"/>
             </div>
         </div>
 
-        <!-- 3. DATA SECTION -->
-        <div sclass="vw-data-section">
+        <!-- 3. DATA SECTION — overflow-y:auto ensures the last row (New Account /
+             Amount / Amount in Words) is not clipped by the fixed popup height -->
+        <div sclass="vw-data-section" style="overflow-y:auto; max-height:260px; flex-shrink:0;">
 
             <!-- ── MICR DATA — 5 fields: Cheque No | City Code | Bank Code | Branch Code | TC Code ── -->
             <hbox sclass="vw-sec-strip" align="center" spacing="0" width="100%">
@@ -234,23 +236,23 @@
             <div sclass="vw-data-grid-micr">
                 <vbox sclass="vw-field" spacing="2px">
                     <label sclass="vw-field-lbl" value="Cheque No."/>
-                    <label id="dlgChequeNo"   sclass="vw-field-val mono" value="—"/>
+                    <label id="fieldChequeNo"   sclass="vw-field-val mono" value="—"/>
                 </vbox>
                 <vbox sclass="vw-field" spacing="2px">
                     <label sclass="vw-field-lbl" value="City Code"/>
-                    <label id="dlgCityCode"   sclass="vw-field-val mono" value="—"/>
+                    <label id="fieldCityCode"   sclass="vw-field-val mono" value="—"/>
                 </vbox>
                 <vbox sclass="vw-field" spacing="2px">
                     <label sclass="vw-field-lbl" value="Bank Code"/>
-                    <label id="dlgBankCode"   sclass="vw-field-val mono" value="—"/>
+                    <label id="fieldBankCode"   sclass="vw-field-val mono" value="—"/>
                 </vbox>
                 <vbox sclass="vw-field" spacing="2px">
                     <label sclass="vw-field-lbl" value="Branch Code"/>
-                    <label id="dlgBranchCode" sclass="vw-field-val mono" value="—"/>
+                    <label id="fieldBranchCode" sclass="vw-field-val mono" value="—"/>
                 </vbox>
                 <vbox sclass="vw-field" spacing="2px">
                     <label sclass="vw-field-lbl" value="TC Code"/>
-                    <label id="dlgTcCode"     sclass="vw-field-val mono" value="—"/>
+                    <label id="fieldTcCode"     sclass="vw-field-val mono" value="—"/>
                 </vbox>
             </div>
 
@@ -262,31 +264,31 @@
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; width:100%; border-bottom:1px solid #E8EDF5;">
                 <div style="padding:7px 16px; border-right:1px solid #E8EDF5; display:flex; flex-direction:column; gap:2px;">
                     <label sclass="vw-field-lbl" value="Payee"/>
-                    <label id="dlgPayeeName" sclass="vw-field-val" value="—"/>
+                    <label id="fieldPayeeName" sclass="vw-field-val" value="—"/>
                 </div>
                 <div style="padding:7px 16px; border-right:1px solid #E8EDF5; display:flex; flex-direction:column; gap:2px;">
                     <label sclass="vw-field-lbl" value="CBS Account Name"/>
-                    <label id="dlgCbsAccName" sclass="vw-field-val" value="—"/>
+                    <label id="fieldCbsAccountName" sclass="vw-field-val" value="—"/>
                 </div>
                 <div style="padding:7px 16px; display:flex; flex-direction:column; gap:2px;">
                     <label sclass="vw-field-lbl" value="Payee Match"/>
-                    <label id="dlgCbsPayeeMatch" sclass="vw-field-val" value="—"/>
+                    <label id="fieldCbsPayeeMatch" sclass="vw-field-val" value="—"/>
                 </div>
             </div>
 
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; width:100%; border-bottom:1px solid #E8EDF5;">
                 <div style="padding:7px 16px; border-right:1px solid #E8EDF5; display:flex; flex-direction:column; gap:2px;">
                     <label sclass="vw-field-lbl" value="Account No."/>
-                    <label id="dlgAccountNo" sclass="vw-field-val mono" value="—"/>
+                    <label id="fieldAccountNo" sclass="vw-field-val mono" value="—"/>
                 </div>
                 <div style="padding:7px 16px; border-right:1px solid #E8EDF5; display:flex; flex-direction:column; gap:2px;">
                     <label sclass="vw-field-lbl" value="Cheque Date"/>
-                    <label id="dlgChequeDate" sclass="vw-field-val" value="—"/>
+                    <label id="fieldChequeDate" sclass="vw-field-val" value="—"/>
                 </div>
                 <div style="padding:7px 16px; display:flex; flex-direction:column; gap:2px;">
                     <label sclass="vw-field-lbl" value="Account Status"/>
                     <!-- sclass set dynamically: ch-active | ch-inactive | ch-cbs-unknown -->
-                    <label id="dlgCbsAccStatus" sclass="ch-cbs-unknown" value="—"/>
+                    <label id="fieldCbsAccountStatus" sclass="ch-cbs-unknown" value="—"/>
                 </div>
             </div>
 
@@ -294,15 +296,15 @@
                 <div style="padding:7px 16px; border-right:1px solid #E8EDF5; display:flex; flex-direction:column; gap:2px;">
                     <label sclass="vw-field-lbl" value="New Account"/>
                     <!-- sclass set dynamically: ch-new-acc (Yes/amber) | ch-not-new (No/green) | ch-cbs-unknown -->
-                    <label id="dlgCbsNewAcc" sclass="ch-cbs-unknown" value="—"/>
+                    <label id="fieldCbsNewAccount" sclass="ch-cbs-unknown" value="—"/>
                 </div>
                 <div style="padding:7px 16px; border-right:1px solid #E8EDF5; display:flex; flex-direction:column; gap:2px;">
                     <label sclass="vw-field-lbl" value="Amount (Rs.)"/>
-                    <label id="dlgAmount" sclass="vw-field-val amt" value="—"/>
+                    <label id="fieldAmount" sclass="vw-field-val amt" value="—"/>
                 </div>
                 <div style="padding:7px 16px; display:flex; flex-direction:column; gap:2px;">
                     <label sclass="vw-field-lbl" value="Amount in Words"/>
-                    <label id="dlgAmountWords" sclass="vw-field-val" value="—"/>
+                    <label id="fieldAmountInWords" sclass="vw-field-val" value="—"/>
                 </div>
             </div>
 
@@ -310,38 +312,36 @@
 
         <!-- 4. FOOTER -->
         <hbox sclass="vw-footer" align="center" pack="end" width="100%">
-            <button id="btnDlgPrev"   sclass="vw-nav-btn"    label="‹ Prev"/>
-            <label  id="dlgRecordPos" sclass="vw-record-pos" value="1 / 1"/>
-            <button id="btnDlgNext"   sclass="vw-nav-btn"    label="Next ›"/>
+            <button id="buttonPopupPrev"   sclass="vw-nav-btn"    label="‹ Prev"/>
+            <label  id="popupRecordPosition" sclass="vw-record-pos" value="1 / 1"/>
+            <button id="buttonPopupNext"   sclass="vw-nav-btn"    label="Next ›"/>
 
             <div sclass="vw-sep"/>
 
-            <button id="btnDlgAccept" sclass="vw-btn-accept" label="✔ Accept"/>
+            <button id="buttonAccept" sclass="vw-btn-accept" label="✔ Accept"/>
 
             <div sclass="vw-sep"/>
 
-            <combobox id="cmbRejectReason" sclass="vw-reason-cmb" readonly="true" placeholder="Rejection reason...">
+            <combobox id="comboRejectReason" sclass="vw-reason-cmb" readonly="true" placeholder="Rejection reason...">
                 <comboitem label="Amount Mismatch"         value="AMT_MISMATCH"/>
-              
                 <comboitem label="Stale Cheque"            value="STALE"/>
                 <comboitem label="Post Dated Cheque"       value="POST_DATED"/>
                 <comboitem label="Instrument Damaged"      value="DAMAGED"/>
                 <comboitem label="MICR Band Defective"     value="MICR_DEFECTIVE"/>
-            
                 <comboitem label="Other"                   value="OTHER"/>
             </combobox>
-            <button id="btnDlgReject" sclass="vw-btn-blue-outline" label="✖ Reject"/>
+            <button id="buttonReject" sclass="vw-btn-blue-outline" label="✖ Reject"/>
 
             <div sclass="vw-sep"/>
 
-            <combobox id="cmbReferReason" sclass="vw-reason-cmb" readonly="true" placeholder="Refer reason...">
+            <combobox id="comboReferReason" sclass="vw-reason-cmb" readonly="true" placeholder="Refer reason...">
                 <comboitem label="Date Illegible" value="DATE_ILLEGIBLE"/>
                 <comboitem label="New Account"    value="NEW_ACCOUNT"/>
             </combobox>
-            <button id="btnDlgRefer" sclass="vw-btn-refer" label="↗ Refer"/>
+            <button id="buttonRefer" sclass="vw-btn-refer" label="↗ Refer"/>
         </hbox>
 
-    </div><!-- /dlgChequeVerify -->
+    </div><!-- /popupChequeVerify -->
 
 </div>
 </zk>
