@@ -267,115 +267,6 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
 
         chequeDetailPopup.setVisible(false);
 
-        // Cheque chip toggle listeners — each chip is an independent on/off toggle
-        chipFilterHighValue.addEventListener("onClick", e -> {
-            highValueActive = !highValueActive;
-            chequeCurrentPage = 1;
-            refreshChequeFilterChips();
-            updateChequeChipStyles();
-            buildFilteredPagedChequeRows();
-        });
-
-        chipFilterReferred.addEventListener("onClick", e -> {
-            referredActive = !referredActive;
-            chequeCurrentPage = 1;
-            refreshChequeFilterChips();
-            updateChequeChipStyles();
-            buildFilteredPagedChequeRows();
-        });
-
-        chipStatusPending.addEventListener("onClick", e -> {
-            pendingActive = !pendingActive;
-            chequeCurrentPage = 1;
-            updateChequeChipStyles();
-            buildFilteredPagedChequeRows();
-        });
-
-        chipStatusPassed.addEventListener("onClick", e -> {
-            passedActive = !passedActive;
-            chequeCurrentPage = 1;
-            updateChequeChipStyles();
-            buildFilteredPagedChequeRows();
-        });
-
-        chipStatusRejected.addEventListener("onClick", e -> {
-            rejectedActive = !rejectedActive;
-            chequeCurrentPage = 1;
-            updateChequeChipStyles();
-            buildFilteredPagedChequeRows();
-        });
-
-        // Cheque search listener
-        txtChequeSearch.addEventListener("onChange", e -> {
-            chequeSearchKeyword = txtChequeSearch.getValue();
-            chequeCurrentPage = 1;
-            buildFilteredPagedChequeRows();
-        });
-
-        // Cheque date from listener
-        dteChequeDateFrom.addEventListener("onChange", e -> {
-            java.util.Date selectedDate = dteChequeDateFrom.getValue();
-            chequeFilterDateFrom = (selectedDate == null) ? null
-                    : selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-
-            if (chequeFilterDateFrom != null && chequeFilterDateTo != null
-                    && chequeFilterDateFrom.isAfter(chequeFilterDateTo)) {
-                chequeFilterDateTo = chequeFilterDateFrom;
-                dteChequeDateTo.setValue(toUtilDate(chequeFilterDateTo));
-            }
-            updateDateRangeConstraints(dteChequeDateFrom, dteChequeDateTo,
-                    chequeFilterDateFrom, chequeFilterDateTo);
-
-            chequeCurrentPage = 1;
-            refreshChequeFilterChips();
-            updateChequeChipStyles();
-            buildFilteredPagedChequeRows();
-        });
-
-        // Cheque date to listener
-        dteChequeDateTo.addEventListener("onChange", e -> {
-            java.util.Date selectedDate = dteChequeDateTo.getValue();
-            chequeFilterDateTo = (selectedDate == null) ? null
-                    : selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-
-            if (chequeFilterDateFrom != null && chequeFilterDateTo != null
-                    && chequeFilterDateTo.isBefore(chequeFilterDateFrom)) {
-                chequeFilterDateFrom = chequeFilterDateTo;
-                dteChequeDateFrom.setValue(toUtilDate(chequeFilterDateFrom));
-            }
-            updateDateRangeConstraints(dteChequeDateFrom, dteChequeDateTo,
-                    chequeFilterDateFrom, chequeFilterDateTo);
-
-            chequeCurrentPage = 1;
-            refreshChequeFilterChips();
-            updateChequeChipStyles();
-            buildFilteredPagedChequeRows();
-        });
-
-        // Clear cheque filters
-        btnClearChequeFilters.addEventListener("onClick", e -> {
-            highValueActive  = false;
-            referredActive   = false;
-            pendingActive    = false;
-            passedActive     = false;
-            rejectedActive   = false;
-            chequeSearchKeyword  = "";
-            chequeFilterDateFrom = null;
-            chequeFilterDateTo   = null;
-            chequeCurrentPage    = 1;
-
-            dteChequeDateFrom.setConstraint((String) null);
-            dteChequeDateTo.setConstraint((String) null);
-
-            txtChequeSearch.setValue("");
-            dteChequeDateFrom.setValue(null);
-            dteChequeDateTo.setValue(null);
-
-            refreshChequeFilterChips();
-            updateChequeChipStyles();
-            buildFilteredPagedChequeRows();
-        });
-
         // Restore session state on page load
         org.zkoss.zk.ui.Session session = Sessions.getCurrent();
         String savedView    = (String) session.getAttribute(SESSION_KEY_ACTIVE_VIEW);
@@ -746,6 +637,119 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
             chequeCurrentPage++;
             buildFilteredPagedChequeRows();
         }
+    }
+    
+    @Listen("onClick = #chipFilterHighValue")
+    public void onChipHighValueClick() {
+        highValueActive = !highValueActive;
+        chequeCurrentPage = 1;
+        refreshChequeFilterChips();
+        updateChequeChipStyles();
+        buildFilteredPagedChequeRows();
+    }
+
+    @Listen("onClick = #chipFilterReferred")
+    public void onChipReferredClick() {
+        referredActive = !referredActive;
+        chequeCurrentPage = 1;
+        refreshChequeFilterChips();
+        updateChequeChipStyles();
+        buildFilteredPagedChequeRows();
+    }
+
+    @Listen("onClick = #chipStatusPending")
+    public void onChipStatusPendingClick() {
+        pendingActive = !pendingActive;
+        chequeCurrentPage = 1;
+        updateChequeChipStyles();
+        buildFilteredPagedChequeRows();
+    }
+
+    @Listen("onClick = #chipStatusPassed")
+    public void onChipStatusPassedClick() {
+        passedActive = !passedActive;
+        chequeCurrentPage = 1;
+        updateChequeChipStyles();
+        buildFilteredPagedChequeRows();
+    }
+
+    @Listen("onClick = #chipStatusRejected")
+    public void onChipStatusRejectedClick() {
+        rejectedActive = !rejectedActive;
+        chequeCurrentPage = 1;
+        updateChequeChipStyles();
+        buildFilteredPagedChequeRows();
+    }
+
+    @Listen("onChange = #txtChequeSearch")
+    public void onChequeSearchChange() {
+        chequeSearchKeyword = txtChequeSearch.getValue();
+        chequeCurrentPage = 1;
+        buildFilteredPagedChequeRows();
+    }
+
+    @Listen("onChange = #dteChequeDateFrom")
+    public void onChequeDateFromChange() {
+        java.util.Date selectedDate = dteChequeDateFrom.getValue();
+        chequeFilterDateFrom = (selectedDate == null) ? null
+                : selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+        if (chequeFilterDateFrom != null && chequeFilterDateTo != null
+                && chequeFilterDateFrom.isAfter(chequeFilterDateTo)) {
+            chequeFilterDateTo = chequeFilterDateFrom;
+            dteChequeDateTo.setValue(toUtilDate(chequeFilterDateTo));
+        }
+        updateDateRangeConstraints(dteChequeDateFrom, dteChequeDateTo,
+                chequeFilterDateFrom, chequeFilterDateTo);
+
+        chequeCurrentPage = 1;
+        refreshChequeFilterChips();
+        updateChequeChipStyles();
+        buildFilteredPagedChequeRows();
+    }
+
+    @Listen("onChange = #dteChequeDateTo")
+    public void onChequeDateToChange() {
+        java.util.Date selectedDate = dteChequeDateTo.getValue();
+        chequeFilterDateTo = (selectedDate == null) ? null
+                : selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+        if (chequeFilterDateFrom != null && chequeFilterDateTo != null
+                && chequeFilterDateTo.isBefore(chequeFilterDateFrom)) {
+            chequeFilterDateFrom = chequeFilterDateTo;
+            dteChequeDateFrom.setValue(toUtilDate(chequeFilterDateFrom));
+        }
+        updateDateRangeConstraints(dteChequeDateFrom, dteChequeDateTo,
+                chequeFilterDateFrom, chequeFilterDateTo);
+
+        chequeCurrentPage = 1;
+        refreshChequeFilterChips();
+        updateChequeChipStyles();
+        buildFilteredPagedChequeRows();
+    }
+
+    @Listen("onClick = #btnClearChequeFilters")
+    public void onClearChequeFilters() {
+        highValueActive  = false;
+        referredActive   = false;
+        pendingActive    = false;
+        passedActive     = false;
+        rejectedActive   = false;
+        chequeSearchKeyword  = "";
+        chequeFilterDateFrom = null;
+        chequeFilterDateTo   = null;
+        chequeCurrentPage    = 1;
+
+        dteChequeDateFrom.setConstraint((String) null);
+        dteChequeDateTo.setConstraint((String) null);
+
+        txtChequeSearch.setValue("");
+        dteChequeDateFrom.setValue(null);
+        dteChequeDateTo.setValue(null);
+
+        refreshChequeFilterChips();
+        updateChequeChipStyles();
+        buildFilteredPagedChequeRows();
     }
 
     // ════════════════════════════════════════════════════════════════════
