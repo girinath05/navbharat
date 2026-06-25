@@ -12,13 +12,25 @@ import java.util.List;
  */
 public interface OutwardReportService {
 
-    /** Batches with CXF/CIBF generated — CXF and CIBF report tabs. */
+    /**
+     * Retrieves all batches that have generated CXF or CIBF files.
+     * 
+     * @return list of generated batches
+     */
     List<ReportBatchDTO> getGeneratedBatches();
 
-    /** All batches across every status — Batch Summary tab. */
+    /**
+     * Retrieves all batches regardless of their current status.
+     * 
+     * @return list of all batches
+     */
     List<ReportBatchDTO> getAllBatches();
 
-    /** All cheques from generated batches — Cheque-level Report tab. */
+    /**
+     * Retrieves all individual cheques from generated batches.
+     * 
+     * @return list of all report cheques
+     */
     List<ReportChequeDTO> getAllCheques();
 
     /**

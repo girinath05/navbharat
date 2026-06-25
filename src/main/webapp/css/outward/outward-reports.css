@@ -17,7 +17,24 @@
     overflow: visible;
 }
 
-/* od-page-bg is now a plain <div> — no z-window overrides needed */
+.od-page-bg.z-window,
+.od-page-bg.z-window-noborder {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+}
+
+.od-page-bg.z-window>.z-window-content,
+.od-page-bg.z-window-noborder>.z-window-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+}
 
 /* ── Breadcrumb ── */
 .od-breadcrumb {
@@ -328,7 +345,9 @@
 }
 
 /* ── ZK Listbox ── */
-.outward-reports-root .z-listbox {
+.outward-reports-root .z-listbox,
+.outward-reports-root .z-listbox-header table,
+.outward-reports-root .z-listbox-body table {
     border: none !important;
     box-shadow: none !important;
     width: 100% !important;
@@ -375,11 +394,11 @@
 
 /* ── Listbox Rows ── */
 .outward-reports-root .z-listitem .z-listcell {
-    font-size: 12.5px !important;
+   font-size: 12.5px !important;
     font-weight: 500 !important;
     color: #1a2a4a !important;
-    padding: 6px 10px !important;
-    border-bottom: 1px solid #edf0f7 !important;
+    padding: 15px 12px !important;
+    border-bottom: 4px solid #edf0f7 !important;
     border-right: none !important;
     overflow: visible !important;
     text-overflow: clip !important;
@@ -896,12 +915,24 @@
     overflow: visible !important;
 }
 
-/* od-page-bg is now a plain <div> — no z-window-content overrides needed */
+/* Remove the browser scrollbar from the page itself */
+.od-page-bg.z-window,
+.od-page-bg.z-window-noborder {
+    overflow: visible !important;
+    height: auto !important;
+}
+
+.od-page-bg.z-window>.z-window-content,
+.od-page-bg.z-window-noborder>.z-window-content {
+    overflow: visible !important;
+    height: auto !important;
+    box-sizing: border-box !important;
+}
 
 /* ── Header Integrated Filter Bar ── */
 .od-filter-bar-header {
     display: flex !important;
-    align-items: center !important;
+    align-items: flex-end !important;
     gap: 8px !important;
     margin-left: auto !important;
     flex-direction: row !important;
@@ -1031,4 +1062,36 @@
 #gridBatch .z-listbox-body,
 #gridCheque .z-listbox-body {
     overflow-x: hidden !important;
+}
+
+/* Ensure the CXF File Name and CIBF File Name column values do not overflow their cells and are truncated with ellipsis */
+#gridCxf .z-listitem .z-listcell:nth-child(5),
+#gridCxf .z-listitem .z-listcell:nth-child(6) {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+}
+
+#gridCxf .z-listitem .z-listcell:nth-child(5) .z-listcell-content,
+#gridCxf .z-listitem .z-listcell:nth-child(5) .z-listcell-cnt,
+#gridCxf .z-listitem .z-listcell:nth-child(6) .z-listcell-content,
+#gridCxf .z-listitem .z-listcell:nth-child(6) .z-listcell-cnt {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    box-sizing: border-box !important;
+}
+
+/* Reduce status chip size in gridCxf so that the value "CXF-CIBF generated" fits and is fully visible */
+#gridCxf .chip {
+    padding: 3px 3px !important;
+    font-size: 9px !important;
+    line-height: 1.0 !important;
 }

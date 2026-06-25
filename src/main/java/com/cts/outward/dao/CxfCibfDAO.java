@@ -12,12 +12,32 @@ import java.util.List;
  */
 public interface CxfCibfDAO {
 
-    // ── Stat counts for the header cards ─────────────────
+    /**
+     * Counts the total number of batches that have generated files.
+     * 
+     * @return count of completed batches
+     */
     long countCompleted();
+
+    /**
+     * Counts the total number of batches pending file generation.
+     * 
+     * @return count of pending batches
+     */
     long countPending();
 
-    // ── List queries for the tables ──────────────────────
+    /**
+     * Finds all batches that have completed the file generation process.
+     * 
+     * @return list of completed batch DTOs
+     */
     List<CxfBatchDTO> findCompletedBatches();
+
+    /**
+     * Finds all batches pending file generation.
+     * 
+     * @return list of pending batch DTOs
+     */
     List<CxfBatchDTO> findPendingBatches();
 
     // ── Batches ready for generation ──────────────────────

@@ -8,7 +8,7 @@
     <div id="outwardReportsRoot" apply="com.cts.outward.composer.OutwardReportComposer"
          width="100%" sclass="od-page-bg outward-reports-root" style="padding:0;margin:0;">
 
-        <style src="/css/outward/outward-reports.css?v=51"/>
+        <style src="/css/outward/outward-reports.css?v=56"/>
 
         <!-- Page Header -->
         <div sclass="od-page-header">
@@ -48,9 +48,15 @@
                     </div>
                     
                     <!-- Date Inputs Group -->
-                    <datebox id="fromDate" format="dd-MM-yyyy" placeholder="dd-MM-yyyy" width="100px"/>
-                    <label value="→" style="color:#64748b; font-weight:700; margin: 0;"/>
-                    <datebox id="toDate" format="dd-MM-yyyy" placeholder="dd-MM-yyyy" width="100px"/>
+                    <div style="display:inline-flex;align-items:flex-start;flex-direction:column;gap:2px;">
+                        <label value="From Date" style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;"/>
+                        <datebox id="fromDate" format="dd-MM-yyyy" placeholder="dd-MM-yyyy" width="100px"/>
+                    </div>
+                    <label value="→" style="color:#64748b; font-weight:700; margin: 0; margin-bottom: 7px;"/>
+                    <div style="display:inline-flex;align-items:flex-start;flex-direction:column;gap:2px;">
+                        <label value="To Date" style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;"/>
+                        <datebox id="toDate" format="dd-MM-yyyy" placeholder="dd-MM-yyyy" width="100px"/>
+                    </div>
                     
                     <button id="btnReset" sclass="od-btn-clear" label="✕ Clear"/>
                     <button id="btnExport" sclass="od-btn-hdr" label="Download pdf" disabled="true" style="margin-left: 4px;"/>
