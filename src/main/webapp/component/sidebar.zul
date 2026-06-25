@@ -227,7 +227,7 @@
             <custom-attributes perm="OUTWARD_CXF_REPORT"
                 page="/zul/outward/reports/cxfReport.zul" />
             <div sclass="cts-sub-row">
-                <label sclass="cts-sub-label" value="CXF Report" />
+                <label sclass="cts-sub-label" value="CXF-CIBF Report" />
             </div>
         </div>
         <div id="menuBatchSummaryReport" sclass="cts-menu-item">

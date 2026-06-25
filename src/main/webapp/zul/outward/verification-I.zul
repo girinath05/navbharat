@@ -328,6 +328,7 @@
                 <comboitem label="Post Dated Cheque"       value="POST_DATED"/>
                 <comboitem label="Instrument Damaged"      value="DAMAGED"/>
                 <comboitem label="MICR Band Defective"     value="MICR_DEFECTIVE"/>
+                <comboitem label="Payee Mismatch"     value="PAYEE_MISMATCH"/>
                 <comboitem label="Other"                   value="OTHER"/>
             </combobox>
             <button id="buttonReject" sclass="vw-btn-blue-outline" label="✖ Reject"/>

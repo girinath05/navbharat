@@ -10,63 +10,82 @@ import java.util.List;
 /**
  * VerificationIIServiceImpl
  *
- * Implementation of VerificationIIService.
- * Follows the same pattern as ChequeServiceImpl / BatchServiceImpl.
+ * Concrete implementation of VerificationIIService.
+ * Follows the same pattern as ChequeServiceImpl and BatchServiceImpl.
+ *
+ * Delegates all data-access operations to VerificationIIDAO.
+ * Applies input validation before each delegation.
  */
 public class VerificationIIServiceImpl implements VerificationIIService {
 
     private final VerificationIIDAO verificationIIDAO = new VerificationIIDAOImpl();
 
+    // ── Batch operations ─────────────────────────────────────────────────────
+
     @Override
-    public List<BatchModel> getHighValueBatches() {
-        return verificationIIDAO.getHighValueBatches();
+    public List<BatchModel> fetchHighValueBatches() {
+        return verificationIIDAO.fetchHighValueBatches();
     }
 
     @Override
-    public List<ChequeModel> getHighValueChequesForBatch(String batchId) {
-        if (batchId == null || batchId.isBlank()) {
+    public List<ChequeModel> fetchHighValueChequesForBatch(String batchIdentifier) {
+        if (batchIdentifier == null || batchIdentifier.isBlank()) {
             throw new IllegalArgumentException(
-                "VerificationIIServiceImpl: batchId must not be blank");
+                "VerificationIIServiceImpl: batchIdentifier must not be blank.");
         }
-        return verificationIIDAO.getHighValueChequesForBatch(batchId.trim());
+        return verificationIIDAO.fetchHighValueChequesForBatch(batchIdentifier.trim());
     }
 
-    @Override
-    public ChequeModel getChequeById(long id) {
-        if (id <= 0) {
-            throw new IllegalArgumentException(
-                "VerificationIIServiceImpl: cheque id must be positive. Got: " + id);
-        }
-        return verificationIIDAO.getChequeById(id);
-    }
+    // ── Cheque retrieval ─────────────────────────────────────────────────────
 
     @Override
-    public void verifyHighValueCheque(long id, String action, String verBy, String remarks) {
-        if (id <= 0) {
+    public ChequeModel fetchChequeById(long chequeId) {
+        if (chequeId <= 0) {
             throw new IllegalArgumentException(
-                "VerificationIIServiceImpl: cheque id must be positive. Got: " + id);
+                "VerificationIIServiceImpl: chequeId must be a positive value. Received: " + chequeId);
         }
-        if (action == null || action.isBlank()) {
-            throw new IllegalArgumentException(
-                "VerificationIIServiceImpl: action must not be blank");
-        }
-        if (!"VERIFIED".equalsIgnoreCase(action) && !"REJECTED".equalsIgnoreCase(action)) {
-            throw new IllegalArgumentException(
-                "VerificationIIServiceImpl: action must be VERIFIED or REJECTED. Got: " + action);
-        }
-        if (verBy == null || verBy.isBlank()) {
-            throw new IllegalArgumentException(
-                "VerificationIIServiceImpl: verBy (username) must not be blank");
-        }
-        verificationIIDAO.updateVerification(id, action.toUpperCase(), verBy.trim(), remarks);
+        return verificationIIDAO.fetchChequeById(chequeId);
     }
 
+    // ── Verification action ──────────────────────────────────────────────────
+
     @Override
-    public void checkAndUpdateBatchStatus(String batchId) {
-        if (batchId == null || batchId.isBlank()) {
+    public void submitHighValueChequeVerification(long chequeId, String verificationAction,
+                                                  String verifierUsername, String verificationRemarks) {
+        if (chequeId <= 0) {
             throw new IllegalArgumentException(
-                "VerificationIIServiceImpl: batchId must not be blank");
+                "VerificationIIServiceImpl: chequeId must be a positive value. Received: " + chequeId);
         }
-        verificationIIDAO.checkAndUpdateBatchStatus(batchId.trim());
+        if (verificationAction == null || verificationAction.isBlank()) {
+            throw new IllegalArgumentException(
+                "VerificationIIServiceImpl: verificationAction must not be blank.");
+        }
+        if (!"VERIFIED".equalsIgnoreCase(verificationAction)
+                && !"REJECTED".equalsIgnoreCase(verificationAction)) {
+            throw new IllegalArgumentException(
+                "VerificationIIServiceImpl: verificationAction must be VERIFIED or REJECTED. " +
+                "Received: " + verificationAction);
+        }
+        if (verifierUsername == null || verifierUsername.isBlank()) {
+            throw new IllegalArgumentException(
+                "VerificationIIServiceImpl: verifierUsername must not be blank.");
+        }
+        verificationIIDAO.persistVerificationDecision(
+            chequeId,
+            verificationAction.toUpperCase(),
+            verifierUsername.trim(),
+            verificationRemarks
+        );
+    }
+
+    // ── Batch status update ──────────────────────────────────────────────────
+
+    @Override
+    public void evaluateAndUpdateBatchVerificationStatus(String batchIdentifier) {
+        if (batchIdentifier == null || batchIdentifier.isBlank()) {
+            throw new IllegalArgumentException(
+                "VerificationIIServiceImpl: batchIdentifier must not be blank.");
+        }
+        verificationIIDAO.evaluateAndUpdateBatchVerificationStatus(batchIdentifier.trim());
     }
 }

@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * VerificationIIComposer  —  Multi-Select Toggle Filter
+ * VerificationIIComposer — Multi-Select Toggle Filter
  *
  * Filter Logic
  * ────────────
@@ -41,176 +41,163 @@ import java.util.Locale;
  *   - Within each group: active chips are OR'd (e.g. HV+RF = both)
  *   - Across groups: type AND status (e.g. HV active + Pending active = HV pending only)
  *
- *  Examples:
- *   HV clicked         → only HV cheques
- *   HV + Pending       → only HV pending cheques
- *   Pending + Rejected → all cheques that are pending OR rejected (any type)
- *   HV clicked again   → HV turns off → show all cheques again
- *
- *  Search filter  : matches cheque no. or payee name (case-insensitive substring)
- *  Date filter    : filters on cheque date (dd/MM/yyyy String field)
- *  Clear button   : resets all chips + search + date in one click
- *
- *  FIX — Popup navigation respects active filters
- *  ─────────────────────────────────────────────────
- *  popupFilteredList captures the filtered cheque list at the moment a cheque
- *  is opened. Prev / Next and findNextPending all navigate within that list,
- *  so if "High Value" filter is active the popup only cycles HV cheques.
+ *  Popup navigation respects active filters:
+ *  popupFilteredChequeList captures the filtered cheque list at the moment a cheque
+ *  is opened. Prev / Next and findNextPendingInList() all navigate within that list.
  *  After Accept / Reject the filtered list is refreshed so status changes are
  *  reflected immediately in navigation.
  */
 public class VerificationIIComposer extends SelectorComposer<Component> {
 
-    private final VerificationIIService service = new VerificationIIServiceImpl();
+	private static final long serialVersionUID = 1L;
+	private final VerificationIIService verificationService = new VerificationIIServiceImpl();
     private final CBSService cbsService = new CBSServiceImpl(new CBSDAOImpl());
 
     private static final int BATCH_PAGE_SIZE  = 5;
     private static final int CHEQUE_PAGE_SIZE = 5;
 
-    // ── Wired — page-level components ────────────────────────────────────────
+    // ── Wired — threshold strip labels ───────────────────────────────────────
 
-    @Wire protected Label  totalBatchesChip;
-    @Wire protected Label  totalHvChip;
-    @Wire protected Label  totalRefChip;
+    @Wire protected Label lblTotalBatchCount;
+    @Wire protected Label lblTotalHighValueCount;
+    @Wire protected Label lblTotalReferredCount;
 
-    // Screen 1
+    // ── Wired — Screen 1: Batch List ─────────────────────────────────────────
+
     @Wire protected Div    batchListView;
-    @Wire protected Rows   batchRows;
+    @Wire protected Rows   batchGridRows;
     @Wire protected Div    batchEmptyState;
-    @Wire protected Label  batchCountLabel;
+    @Wire protected Label  lblBatchRecordCount;
 
-    @Wire protected Textbox  batchSearchBox;
-    @Wire protected Datebox  batchDateFromBox;
-    @Wire protected Datebox  batchDateToBox;
-    @Wire protected Combobox batchStatusCombo;
+    @Wire protected Textbox  txtBatchSearch;
+    @Wire protected Datebox  dteBatchDateFrom;
+    @Wire protected Datebox  dteBatchDateTo;
+    @Wire protected Combobox cmbBatchStatus;
     @Wire protected Button   btnClearBatchFilters;
 
     @Wire protected Button btnBatchPagePrev;
     @Wire protected Button btnBatchPageNext;
-    @Wire protected Label  batchPageInfoLabel;
+    @Wire protected Label  lblBatchPageInfo;
 
-    // Screen 2
+    // ── Wired — Screen 2: Cheque List ────────────────────────────────────────
+
     @Wire protected Div    chequeListView;
-    @Wire protected Label  activeBatchLabel;
-    @Wire protected Rows   chequeRows;
+    @Wire protected Label  lblActiveBatchId;
+    @Wire protected Rows   chequeGridRows;
     @Wire protected Div    chequeEmptyState;
 
-    @Wire protected Button btnPagePrev;
-    @Wire protected Button btnPageNext;
-    @Wire protected Label  pageInfoLabel;
-    @Wire protected Label  chequeCountLabel;
+    @Wire protected Button btnChequePagePrev;
+    @Wire protected Button btnChequePageNext;
+    @Wire protected Label  lblChequePageInfo;
+    @Wire protected Label  lblChequeRecordCount;
 
-    // Chip filter labels (clickable) — no All chip, each is independent toggle
-    @Wire protected Label btnFilterHv;       // Type toggle — HV
-    @Wire protected Label btnFilterRef;      // Type toggle — RF
-    @Wire protected Label hvPendingChip;     // Status toggle — Pending
-    @Wire protected Label hvPassedChip;      // Status toggle — Passed/Accepted
-    @Wire protected Label hvRejectedChip;    // Status toggle — Rejected
+    // Chip filter labels (clickable) — each is an independent toggle
+    @Wire protected Label chipFilterHighValue;   // Type toggle — High Value
+    @Wire protected Label chipFilterReferred;    // Type toggle — Referred
+    @Wire protected Label chipStatusPending;     // Status toggle — Pending
+    @Wire protected Label chipStatusPassed;      // Status toggle — Passed/Accepted
+    @Wire protected Label chipStatusRejected;    // Status toggle — Rejected
 
-    // Cheque list search + date filter controls
-    @Wire protected Textbox chequeSearchBox;
-    @Wire protected Datebox chequeDateFromBox;
-    @Wire protected Datebox chequeDateToBox;
+    @Wire protected Textbox txtChequeSearch;
+    @Wire protected Datebox dteChequeDateFrom;
+    @Wire protected Datebox dteChequeDateTo;
     @Wire protected Button  btnClearChequeFilters;
 
-    // Popup window
+    // ── Wired — Screen 3: Cheque Detail Popup ────────────────────────────────
+
     @Wire protected Window chequeDetailPopup;
 
-    // ── Popup children — wired manually via getFellow() ──────────────────────
+    // Popup children — wired manually via getFellow()
+    protected Label  lblPopupChequeTitle;
+    protected Div    divPopupChequeTypeBadge;
 
-    protected Label   popupTitle;
-    protected Div     popupTypeBadge;
+    protected Button btnFlipChequeImage;
+    private  boolean isShowingFrontImage = true;
+    protected Div    imgPanelFront;
+    protected Div    imgPanelBack;
+    protected Image  imgChequeFront;
+    protected Image  imgChequeRear;
+    protected Div    divFrontImagePlaceholder;
+    protected Div    divRearImagePlaceholder;
 
-    protected Button  btnFlipImage;           // single flip button (replaces FRONT/BACK tabs)
-    private  boolean  showingFront = true;    // tracks which side is currently visible
-    protected Div     imgPanelFront;
-    protected Div     imgPanelBack;
-    protected Image   frontChequeImage;
-    protected Image   rearChequeImage;
-    protected Div     frontImagePlaceholder;
-    protected Div     rearImagePlaceholder;
+    // MICR Data fields
+    protected Label lblChequeNumber;
+    protected Label lblCityCode;
+    protected Label lblBankCode;
+    protected Label lblBranchCode;
+    protected Label lblTransactionCode;
 
-    // MICR Data
-    protected Label   fChequeNo;
-    protected Label   fCityCode;
-    protected Label   fBankCode;
-    protected Label   fBranchCode;
-    protected Label   fTxCode;
+    // Cheque Data fields
+    protected Label lblPayeeName;
+    protected Label lblChequeAmount;
+    protected Label lblAccountNumber;
+    protected Label lblChequeDate;
+    protected Label lblAmountInWords;
 
-    // Cheque Data
-    protected Label   fPayeeName;
-    protected Label   fAmount;
-    protected Label   fAccountNo;
-    protected Label   fChequeDate;
-    protected Label   fAmountWords;
-
-    // CBS Data (stub)
-    protected Label   fCbsPayeeName;
-    protected Label   fCbsAccStatus;
-    protected Label   fCbsPayeeMatch;
-    protected Label   fCbsNewAccount;
+    // CBS Data fields (stub — backend integration pending)
+    protected Label lblCbsPayeeName;
+    protected Label lblCbsAccountStatus;
+    protected Label lblCbsPayeeMatch;
+    protected Label lblCbsNewAccount;
 
     // Action bar
-    protected Textbox fVerRemarks;
-    protected Button  btnAccept;
-    protected Button  btnReject;
+    protected Textbox txtVerificationRemarks;
+    protected Button  btnAcceptCheque;
+    protected Button  btnRejectCheque;
 
-    // Footer nav
-    protected Label   popupCounter;
-    protected Button  btnPopupPrev;
-    protected Button  btnPopupNext;
+    // Popup navigation
+    protected Label  lblPopupChequeCounter;
+    protected Button btnPopupPrev;
+    protected Button btnPopupNext;
 
     // ── State ─────────────────────────────────────────────────────────────────
 
-    private List<BatchModel>  allHvBatches;
-    private List<ChequeModel> currentBatchCheques;
+    private List<BatchModel>  allHighValueBatches;
+    private List<ChequeModel> currentBatchChequeList;
 
-    /**
-     * FIX: Snapshot of the filtered cheque list captured when the popup is
-     * opened.  Prev / Next navigation and findNextPendingInList() work against
-     * this list so they stay within whatever filter was active at open-time.
-     * After Accept / Reject the list is refreshed via getFilteredCheques() so
-     * status changes are reflected in subsequent navigation.
-     */
-    private List<ChequeModel> popupFilteredList;
+    // Snapshot of the filtered cheque list at popup open-time.
+    // Prev / Next navigation and findNextPendingInList() work against
+    // this list so navigation stays within the active filter.
+    // After Accept / Reject the list is refreshed from getFilteredCheques().
+    private List<ChequeModel> popupFilteredChequeList;
 
-    private int popupIndex = 0;
+    private int popupCurrentIndex = 0;
 
-    private String batchFilter  = "ALL";
-    private int    batchPage    = 1;
+    private String batchStatusFilter = "ALL";
+    private int    batchCurrentPage  = 1;
 
-    // ── CHEQUE MULTI-SELECT TOGGLE FILTER STATE ───────────────────────────────
-    //   Type group   : hvActive, rfActive  — OR within group, AND across groups
-    //   Status group : pendingActive, passedActive, rejectedActive — OR within group
-    //   Nothing active in a group = show all of that dimension
-    private boolean hvActive       = false;
-    private boolean rfActive       = false;
-    private boolean pendingActive  = false;
-    private boolean passedActive   = false;
-    private boolean rejectedActive = false;
+    // Cheque multi-select toggle filter state
+    // Type group   : highValueActive, referredActive  — OR within group, AND across groups
+    // Status group : pendingActive, passedActive, rejectedActive — OR within group
+    // Nothing active in a group = show all of that dimension
+    private boolean highValueActive  = false;
+    private boolean referredActive   = false;
+    private boolean pendingActive    = false;
+    private boolean passedActive     = false;
+    private boolean rejectedActive   = false;
 
     // Cheque list search + date range
-    private String    chequeSearchText = "";
-    private LocalDate chequeDateFrom   = null;
-    private LocalDate chequeDateTo     = null;
+    private String    chequeSearchKeyword = "";
+    private LocalDate chequeFilterDateFrom = null;
+    private LocalDate chequeFilterDateTo   = null;
 
-    private int    chequePage   = 1;
+    private int chequeCurrentPage = 1;
 
-    // Batch list search & date range
-    private String    batchSearchText = "";
-    private LocalDate batchDateFrom   = null;
-    private LocalDate batchDateTo     = null;
+    // Batch list search + date range
+    private String    batchSearchKeyword = "";
+    private LocalDate batchFilterDateFrom = null;
+    private LocalDate batchFilterDateTo   = null;
 
-    private static final DateTimeFormatter BATCH_DATE_FMT =
+    private static final DateTimeFormatter BATCH_DATE_FORMATTER =
             DateTimeFormatter.ofPattern("dd-MMM-yyyy");
 
-    // ── Session keys ──────────────────────────────────────────────────────────
-    private static final String SK_DATE_FROM = "v2_batchDateFrom";
-    private static final String SK_DATE_TO   = "v2_batchDateTo";
-    private static final String SK_STATUS    = "v2_batchFilter";
-    private static final String SK_SEARCH    = "v2_batchSearch";
-    private static final String SK_VIEW      = "v2_activeView";
-    private static final String SK_BATCH_ID  = "v2_activeBatchId";
+    // Session attribute keys
+    private static final String SESSION_KEY_BATCH_DATE_FROM = "v2_batchDateFrom";
+    private static final String SESSION_KEY_BATCH_DATE_TO   = "v2_batchDateTo";
+    private static final String SESSION_KEY_BATCH_STATUS    = "v2_batchFilter";
+    private static final String SESSION_KEY_BATCH_SEARCH    = "v2_batchSearch";
+    private static final String SESSION_KEY_ACTIVE_VIEW     = "v2_activeView";
+    private static final String SESSION_KEY_ACTIVE_BATCH_ID = "v2_activeBatchId";
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -218,192 +205,194 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
     public void doAfterCompose(Component comp) throws Exception {
         super.doAfterCompose(comp);
 
-        // ── Wire popup children manually ──────────────────────────────────────
-        popupTitle     = (Label) chequeDetailPopup.getFellow("popupTitle");
-        popupTypeBadge = (Div)   chequeDetailPopup.getFellow("popupTypeBadge");
+        // Wire popup children manually via getFellow()
+        lblPopupChequeTitle    = (Label) chequeDetailPopup.getFellow("lblPopupChequeTitle");
+        divPopupChequeTypeBadge = (Div)  chequeDetailPopup.getFellow("divPopupChequeTypeBadge");
 
-        btnFlipImage          = (Button) chequeDetailPopup.getFellow("btnFlipImage");
-        imgPanelFront         = (Div)    chequeDetailPopup.getFellow("imgPanelFront");
-        imgPanelBack          = (Div)    chequeDetailPopup.getFellow("imgPanelBack");
-        frontChequeImage      = (Image)  chequeDetailPopup.getFellow("frontChequeImage");
-        rearChequeImage       = (Image)  chequeDetailPopup.getFellow("rearChequeImage");
-        frontImagePlaceholder = (Div)    chequeDetailPopup.getFellow("frontImagePlaceholder");
-        rearImagePlaceholder  = (Div)    chequeDetailPopup.getFellow("rearImagePlaceholder");
+        btnFlipChequeImage       = (Button) chequeDetailPopup.getFellow("btnFlipChequeImage");
+        imgPanelFront            = (Div)    chequeDetailPopup.getFellow("imgPanelFront");
+        imgPanelBack             = (Div)    chequeDetailPopup.getFellow("imgPanelBack");
+        imgChequeFront           = (Image)  chequeDetailPopup.getFellow("imgChequeFront");
+        imgChequeRear            = (Image)  chequeDetailPopup.getFellow("imgChequeRear");
+        divFrontImagePlaceholder = (Div)    chequeDetailPopup.getFellow("divFrontImagePlaceholder");
+        divRearImagePlaceholder  = (Div)    chequeDetailPopup.getFellow("divRearImagePlaceholder");
 
-        fChequeNo   = (Label) chequeDetailPopup.getFellow("fChequeNo");
-        fCityCode   = (Label) chequeDetailPopup.getFellow("fCityCode");
-        fBankCode   = (Label) chequeDetailPopup.getFellow("fBankCode");
-        fBranchCode = (Label) chequeDetailPopup.getFellow("fBranchCode");
-        fTxCode     = (Label) chequeDetailPopup.getFellow("fTxCode");
+        lblChequeNumber     = (Label) chequeDetailPopup.getFellow("lblChequeNumber");
+        lblCityCode         = (Label) chequeDetailPopup.getFellow("lblCityCode");
+        lblBankCode         = (Label) chequeDetailPopup.getFellow("lblBankCode");
+        lblBranchCode       = (Label) chequeDetailPopup.getFellow("lblBranchCode");
+        lblTransactionCode  = (Label) chequeDetailPopup.getFellow("lblTransactionCode");
 
-        fPayeeName   = (Label) chequeDetailPopup.getFellow("fPayeeName");
-        fAmount      = (Label) chequeDetailPopup.getFellow("fAmount");
-        fAccountNo   = (Label) chequeDetailPopup.getFellow("fAccountNo");
-        fChequeDate  = (Label) chequeDetailPopup.getFellow("fChequeDate");
-        fAmountWords = (Label) chequeDetailPopup.getFellow("fAmountWords");
+        lblPayeeName    = (Label) chequeDetailPopup.getFellow("lblPayeeName");
+        lblChequeAmount = (Label) chequeDetailPopup.getFellow("lblChequeAmount");
+        lblAccountNumber = (Label) chequeDetailPopup.getFellow("lblAccountNumber");
+        lblChequeDate   = (Label) chequeDetailPopup.getFellow("lblChequeDate");
+        lblAmountInWords = (Label) chequeDetailPopup.getFellow("lblAmountInWords");
 
-        fCbsPayeeName  = (Label) chequeDetailPopup.getFellow("fCbsPayeeName");
-        fCbsAccStatus  = (Label) chequeDetailPopup.getFellow("fCbsAccStatus");
-        fCbsPayeeMatch = (Label) chequeDetailPopup.getFellow("fCbsPayeeMatch");
-        fCbsNewAccount = (Label) chequeDetailPopup.getFellow("fCbsNewAccount");
+        lblCbsPayeeName     = (Label) chequeDetailPopup.getFellow("lblCbsPayeeName");
+        lblCbsAccountStatus = (Label) chequeDetailPopup.getFellow("lblCbsAccountStatus");
+        lblCbsPayeeMatch    = (Label) chequeDetailPopup.getFellow("lblCbsPayeeMatch");
+        lblCbsNewAccount    = (Label) chequeDetailPopup.getFellow("lblCbsNewAccount");
 
-        fVerRemarks   = (Textbox) chequeDetailPopup.getFellow("fVerRemarks");
-        btnAccept     = (Button)  chequeDetailPopup.getFellow("btnAccept");
-        btnReject     = (Button)  chequeDetailPopup.getFellow("btnReject");
+        txtVerificationRemarks = (Textbox) chequeDetailPopup.getFellow("txtVerificationRemarks");
+        btnAcceptCheque        = (Button)  chequeDetailPopup.getFellow("btnAcceptCheque");
+        btnRejectCheque        = (Button)  chequeDetailPopup.getFellow("btnRejectCheque");
 
-        popupCounter = (Label)  chequeDetailPopup.getFellow("popupCounter");
-        btnPopupPrev = (Button) chequeDetailPopup.getFellow("btnPopupPrev");
-        btnPopupNext = (Button) chequeDetailPopup.getFellow("btnPopupNext");
+        lblPopupChequeCounter = (Label)  chequeDetailPopup.getFellow("lblPopupChequeCounter");
+        btnPopupPrev          = (Button) chequeDetailPopup.getFellow("btnPopupPrev");
+        btnPopupNext          = (Button) chequeDetailPopup.getFellow("btnPopupNext");
 
-        // ── Image flip button ─────────────────────────────────────────────────
-        btnFlipImage.addEventListener("onClick", e -> flipImage());
+        // Image flip button listener
+        btnFlipChequeImage.addEventListener("onClick", e -> flipChequeImage());
 
-        // ── Popup navigation ──────────────────────────────────────────────────
+        // Popup close button listener
         Button btnClosePopup = (Button) chequeDetailPopup.getFellow("btnClosePopup");
         btnClosePopup.addEventListener("onClick", e -> {
             chequeDetailPopup.doEmbedded();
             chequeDetailPopup.setVisible(false);
         });
 
-        // FIX: navigate within popupFilteredList, not the full currentBatchCheques
+        // Popup navigation — navigate within popupFilteredChequeList
         btnPopupPrev.addEventListener("onClick", e -> {
-            if (popupIndex > 0) renderPopup(--popupIndex);
+            if (popupCurrentIndex > 0) renderPopup(--popupCurrentIndex);
         });
         btnPopupNext.addEventListener("onClick", e -> {
-            List<ChequeModel> list = activePopupList();
-            if (list != null && popupIndex < list.size() - 1)
-                renderPopup(++popupIndex);
+            List<ChequeModel> list = getActivePopupList();
+            if (list != null && popupCurrentIndex < list.size() - 1)
+                renderPopup(++popupCurrentIndex);
         });
 
-        btnAccept.addEventListener("onClick", e -> onAcceptClick());
-        btnReject.addEventListener("onClick", e -> onRejectClick());
+        btnAcceptCheque.addEventListener("onClick", e -> onAcceptChequeClick());
+        btnRejectCheque.addEventListener("onClick", e -> onRejectChequeClick());
 
         chequeDetailPopup.setVisible(false);
 
-        // ── CHEQUE CHIP TOGGLE LISTENERS ─────────────────────────────────────
-        //   Each chip is an independent on/off toggle.
-        //   Second click on an active chip turns it OFF.
-        //   Nothing active in a group = show all of that dimension.
-        //   Type group chips AND with Status group chips.
-        //   Within each group, active chips are OR'd together.
-
-        btnFilterHv.addEventListener("onClick", e -> {
-            hvActive = !hvActive;
-            chequePage = 1;
-            refreshChequeListChips();
-            updateChequeFilterStyles();
+        // Cheque chip toggle listeners — each chip is an independent on/off toggle
+        chipFilterHighValue.addEventListener("onClick", e -> {
+            highValueActive = !highValueActive;
+            chequeCurrentPage = 1;
+            refreshChequeFilterChips();
+            updateChequeChipStyles();
             buildFilteredPagedChequeRows();
         });
 
-        btnFilterRef.addEventListener("onClick", e -> {
-            rfActive = !rfActive;
-            chequePage = 1;
-            refreshChequeListChips();
-            updateChequeFilterStyles();
+        chipFilterReferred.addEventListener("onClick", e -> {
+            referredActive = !referredActive;
+            chequeCurrentPage = 1;
+            refreshChequeFilterChips();
+            updateChequeChipStyles();
             buildFilteredPagedChequeRows();
         });
 
-        hvPendingChip.addEventListener("onClick", e -> {
+        chipStatusPending.addEventListener("onClick", e -> {
             pendingActive = !pendingActive;
-            chequePage = 1;
-            updateChequeFilterStyles();
+            chequeCurrentPage = 1;
+            updateChequeChipStyles();
             buildFilteredPagedChequeRows();
         });
 
-        hvPassedChip.addEventListener("onClick", e -> {
+        chipStatusPassed.addEventListener("onClick", e -> {
             passedActive = !passedActive;
-            chequePage = 1;
-            updateChequeFilterStyles();
+            chequeCurrentPage = 1;
+            updateChequeChipStyles();
             buildFilteredPagedChequeRows();
         });
 
-        hvRejectedChip.addEventListener("onClick", e -> {
+        chipStatusRejected.addEventListener("onClick", e -> {
             rejectedActive = !rejectedActive;
-            chequePage = 1;
-            updateChequeFilterStyles();
+            chequeCurrentPage = 1;
+            updateChequeChipStyles();
             buildFilteredPagedChequeRows();
         });
 
-        // ── CHEQUE SEARCH + DATE LISTENERS ───────────────────────────────────
-
-        chequeSearchBox.addEventListener("onChange", e -> {
-            chequeSearchText = chequeSearchBox.getValue();
-            chequePage = 1;
+        // Cheque search listener
+        txtChequeSearch.addEventListener("onChange", e -> {
+            chequeSearchKeyword = txtChequeSearch.getValue();
+            chequeCurrentPage = 1;
             buildFilteredPagedChequeRows();
         });
 
-        chequeDateFromBox.addEventListener("onChange", e -> {
-            java.util.Date d = chequeDateFromBox.getValue();
-            chequeDateFrom = (d == null) ? null
-                    : d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        // Cheque date from listener
+        dteChequeDateFrom.addEventListener("onChange", e -> {
+            java.util.Date selectedDate = dteChequeDateFrom.getValue();
+            chequeFilterDateFrom = (selectedDate == null) ? null
+                    : selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
-            // If From now lands after the current To, pull To forward to match
-            if (chequeDateFrom != null && chequeDateTo != null && chequeDateFrom.isAfter(chequeDateTo)) {
-                chequeDateTo = chequeDateFrom;
-                chequeDateToBox.setValue(toUtilDate(chequeDateTo));
+            if (chequeFilterDateFrom != null && chequeFilterDateTo != null
+                    && chequeFilterDateFrom.isAfter(chequeFilterDateTo)) {
+                chequeFilterDateTo = chequeFilterDateFrom;
+                dteChequeDateTo.setValue(toUtilDate(chequeFilterDateTo));
             }
-            updateDateConstraints(chequeDateFromBox, chequeDateToBox, chequeDateFrom, chequeDateTo);
+            updateDateRangeConstraints(dteChequeDateFrom, dteChequeDateTo,
+                    chequeFilterDateFrom, chequeFilterDateTo);
 
-            chequePage = 1;
-            refreshChequeListChips();
-            updateChequeFilterStyles();
+            chequeCurrentPage = 1;
+            refreshChequeFilterChips();
+            updateChequeChipStyles();
             buildFilteredPagedChequeRows();
         });
 
-        chequeDateToBox.addEventListener("onChange", e -> {
-            java.util.Date d = chequeDateToBox.getValue();
-            chequeDateTo = (d == null) ? null
-                    : d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        // Cheque date to listener
+        dteChequeDateTo.addEventListener("onChange", e -> {
+            java.util.Date selectedDate = dteChequeDateTo.getValue();
+            chequeFilterDateTo = (selectedDate == null) ? null
+                    : selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
-            // If To now lands before the current From, pull From back to match
-            if (chequeDateFrom != null && chequeDateTo != null && chequeDateTo.isBefore(chequeDateFrom)) {
-                chequeDateFrom = chequeDateTo;
-                chequeDateFromBox.setValue(toUtilDate(chequeDateFrom));
+            if (chequeFilterDateFrom != null && chequeFilterDateTo != null
+                    && chequeFilterDateTo.isBefore(chequeFilterDateFrom)) {
+                chequeFilterDateFrom = chequeFilterDateTo;
+                dteChequeDateFrom.setValue(toUtilDate(chequeFilterDateFrom));
             }
-            updateDateConstraints(chequeDateFromBox, chequeDateToBox, chequeDateFrom, chequeDateTo);
+            updateDateRangeConstraints(dteChequeDateFrom, dteChequeDateTo,
+                    chequeFilterDateFrom, chequeFilterDateTo);
 
-            chequePage = 1;
-            refreshChequeListChips();
-            updateChequeFilterStyles();
+            chequeCurrentPage = 1;
+            refreshChequeFilterChips();
+            updateChequeChipStyles();
             buildFilteredPagedChequeRows();
         });
 
+        // Clear cheque filters
         btnClearChequeFilters.addEventListener("onClick", e -> {
-            // Reset all cheque filters
-            hvActive = false; rfActive = false;
-            pendingActive = false; passedActive = false; rejectedActive = false;
-            chequeSearchText = "";
-            chequeDateFrom = null;
-            chequeDateTo   = null;
-            chequePage = 1;
+            highValueActive  = false;
+            referredActive   = false;
+            pendingActive    = false;
+            passedActive     = false;
+            rejectedActive   = false;
+            chequeSearchKeyword  = "";
+            chequeFilterDateFrom = null;
+            chequeFilterDateTo   = null;
+            chequeCurrentPage    = 1;
 
-            // Drop stale constraints before clearing the values
-            chequeDateFromBox.setConstraint((String) null);
-            chequeDateToBox.setConstraint((String) null);
+            dteChequeDateFrom.setConstraint((String) null);
+            dteChequeDateTo.setConstraint((String) null);
 
-            chequeSearchBox.setValue("");
-            chequeDateFromBox.setValue(null);
-            chequeDateToBox.setValue(null);
+            txtChequeSearch.setValue("");
+            dteChequeDateFrom.setValue(null);
+            dteChequeDateTo.setValue(null);
 
-            refreshChequeListChips();
-            updateChequeFilterStyles();
+            refreshChequeFilterChips();
+            updateChequeChipStyles();
             buildFilteredPagedChequeRows();
         });
 
-        // ── Restore session state ─────────────────────────────────────────────
-        org.zkoss.zk.ui.Session s = Sessions.getCurrent();
-        String savedView    = (String) s.getAttribute(SK_VIEW);
-        String savedBatchId = (String) s.getAttribute(SK_BATCH_ID);
+        // Restore session state on page load
+        org.zkoss.zk.ui.Session session = Sessions.getCurrent();
+        String savedView    = (String) session.getAttribute(SESSION_KEY_ACTIVE_VIEW);
+        String savedBatchId = (String) session.getAttribute(SESSION_KEY_ACTIVE_BATCH_ID);
 
         if ("CHEQUE_LIST".equals(savedView) && savedBatchId != null) {
             loadHighValueBatches();
-            BatchModel target = null;
-            if (allHvBatches != null) {
-                for (BatchModel b : allHvBatches) {
-                    if (savedBatchId.equals(b.getBatchId())) { target = b; break; }
+            BatchModel targetBatch = null;
+            if (allHighValueBatches != null) {
+                for (BatchModel batch : allHighValueBatches) {
+                    if (savedBatchId.equals(batch.getBatchId())) {
+                        targetBatch = batch;
+                        break;
+                    }
                 }
             }
-            if (target != null) loadChequeList(target);
+            if (targetBatch != null) loadChequeList(targetBatch);
         } else {
             loadHighValueBatches();
         }
@@ -413,79 +402,79 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
     //  SCREEN 1 — BATCH LIST
     // ════════════════════════════════════════════════════════════════════
 
-    private void saveFilterState() {
-        org.zkoss.zk.ui.Session s = Sessions.getCurrent();
-        s.setAttribute(SK_DATE_FROM, batchDateFrom);
-        s.setAttribute(SK_DATE_TO,   batchDateTo);
-        s.setAttribute(SK_STATUS,    batchFilter);
-        s.setAttribute(SK_SEARCH,    batchSearchText);
+    private void saveBatchFilterState() {
+        org.zkoss.zk.ui.Session session = Sessions.getCurrent();
+        session.setAttribute(SESSION_KEY_BATCH_DATE_FROM, batchFilterDateFrom);
+        session.setAttribute(SESSION_KEY_BATCH_DATE_TO,   batchFilterDateTo);
+        session.setAttribute(SESSION_KEY_BATCH_STATUS,    batchStatusFilter);
+        session.setAttribute(SESSION_KEY_BATCH_SEARCH,    batchSearchKeyword);
     }
 
-    private void saveViewState(String batchId) {
-        org.zkoss.zk.ui.Session s = Sessions.getCurrent();
-        s.setAttribute(SK_VIEW,     "CHEQUE_LIST");
-        s.setAttribute(SK_BATCH_ID, batchId);
+    private void saveBatchViewState(String batchId) {
+        org.zkoss.zk.ui.Session session = Sessions.getCurrent();
+        session.setAttribute(SESSION_KEY_ACTIVE_VIEW,     "CHEQUE_LIST");
+        session.setAttribute(SESSION_KEY_ACTIVE_BATCH_ID, batchId);
     }
 
-    private void clearViewState() {
-        org.zkoss.zk.ui.Session s = Sessions.getCurrent();
-        s.setAttribute(SK_VIEW,     "BATCH_LIST");
-        s.setAttribute(SK_BATCH_ID, null);
+    private void clearBatchViewState() {
+        org.zkoss.zk.ui.Session session = Sessions.getCurrent();
+        session.setAttribute(SESSION_KEY_ACTIVE_VIEW,     "BATCH_LIST");
+        session.setAttribute(SESSION_KEY_ACTIVE_BATCH_ID, null);
     }
 
-    private boolean restoreFilterState() {
-        org.zkoss.zk.ui.Session s = Sessions.getCurrent();
-        if (s.getAttribute(SK_DATE_FROM) == null) return false;
+    private boolean restoreBatchFilterState() {
+        org.zkoss.zk.ui.Session session = Sessions.getCurrent();
+        if (session.getAttribute(SESSION_KEY_BATCH_DATE_FROM) == null) return false;
 
-        batchDateFrom   = (LocalDate) s.getAttribute(SK_DATE_FROM);
-        batchDateTo     = (LocalDate) s.getAttribute(SK_DATE_TO);
-        batchFilter     = (String)    s.getAttribute(SK_STATUS);
-        batchSearchText = (String)    s.getAttribute(SK_SEARCH);
+        batchFilterDateFrom = (LocalDate) session.getAttribute(SESSION_KEY_BATCH_DATE_FROM);
+        batchFilterDateTo   = (LocalDate) session.getAttribute(SESSION_KEY_BATCH_DATE_TO);
+        batchStatusFilter   = (String)    session.getAttribute(SESSION_KEY_BATCH_STATUS);
+        batchSearchKeyword  = (String)    session.getAttribute(SESSION_KEY_BATCH_SEARCH);
         return true;
     }
 
     private void loadHighValueBatches() {
-        allHvBatches = service.getHighValueBatches();
+        allHighValueBatches = verificationService.fetchHighValueBatches();
 
-        int totalHv  = 0;
-        int totalRef = 0;
-        for (BatchModel b : allHvBatches) {
-            totalHv  += parseHvCount(b);
-            totalRef += parseRefCount(b);
+        int totalHighValue = 0;
+        int totalReferred  = 0;
+        for (BatchModel batch : allHighValueBatches) {
+            totalHighValue += parseHighValueCount(batch);
+            totalReferred  += parseReferredCount(batch);
         }
 
-        totalBatchesChip.setValue(allHvBatches.size() + " Batches");
-        totalHvChip.setValue(totalHv + " HV Cheques");
-        totalRefChip.setValue(totalRef + " Referred");
+        lblTotalBatchCount.setValue(allHighValueBatches.size() + " Batches");
+        lblTotalHighValueCount.setValue(totalHighValue + " HV Cheques");
+        lblTotalReferredCount.setValue(totalReferred + " Referred");
 
-        batchPage = 1;
+        batchCurrentPage = 1;
 
-        boolean restored = restoreFilterState();
+        boolean restored = restoreBatchFilterState();
         if (!restored) {
             LocalDate today = LocalDate.now();
-            batchDateFrom   = today;
-            batchDateTo     = today;
-            batchFilter     = "ALL";
-            batchSearchText = "";
-            saveFilterState();
+            batchFilterDateFrom = today;
+            batchFilterDateTo   = today;
+            batchStatusFilter   = "ALL";
+            batchSearchKeyword  = "";
+            saveBatchFilterState();
         }
 
-        batchSearchBox.setValue(batchSearchText);
-        batchStatusCombo.setSelectedIndex(statusIndexFor(batchFilter));
+        txtBatchSearch.setValue(batchSearchKeyword);
+        cmbBatchStatus.setSelectedIndex(getBatchStatusComboIndex(batchStatusFilter));
 
-        java.util.Date fromDate = (batchDateFrom == null) ? null :
-                java.util.Date.from(batchDateFrom.atStartOfDay(ZoneId.systemDefault()).toInstant());
-        java.util.Date toDate = (batchDateTo == null) ? null :
-                java.util.Date.from(batchDateTo.atStartOfDay(ZoneId.systemDefault()).toInstant());
-        batchDateFromBox.setValue(fromDate);
-        batchDateToBox.setValue(toDate);
-        updateDateConstraints(batchDateFromBox, batchDateToBox, batchDateFrom, batchDateTo);
+        java.util.Date fromDate = (batchFilterDateFrom == null) ? null :
+                java.util.Date.from(batchFilterDateFrom.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        java.util.Date toDate = (batchFilterDateTo == null) ? null :
+                java.util.Date.from(batchFilterDateTo.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        dteBatchDateFrom.setValue(fromDate);
+        dteBatchDateTo.setValue(toDate);
+        updateDateRangeConstraints(dteBatchDateFrom, dteBatchDateTo, batchFilterDateFrom, batchFilterDateTo);
 
         buildFilteredPagedBatchRows();
     }
 
-    private int statusIndexFor(String filter) {
-        switch (filter == null ? "ALL" : filter) {
+    private int getBatchStatusComboIndex(String statusFilter) {
+        switch (statusFilter == null ? "ALL" : statusFilter) {
             case "PENDING":    return 1;
             case "VERIFIED":   return 2;
             case "INPROGRESS": return 3;
@@ -493,58 +482,58 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
         }
     }
 
-    @Listen("onChange = #batchSearchBox")
+    @Listen("onChange = #txtBatchSearch")
     public void onBatchSearchChange() {
-        batchSearchText = batchSearchBox.getValue();
-        batchPage = 1;
-        saveFilterState();
+        batchSearchKeyword = txtBatchSearch.getValue();
+        batchCurrentPage = 1;
+        saveBatchFilterState();
         buildFilteredPagedBatchRows();
     }
 
-    @Listen("onChange = #batchDateFromBox")
+    @Listen("onChange = #dteBatchDateFrom")
     public void onBatchDateFromChange() {
-        Date d = batchDateFromBox.getValue();
-        batchDateFrom = (d == null)
+        Date selectedDate = dteBatchDateFrom.getValue();
+        batchFilterDateFrom = (selectedDate == null)
                 ? null
-                : d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                : selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
-        // If From now lands after the current To, pull To forward to match
-        if (batchDateFrom != null && batchDateTo != null && batchDateFrom.isAfter(batchDateTo)) {
-            batchDateTo = batchDateFrom;
-            batchDateToBox.setValue(toUtilDate(batchDateTo));
+        if (batchFilterDateFrom != null && batchFilterDateTo != null
+                && batchFilterDateFrom.isAfter(batchFilterDateTo)) {
+            batchFilterDateTo = batchFilterDateFrom;
+            dteBatchDateTo.setValue(toUtilDate(batchFilterDateTo));
         }
-        updateDateConstraints(batchDateFromBox, batchDateToBox, batchDateFrom, batchDateTo);
+        updateDateRangeConstraints(dteBatchDateFrom, dteBatchDateTo, batchFilterDateFrom, batchFilterDateTo);
 
-        batchPage = 1;
-        saveFilterState();
+        batchCurrentPage = 1;
+        saveBatchFilterState();
         buildFilteredPagedBatchRows();
     }
 
-    @Listen("onChange = #batchDateToBox")
+    @Listen("onChange = #dteBatchDateTo")
     public void onBatchDateToChange() {
-        Date d = batchDateToBox.getValue();
-        batchDateTo = (d == null)
+        Date selectedDate = dteBatchDateTo.getValue();
+        batchFilterDateTo = (selectedDate == null)
                 ? null
-                : d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                : selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
-        // If To now lands before the current From, pull From back to match
-        if (batchDateFrom != null && batchDateTo != null && batchDateTo.isBefore(batchDateFrom)) {
-            batchDateFrom = batchDateTo;
-            batchDateFromBox.setValue(toUtilDate(batchDateFrom));
+        if (batchFilterDateFrom != null && batchFilterDateTo != null
+                && batchFilterDateTo.isBefore(batchFilterDateFrom)) {
+            batchFilterDateFrom = batchFilterDateTo;
+            dteBatchDateFrom.setValue(toUtilDate(batchFilterDateFrom));
         }
-        updateDateConstraints(batchDateFromBox, batchDateToBox, batchDateFrom, batchDateTo);
+        updateDateRangeConstraints(dteBatchDateFrom, dteBatchDateTo, batchFilterDateFrom, batchFilterDateTo);
 
-        batchPage = 1;
-        saveFilterState();
+        batchCurrentPage = 1;
+        saveBatchFilterState();
         buildFilteredPagedBatchRows();
     }
 
-    @Listen("onSelect = #batchStatusCombo")
+    @Listen("onSelect = #cmbBatchStatus")
     public void onBatchStatusChange() {
-        Comboitem sel = batchStatusCombo.getSelectedItem();
-        batchFilter = (sel != null) ? sel.getValue() : "ALL";
-        batchPage = 1;
-        saveFilterState();
+        Comboitem selectedItem = cmbBatchStatus.getSelectedItem();
+        batchStatusFilter = (selectedItem != null) ? selectedItem.getValue() : "ALL";
+        batchCurrentPage = 1;
+        saveBatchFilterState();
         buildFilteredPagedBatchRows();
     }
 
@@ -552,128 +541,136 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
     public void onClearBatchFilters() {
         LocalDate today = LocalDate.now();
 
-        // Drop any constraint left over from the previous range *before*
-        // resetting the values — otherwise resetting to "today" can itself
-        // get rejected by a stale "before <old To>" / "after <old From>" bound.
-        batchDateFromBox.setConstraint((String) null);
-        batchDateToBox.setConstraint((String) null);
+        dteBatchDateFrom.setConstraint((String) null);
+        dteBatchDateTo.setConstraint((String) null);
 
-        batchDateFrom = today;
-        batchDateTo   = today;
+        batchFilterDateFrom = today;
+        batchFilterDateTo   = today;
 
         java.util.Date todayDate = java.util.Date.from(
                 today.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant());
 
-        batchSearchBox.setValue("");
-        batchDateFromBox.setValue(todayDate);
-        batchDateToBox.setValue(todayDate);
-        batchStatusCombo.setSelectedIndex(0);
-        updateDateConstraints(batchDateFromBox, batchDateToBox, batchDateFrom, batchDateTo);
+        txtBatchSearch.setValue("");
+        dteBatchDateFrom.setValue(todayDate);
+        dteBatchDateTo.setValue(todayDate);
+        cmbBatchStatus.setSelectedIndex(0);
+        updateDateRangeConstraints(dteBatchDateFrom, dteBatchDateTo, batchFilterDateFrom, batchFilterDateTo);
 
-        batchSearchText = "";
-        batchFilter     = "ALL";
-        batchPage       = 1;
+        batchSearchKeyword  = "";
+        batchStatusFilter   = "ALL";
+        batchCurrentPage    = 1;
 
-        saveFilterState();
+        saveBatchFilterState();
         buildFilteredPagedBatchRows();
     }
 
     @Listen("onClick = #btnBatchPagePrev")
     public void onBatchPagePrev() {
-        if (batchPage > 1) { batchPage--; buildFilteredPagedBatchRows(); }
+        if (batchCurrentPage > 1) {
+            batchCurrentPage--;
+            buildFilteredPagedBatchRows();
+        }
     }
 
     @Listen("onClick = #btnBatchPageNext")
     public void onBatchPageNext() {
-        List<BatchModel> filtered = getFilteredBatches();
-        int total = getTotalPages(filtered.size(), BATCH_PAGE_SIZE);
-        if (batchPage < total) { batchPage++; buildFilteredPagedBatchRows(); }
+        List<BatchModel> filteredBatches = getFilteredBatches();
+        int totalPages = getTotalPageCount(filteredBatches.size(), BATCH_PAGE_SIZE);
+        if (batchCurrentPage < totalPages) {
+            batchCurrentPage++;
+            buildFilteredPagedBatchRows();
+        }
     }
 
     private List<BatchModel> getFilteredBatches() {
-        List<BatchModel> out = new ArrayList<>();
-        for (BatchModel b : allHvBatches) {
-            if (!matchesStatusFilter(b)) continue;
-            if (!matchesSearchFilter(b)) continue;
-            if (!matchesDateFilter(b))   continue;
-            out.add(b);
+        List<BatchModel> result = new ArrayList<>();
+        for (BatchModel batch : allHighValueBatches) {
+            if (!matchesBatchStatusFilter(batch))    continue;
+            if (!matchesBatchSearchFilter(batch))    continue;
+            if (!matchesBatchDateFilter(batch))      continue;
+            result.add(batch);
         }
-        return out;
+        return result;
     }
 
-    private boolean matchesStatusFilter(BatchModel b) {
-        if ("ALL".equals(batchFilter)) return true;
-        return batchFilter.equals(getV2Status(b));
+    private boolean matchesBatchStatusFilter(BatchModel batch) {
+        if ("ALL".equals(batchStatusFilter)) return true;
+        return batchStatusFilter.equals(getBatchDisplayStatus(batch));
     }
 
-    private boolean matchesSearchFilter(BatchModel b) {
-        if (batchSearchText == null || batchSearchText.isBlank()) return true;
-        String id = b.getBatchId();
-        if (id == null) return false;
-        return id.toLowerCase().contains(batchSearchText.trim().toLowerCase());
+    private boolean matchesBatchSearchFilter(BatchModel batch) {
+        if (batchSearchKeyword == null || batchSearchKeyword.isBlank()) return true;
+        String batchId = batch.getBatchId();
+        if (batchId == null) return false;
+        return batchId.toLowerCase().contains(batchSearchKeyword.trim().toLowerCase());
     }
 
-    private boolean matchesDateFilter(BatchModel b) {
-        if (batchDateFrom == null && batchDateTo == null) return true;
-        if (b.getCreatedAt() == null) return false;
-        LocalDate created = b.getCreatedAt().toLocalDate();
-        if (batchDateFrom != null && created.isBefore(batchDateFrom)) return false;
-        if (batchDateTo   != null && created.isAfter(batchDateTo))   return false;
+    private boolean matchesBatchDateFilter(BatchModel batch) {
+        if (batchFilterDateFrom == null && batchFilterDateTo == null) return true;
+        if (batch.getCreatedAt() == null) return false;
+        LocalDate createdDate = batch.getCreatedAt().toLocalDate();
+        if (batchFilterDateFrom != null && createdDate.isBefore(batchFilterDateFrom)) return false;
+        if (batchFilterDateTo   != null && createdDate.isAfter(batchFilterDateTo))    return false;
         return true;
     }
 
     private void buildFilteredPagedBatchRows() {
-        List<BatchModel> filtered = getFilteredBatches();
-        int totalPages = getTotalPages(filtered.size(), BATCH_PAGE_SIZE);
-        if (batchPage > totalPages) batchPage = totalPages;
+        List<BatchModel> filteredBatches = getFilteredBatches();
+        int totalPages = getTotalPageCount(filteredBatches.size(), BATCH_PAGE_SIZE);
+        if (batchCurrentPage > totalPages) batchCurrentPage = totalPages;
 
-        batchPageInfoLabel.setValue("Page " + batchPage + " of " + totalPages);
-        btnBatchPagePrev.setDisabled(batchPage <= 1);
-        btnBatchPageNext.setDisabled(batchPage >= totalPages);
+        lblBatchPageInfo.setValue("Page " + batchCurrentPage + " of " + totalPages);
+        btnBatchPagePrev.setDisabled(batchCurrentPage <= 1);
+        btnBatchPageNext.setDisabled(batchCurrentPage >= totalPages);
 
-        int from = (batchPage - 1) * BATCH_PAGE_SIZE;
-        int to   = Math.min(from + BATCH_PAGE_SIZE, filtered.size());
-        List<BatchModel> page = filtered.subList(from, to);
+        int fromIndex = (batchCurrentPage - 1) * BATCH_PAGE_SIZE;
+        int toIndex   = Math.min(fromIndex + BATCH_PAGE_SIZE, filteredBatches.size());
+        List<BatchModel> currentPageBatches = filteredBatches.subList(fromIndex, toIndex);
 
-        batchRows.getChildren().clear();
-        batchEmptyState.setVisible(page.isEmpty());
+        batchGridRows.getChildren().clear();
+        batchEmptyState.setVisible(currentPageBatches.isEmpty());
 
-        for (BatchModel b : page) batchRows.appendChild(buildBatchRow(b));
+        for (BatchModel batch : currentPageBatches) {
+            batchGridRows.appendChild(buildBatchRow(batch));
+        }
 
-        int totalFiltered = filtered.size();
+        int totalFiltered = filteredBatches.size();
         if (totalFiltered == 0) {
-            batchCountLabel.setValue("Showing 0 batches");
+            lblBatchRecordCount.setValue("Showing 0 batches");
         } else {
-            batchCountLabel.setValue(
-                "Showing " + (from + 1) + "–" + to
+            lblBatchRecordCount.setValue(
+                "Showing " + (fromIndex + 1) + "–" + toIndex
                 + " of " + totalFiltered + " batches");
         }
     }
 
-    private Row buildBatchRow(BatchModel b) {
-        int hv        = parseHvCount(b);
-        int pending   = parsePendingCount(b);
-        int processed = parseProcessedCount(b);
+    private Row buildBatchRow(BatchModel batch) {
+        int highValueCount  = parseHighValueCount(batch);
+        int pendingCount    = parsePendingCount(batch);
+        int processedCount  = parseProcessedCount(batch);
 
         Row row = new Row();
-        Label batchIdLbl = new Label(safe(b.getBatchId()));
-        batchIdLbl.setSclass("v2-batch-no-cell");
-        row.appendChild(cell(batchIdLbl, ""));
 
-        Label dateLbl = new Label(formatBatchDate(b.getCreatedAt()));
-        dateLbl.setSclass("v2-date-cell");
-        row.appendChild(cell(dateLbl, "v2-center"));
+        Label batchIdLabel = new Label(safeValue(batch.getBatchId()));
+        batchIdLabel.setSclass("v2-batch-no-cell");
+        row.appendChild(cell(batchIdLabel, ""));
 
-        row.appendChild(cell(new Label(String.valueOf(b.getTotalCheques())), "v2-center"));
-        Label hvLbl = new Label(String.valueOf(hv));
-        hvLbl.setSclass("v2-hv-count");
-        row.appendChild(cell(hvLbl, "v2-center"));
-        row.appendChild(cell(new Label(String.valueOf(pending)),   "v2-center"));
-        row.appendChild(cell(new Label(String.valueOf(processed)), "v2-center"));
+        Label dateLabel = new Label(formatBatchDate(batch.getCreatedAt()));
+        dateLabel.setSclass("v2-date-cell");
+        row.appendChild(cell(dateLabel, "v2-center"));
 
-        String v2Status = getV2Status(b);
+        row.appendChild(cell(new Label(String.valueOf(batch.getTotalCheques())), "v2-center"));
+
+        Label hvCountLabel = new Label(String.valueOf(highValueCount));
+        hvCountLabel.setSclass("v2-hv-count");
+        row.appendChild(cell(hvCountLabel, "v2-center"));
+
+        row.appendChild(cell(new Label(String.valueOf(pendingCount)),   "v2-center"));
+        row.appendChild(cell(new Label(String.valueOf(processedCount)), "v2-center"));
+
+        String displayStatus = getBatchDisplayStatus(batch);
         String statusText, statusCss;
-        switch (v2Status) {
+        switch (displayStatus) {
             case "VERIFIED":
                 statusText = "VERIFIED";
                 statusCss  = "v2-status-badge v2-status-complete";
@@ -687,14 +684,14 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
                 statusCss  = "v2-status-badge v2-status-notstarted";
                 break;
         }
-        Label statusLbl = new Label(statusText);
-        statusLbl.setSclass(statusCss);
-        row.appendChild(cell(statusLbl, "v2-center"));
+        Label statusLabel = new Label(statusText);
+        statusLabel.setSclass(statusCss);
+        row.appendChild(cell(statusLabel, "v2-center"));
 
-        Button processBtn = new Button("Process");
-        processBtn.setSclass("v2-process-btn");
-        processBtn.addEventListener("onClick", e -> loadChequeList(b));
-        row.appendChild(cell(processBtn, "v2-center"));
+        Button processButton = new Button("Process");
+        processButton.setSclass("v2-process-btn");
+        processButton.addEventListener("onClick", e -> loadChequeList(batch));
+        row.appendChild(cell(processButton, "v2-center"));
 
         return row;
     }
@@ -703,44 +700,52 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
     //  SCREEN 2 — CHEQUE LIST
     // ════════════════════════════════════════════════════════════════════
 
-    private void loadChequeList(BatchModel b) {
-        currentBatchCheques = service.getHighValueChequesForBatch(b.getBatchId());
-        activeBatchLabel.setValue(b.getBatchId());
+    private void loadChequeList(BatchModel batch) {
+        currentBatchChequeList = verificationService.fetchHighValueChequesForBatch(batch.getBatchId());
+        lblActiveBatchId.setValue(batch.getBatchId());
 
-        // Reset all cheque filter toggles + search/date when entering a batch
-        hvActive = false; rfActive = false;
-        pendingActive = false; passedActive = false; rejectedActive = false;
-        chequeSearchText = "";
-        chequeDateFrom   = null;
-        chequeDateTo     = null;
-        chequePage       = 1;
+        // Reset all filter toggles and search/date when entering a new batch
+        highValueActive  = false;
+        referredActive   = false;
+        pendingActive    = false;
+        passedActive     = false;
+        rejectedActive   = false;
+        chequeSearchKeyword  = "";
+        chequeFilterDateFrom = null;
+        chequeFilterDateTo   = null;
+        chequeCurrentPage    = 1;
 
-        // Reset popup filtered list
-        popupFilteredList = null;
+        popupFilteredChequeList = null;
 
-        chequeSearchBox.setValue("");
-        chequeDateFromBox.setValue(null);
-        chequeDateToBox.setValue(null);
+        txtChequeSearch.setValue("");
+        dteChequeDateFrom.setValue(null);
+        dteChequeDateTo.setValue(null);
 
-        refreshChequeListChips();
-        updateChequeFilterStyles();
+        refreshChequeFilterChips();
+        updateChequeChipStyles();
         buildFilteredPagedChequeRows();
 
         batchListView.setVisible(false);
         chequeListView.setVisible(true);
-        saveViewState(b.getBatchId());
+        saveBatchViewState(batch.getBatchId());
     }
 
-    @Listen("onClick = #btnPagePrev")
-    public void onPagePrev() {
-        if (chequePage > 1) { chequePage--; buildFilteredPagedChequeRows(); }
+    @Listen("onClick = #btnChequePagePrev")
+    public void onChequePagePrev() {
+        if (chequeCurrentPage > 1) {
+            chequeCurrentPage--;
+            buildFilteredPagedChequeRows();
+        }
     }
 
-    @Listen("onClick = #btnPageNext")
-    public void onPageNext() {
-        List<ChequeModel> filtered = getFilteredCheques();
-        int total = getTotalPages(filtered.size(), CHEQUE_PAGE_SIZE);
-        if (chequePage < total) { chequePage++; buildFilteredPagedChequeRows(); }
+    @Listen("onClick = #btnChequePageNext")
+    public void onChequePageNext() {
+        List<ChequeModel> filteredCheques = getFilteredCheques();
+        int totalPages = getTotalPageCount(filteredCheques.size(), CHEQUE_PAGE_SIZE);
+        if (chequeCurrentPage < totalPages) {
+            chequeCurrentPage++;
+            buildFilteredPagedChequeRows();
+        }
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -749,71 +754,66 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
     //  Type group   (HV / RF)              : OR within group, AND with status group
     //  Status group (Pending/Passed/Rejected): OR within group
     //  Search       : cheque no. OR payee name substring match
-    //  Date range   : cheque date (dd/MM/yyyy) between chequeDateFrom and chequeDateTo
+    //  Date range   : cheque date (dd/MM/yyyy) between from and to
     //
     //  Nothing active in a group = no filter applied for that dimension
     // ════════════════════════════════════════════════════════════════════
 
     private List<ChequeModel> getFilteredCheques() {
-        if (currentBatchCheques == null) return new ArrayList<>();
+        if (currentBatchChequeList == null) return new ArrayList<>();
 
-        List<ChequeModel> out = new ArrayList<>();
+        List<ChequeModel> result = new ArrayList<>();
 
-        for (ChequeModel c : currentBatchCheques) {
+        for (ChequeModel cheque : currentBatchChequeList) {
 
-            // ── Type group filter (HV / RF) ───────────────────────────────────
-            // If neither is active → show all types
-            // If one or both active → cheque must match at least one active type (OR)
-            boolean anyTypeActive = hvActive || rfActive;
+            // Type group filter (HV / RF)
+            boolean anyTypeActive = highValueActive || referredActive;
             if (anyTypeActive) {
-                boolean referred = c.isReferred();
-                boolean typeMatch = (hvActive && !referred) || (rfActive && referred);
-                if (!typeMatch) continue;
+                boolean isReferred = cheque.isReferred();
+                boolean typeMatches = (highValueActive && !isReferred) || (referredActive && isReferred);
+                if (!typeMatches) continue;
             }
 
-            // ── Status group filter (Pending / Passed / Rejected) ─────────────
-            // If none active → show all statuses
-            // If one or more active → cheque must match at least one active status (OR)
+            // Status group filter (Pending / Passed / Rejected)
             boolean anyStatusActive = pendingActive || passedActive || rejectedActive;
             if (anyStatusActive) {
-                ChequeStatus cs    = ChequeStatus.fromDb(c.getVerStatus());
-                boolean isPassed   = cs == ChequeStatus.VERIFIED;
-                boolean isRejected = cs == ChequeStatus.REJECTED;
+                ChequeStatus chequeStatus = ChequeStatus.fromDb(cheque.getVerStatus());
+                boolean isPassed   = chequeStatus == ChequeStatus.VERIFIED;
+                boolean isRejected = chequeStatus == ChequeStatus.REJECTED;
                 boolean isPending  = !isPassed && !isRejected;
-                boolean statusMatch = (pendingActive  && isPending)
-                                   || (passedActive   && isPassed)
-                                   || (rejectedActive && isRejected);
-                if (!statusMatch) continue;
+                boolean statusMatches = (pendingActive  && isPending)
+                                     || (passedActive   && isPassed)
+                                     || (rejectedActive && isRejected);
+                if (!statusMatches) continue;
             }
 
-            // ── Search filter (cheque no. or payee name) ──────────────────────
-            if (chequeSearchText != null && !chequeSearchText.isBlank()) {
-                String query     = chequeSearchText.trim().toLowerCase();
-                String chequeNo  = (c.getChequeNo()  != null) ? c.getChequeNo().toLowerCase()  : "";
-                String payeeName = (c.getPayeeName() != null) ? c.getPayeeName().toLowerCase() : "";
-                if (!chequeNo.contains(query) && !payeeName.contains(query)) continue;
+            // Search filter (cheque no. or payee name)
+            if (chequeSearchKeyword != null && !chequeSearchKeyword.isBlank()) {
+                String keyword   = chequeSearchKeyword.trim().toLowerCase();
+                String chequeNo  = (cheque.getChequeNo()  != null) ? cheque.getChequeNo().toLowerCase()  : "";
+                String payeeName = (cheque.getPayeeName() != null) ? cheque.getPayeeName().toLowerCase() : "";
+                if (!chequeNo.contains(keyword) && !payeeName.contains(keyword)) continue;
             }
 
-            // ── Cheque date range filter ───────────────────────────────────────
-            // chequeDate is a String in "dd/MM/yyyy" format
-            if (chequeDateFrom != null || chequeDateTo != null) {
-                LocalDate chequeDate = parseChequeDate(c.getChequeDate());
-                if (chequeDate == null) continue; // skip if date unparseable
-                if (chequeDateFrom != null && chequeDate.isBefore(chequeDateFrom)) continue;
-                if (chequeDateTo   != null && chequeDate.isAfter(chequeDateTo))    continue;
+            // Cheque date range filter
+            if (chequeFilterDateFrom != null || chequeFilterDateTo != null) {
+                LocalDate chequeDate = parseChequeDate(cheque.getChequeDate());
+                if (chequeDate == null) continue;
+                if (chequeFilterDateFrom != null && chequeDate.isBefore(chequeFilterDateFrom)) continue;
+                if (chequeFilterDateTo   != null && chequeDate.isAfter(chequeFilterDateTo))    continue;
             }
 
-            out.add(c);
+            result.add(cheque);
         }
 
-        return out;
+        return result;
     }
 
     // Parses chequeDate String "dd/MM/yyyy" → LocalDate; returns null if invalid
-    private LocalDate parseChequeDate(String dateStr) {
-        if (dateStr == null || dateStr.isBlank()) return null;
+    private LocalDate parseChequeDate(String dateString) {
+        if (dateString == null || dateString.isBlank()) return null;
         try {
-            return LocalDate.parse(dateStr.trim(),
+            return LocalDate.parse(dateString.trim(),
                     DateTimeFormatter.ofPattern("dd/MM/yyyy"));
         } catch (Exception e) {
             return null;
@@ -821,389 +821,360 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
     }
 
     private void buildFilteredPagedChequeRows() {
-        List<ChequeModel> filtered = getFilteredCheques();
-        int totalPages = getTotalPages(filtered.size(), CHEQUE_PAGE_SIZE);
-        if (chequePage > totalPages) chequePage = totalPages;
+        List<ChequeModel> filteredCheques = getFilteredCheques();
+        int totalPages = getTotalPageCount(filteredCheques.size(), CHEQUE_PAGE_SIZE);
+        if (chequeCurrentPage > totalPages) chequeCurrentPage = totalPages;
 
-        pageInfoLabel.setValue("Page " + chequePage + " of " + totalPages);
-        btnPagePrev.setDisabled(chequePage <= 1);
-        btnPageNext.setDisabled(chequePage >= totalPages);
+        lblChequePageInfo.setValue("Page " + chequeCurrentPage + " of " + totalPages);
+        btnChequePagePrev.setDisabled(chequeCurrentPage <= 1);
+        btnChequePageNext.setDisabled(chequeCurrentPage >= totalPages);
 
-        int from = (chequePage - 1) * CHEQUE_PAGE_SIZE;
-        int to   = Math.min(from + CHEQUE_PAGE_SIZE, filtered.size());
-        List<ChequeModel> page = filtered.subList(from, to);
+        int fromIndex = (chequeCurrentPage - 1) * CHEQUE_PAGE_SIZE;
+        int toIndex   = Math.min(fromIndex + CHEQUE_PAGE_SIZE, filteredCheques.size());
+        List<ChequeModel> currentPageCheques = filteredCheques.subList(fromIndex, toIndex);
 
-        chequeRows.getChildren().clear();
-        chequeEmptyState.setVisible(page.isEmpty());
+        chequeGridRows.getChildren().clear();
+        chequeEmptyState.setVisible(currentPageCheques.isEmpty());
 
-        int sno = from + 1;
-        for (ChequeModel c : page) chequeRows.appendChild(buildChequeRow(sno++, c));
+        int serialNumber = fromIndex + 1;
+        for (ChequeModel cheque : currentPageCheques) {
+            chequeGridRows.appendChild(buildChequeRow(serialNumber++, cheque));
+        }
 
-        int totalFiltered = filtered.size();
-        if (chequeCountLabel != null) {
+        int totalFiltered = filteredCheques.size();
+        if (lblChequeRecordCount != null) {
             if (totalFiltered == 0) {
-                chequeCountLabel.setValue("Showing 0 cheques");
+                lblChequeRecordCount.setValue("Showing 0 cheques");
             } else {
-                chequeCountLabel.setValue(
-                    "Showing " + (from + 1) + "–" + to
+                lblChequeRecordCount.setValue(
+                    "Showing " + (fromIndex + 1) + "–" + toIndex
                     + " of " + totalFiltered + " cheques");
             }
         }
     }
 
     // ════════════════════════════════════════════════════════════════════
-    //  CHIP COUNTS — refreshChequeListChips()
+    //  CHIP COUNTS — refreshChequeFilterChips()
     //
     //  HV / RF counts   : always full totals, never filtered
     //  Status counts    : scoped to active type toggles
-    //                     (if HV active → pending/passed/rejected count HV only)
     // ════════════════════════════════════════════════════════════════════
 
-    private void refreshChequeListChips() {
-        if (currentBatchCheques == null) return;
+    private void refreshChequeFilterChips() {
+        if (currentBatchChequeList == null) return;
 
         int hvCount = 0, rfCount = 0;
-        int pending = 0, passed = 0, rejected = 0;
+        int pendingCount = 0, passedCount = 0, rejectedCount = 0;
 
-        for (ChequeModel c : currentBatchCheques) {
-            boolean referred = c.isReferred();
+        for (ChequeModel cheque : currentBatchChequeList) {
+            boolean isReferred = cheque.isReferred();
 
             // Apply date filter to chip counts
-            // (search filter does NOT affect counts — only date does)
-            if (chequeDateFrom != null || chequeDateTo != null) {
-                LocalDate chequeDate = parseChequeDate(c.getChequeDate());
+            if (chequeFilterDateFrom != null || chequeFilterDateTo != null) {
+                LocalDate chequeDate = parseChequeDate(cheque.getChequeDate());
                 if (chequeDate == null) continue;
-                if (chequeDateFrom != null && chequeDate.isBefore(chequeDateFrom)) continue;
-                if (chequeDateTo   != null && chequeDate.isAfter(chequeDateTo))    continue;
+                if (chequeFilterDateFrom != null && chequeDate.isBefore(chequeFilterDateFrom)) continue;
+                if (chequeFilterDateTo   != null && chequeDate.isAfter(chequeFilterDateTo))    continue;
             }
 
-            // HV / RF totals — within date range
-            if (referred) rfCount++;
-            else          hvCount++;
+            if (isReferred) rfCount++;
+            else            hvCount++;
 
-            // Status counts — scoped to active type toggles + date range
-            boolean anyTypeActive = hvActive || rfActive;
+            boolean anyTypeActive = highValueActive || referredActive;
             boolean inScope;
             if (!anyTypeActive) {
                 inScope = true;
             } else {
-                inScope = (hvActive && !referred) || (rfActive && referred);
+                inScope = (highValueActive && !isReferred) || (referredActive && isReferred);
             }
 
             if (inScope) {
-                ChequeStatus cs = ChequeStatus.fromDb(c.getVerStatus());
-                if      (cs == ChequeStatus.VERIFIED) passed++;
-                else if (cs == ChequeStatus.REJECTED) rejected++;
-                else                                   pending++;
+                ChequeStatus chequeStatus = ChequeStatus.fromDb(cheque.getVerStatus());
+                if      (chequeStatus == ChequeStatus.VERIFIED) passedCount++;
+                else if (chequeStatus == ChequeStatus.REJECTED) rejectedCount++;
+                else                                             pendingCount++;
             }
         }
 
-        btnFilterHv.setValue(hvCount + " High Value");
-        btnFilterRef.setValue(rfCount + " Referred");
-        hvPendingChip.setValue(pending + " Pending");
-        hvPassedChip.setValue(passed + " Passed");
-        hvRejectedChip.setValue(rejected + " Rejected");
+        chipFilterHighValue.setValue(hvCount + " High Value");
+        chipFilterReferred.setValue(rfCount + " Referred");
+        chipStatusPending.setValue(pendingCount + " Pending");
+        chipStatusPassed.setValue(passedCount + " Passed");
+        chipStatusRejected.setValue(rejectedCount + " Rejected");
     }
 
     // ════════════════════════════════════════════════════════════════════
-    //  CHIP STYLES — updateChequeFilterStyles()
-    //  Adds chip-filter-active when the toggle boolean is true
+    //  CHIP STYLES — updateChequeChipStyles()
+    //  Adds chip-filter-active CSS class when the toggle boolean is true
     // ════════════════════════════════════════════════════════════════════
 
-    private void updateChequeFilterStyles() {
-        // Each chip gets chip-filter-active added when its toggle is ON
-        btnFilterHv.setSclass("v2-stat-chip chip-filter-hv chip-filter"
-                + (hvActive       ? " chip-filter-active" : ""));
-        btnFilterRef.setSclass("v2-stat-chip chip-filter-ref chip-filter"
-                + (rfActive       ? " chip-filter-active" : ""));
-        hvPendingChip.setSclass("v2-stat-chip pending-chip chip-filter"
-                + (pendingActive  ? " chip-filter-active" : ""));
-        hvPassedChip.setSclass("v2-stat-chip passed-chip chip-filter"
-                + (passedActive   ? " chip-filter-active" : ""));
-        hvRejectedChip.setSclass("v2-stat-chip rejected-chip chip-filter"
-                + (rejectedActive ? " chip-filter-active" : ""));
+    private void updateChequeChipStyles() {
+        chipFilterHighValue.setSclass("v2-stat-chip chip-filter-hv chip-filter"
+                + (highValueActive ? " chip-filter-active" : ""));
+        chipFilterReferred.setSclass("v2-stat-chip chip-filter-ref chip-filter"
+                + (referredActive  ? " chip-filter-active" : ""));
+        chipStatusPending.setSclass("v2-stat-chip pending-chip chip-filter"
+                + (pendingActive   ? " chip-filter-active" : ""));
+        chipStatusPassed.setSclass("v2-stat-chip passed-chip chip-filter"
+                + (passedActive    ? " chip-filter-active" : ""));
+        chipStatusRejected.setSclass("v2-stat-chip rejected-chip chip-filter"
+                + (rejectedActive  ? " chip-filter-active" : ""));
     }
 
-    private Row buildChequeRow(int sno, ChequeModel c) {
+    private Row buildChequeRow(int serialNumber, ChequeModel cheque) {
         Row row = new Row();
-        row.appendChild(cell(new Label(String.valueOf(sno)), "v2-center"));
-        row.appendChild(cell(new Label(safe(c.getChequeNo())), ""));
-        row.appendChild(cell(new Label(safe(c.getPayeeName())), ""));
-        row.appendChild(cell(new Label(formatAmount(c.getAmount())), "v2-right"));
-        row.appendChild(cell(new Label(safe(c.getChequeDate())), "v2-center"));
-        row.appendChild(cell(buildFlagLabel(c.isReferred()), "v2-center"));
+        row.appendChild(cell(new Label(String.valueOf(serialNumber)), "v2-center"));
+        row.appendChild(cell(new Label(safeValue(cheque.getChequeNo())), ""));
+        row.appendChild(cell(new Label(safeValue(cheque.getPayeeName())), ""));
+        row.appendChild(cell(new Label(formatAmount(cheque.getAmount())), "v2-right"));
+        row.appendChild(cell(new Label(safeValue(cheque.getChequeDate())), "v2-center"));
+        row.appendChild(cell(buildFlagLabel(cheque.isReferred()), "v2-center"));
 
-        String vs = (c.getVerStatus() != null) ? c.getVerStatus() : "PENDING";
-        String vsDisplay = ("V1_PENDING".equalsIgnoreCase(vs) || "V2_PENDING".equalsIgnoreCase(vs)
-                || "SUBMITTED".equalsIgnoreCase(vs)) ? "PENDING" : vs;
-        Label vsLbl = new Label(vsDisplay);
-        vsLbl.setSclass("v2-status-badge v2-status-" + safeStatus(vsDisplay));
-        row.appendChild(cell(vsLbl, "v2-center"));
+        String verStatus = (cheque.getVerStatus() != null) ? cheque.getVerStatus() : "PENDING";
+        String verStatusDisplay = ("V1_PENDING".equalsIgnoreCase(verStatus)
+                || "V2_PENDING".equalsIgnoreCase(verStatus)
+                || "SUBMITTED".equalsIgnoreCase(verStatus)) ? "PENDING" : verStatus;
 
-        // FIX: pass the cheque object itself — openChequePopup will find its
-        // position inside the current filtered list at click-time, so the popup
-        // counter and Prev/Next are scoped to the visible filtered set.
-        Button openBtn = new Button("Open");
-        openBtn.setSclass("v2-open-btn");
-        openBtn.addEventListener("onClick", e -> openChequePopup(c));
-        row.appendChild(cell(openBtn, "v2-center"));
+        Label verStatusLabel = new Label(verStatusDisplay);
+        verStatusLabel.setSclass("v2-status-badge v2-status-" + safeStatusCss(verStatusDisplay));
+        row.appendChild(cell(verStatusLabel, "v2-center"));
+
+        Button openButton = new Button("Open");
+        openButton.setSclass("v2-open-btn");
+        openButton.addEventListener("onClick", e -> openChequeDetailPopup(cheque));
+        row.appendChild(cell(openButton, "v2-center"));
 
         return row;
     }
 
-    private Label buildFlagLabel(boolean referred) {
-        if (referred) {
-            Label lbl = new Label("⇄ REF");
-            lbl.setSclass("v2-ref-flag");
-            return lbl;
+    private Label buildFlagLabel(boolean isReferred) {
+        if (isReferred) {
+            Label label = new Label("⇄ REF");
+            label.setSclass("v2-ref-flag");
+            return label;
         }
-        Label lbl = new Label("⚑ HV");
-        lbl.setSclass("v2-hv-flag");
-        return lbl;
+        Label label = new Label("⚑ HV");
+        label.setSclass("v2-hv-flag");
+        return label;
     }
 
     // ════════════════════════════════════════════════════════════════════
     //  SCREEN 3 — POPUP
     // ════════════════════════════════════════════════════════════════════
 
-    /**
-     * FIX: Opens the popup for a specific cheque object.
-     * Snapshots the current filtered list into popupFilteredList so that
-     * Prev / Next and findNextPendingInList() stay within the filtered set.
-     */
-    private void openChequePopup(ChequeModel cheque) {
-        // Capture the filtered list at open-time
-        popupFilteredList = getFilteredCheques();
+    // Opens the popup for a specific cheque.
+    // Snapshots the current filtered list into popupFilteredChequeList so that
+    // Prev / Next and findNextPendingInList() stay within the filtered set.
+    private void openChequeDetailPopup(ChequeModel cheque) {
+        popupFilteredChequeList = getFilteredCheques();
 
-        // Find the index of the clicked cheque inside the filtered list
-        popupIndex = popupFilteredList.indexOf(cheque);
-        if (popupIndex < 0) popupIndex = 0; // safety fallback
+        popupCurrentIndex = popupFilteredChequeList.indexOf(cheque);
+        if (popupCurrentIndex < 0) popupCurrentIndex = 0;
 
-        resetImageToFront();
-        renderPopup(popupIndex);
+        resetChequeImageToFront();
+        renderPopup(popupCurrentIndex);
         chequeDetailPopup.setVisible(true);
         chequeDetailPopup.doModal();
     }
 
-    /**
-     * Returns the list the popup should navigate within.
-     * Falls back to the full batch list if the snapshot is somehow null.
-     */
-    private List<ChequeModel> activePopupList() {
-        return (popupFilteredList != null && !popupFilteredList.isEmpty())
-               ? popupFilteredList
-               : currentBatchCheques;
+    // Returns the list the popup should navigate within.
+    // Falls back to the full batch list if the snapshot is null.
+    private List<ChequeModel> getActivePopupList() {
+        return (popupFilteredChequeList != null && !popupFilteredChequeList.isEmpty())
+               ? popupFilteredChequeList
+               : currentBatchChequeList;
     }
 
-    /**
-     * FIX: Renders a cheque at the given index inside activePopupList().
-     * Counter shows "x / total" relative to the filtered set, not the full batch.
-     */
+    // Renders a cheque at the given index inside getActivePopupList().
+    // Counter shows "x / total" relative to the filtered set.
     private void renderPopup(int index) {
-        List<ChequeModel> list = activePopupList();
+        List<ChequeModel> list = getActivePopupList();
         if (list == null || list.isEmpty()) return;
 
-        ChequeModel c = list.get(index);
+        ChequeModel cheque = list.get(index);
 
-        popupTitle.setValue("Cheque  #" + safe(c.getChequeNo()));
+        lblPopupChequeTitle.setValue("Cheque  #" + safeValue(cheque.getChequeNo()));
 
-        boolean referred = c.isReferred();
-        if (referred) {
-            popupTypeBadge.setSclass("v2-badge-ref");
-            popupTypeBadge.getChildren().clear();
-            popupTypeBadge.appendChild(new Label("REFERRED"));
+        boolean isReferred = cheque.isReferred();
+        if (isReferred) {
+            divPopupChequeTypeBadge.setSclass("v2-badge-ref");
+            divPopupChequeTypeBadge.getChildren().clear();
+            divPopupChequeTypeBadge.appendChild(new Label("REFERRED"));
         } else {
-            popupTypeBadge.setSclass("v2-badge-hv");
-            popupTypeBadge.getChildren().clear();
-            popupTypeBadge.appendChild(new Label("HIGH VALUE"));
+            divPopupChequeTypeBadge.setSclass("v2-badge-hv");
+            divPopupChequeTypeBadge.getChildren().clear();
+            divPopupChequeTypeBadge.appendChild(new Label("HIGH VALUE"));
         }
 
-        String sortCode = safe(c.getSortCode());
-        String[] micr   = splitMicr(sortCode);
-        fChequeNo.setValue(safe(c.getChequeNo()));
-        fCityCode.setValue(micr[0]);
-        fBankCode.setValue(micr[1]);
-        fBranchCode.setValue(micr[2]);
-        fTxCode.setValue(safe(c.getTransactionCode()));
+        String sortCode   = safeValue(cheque.getSortCode());
+        String[] micrParts = splitMicrSortCode(sortCode);
+        lblChequeNumber.setValue(safeValue(cheque.getChequeNo()));
+        lblCityCode.setValue(micrParts[0]);
+        lblBankCode.setValue(micrParts[1]);
+        lblBranchCode.setValue(micrParts[2]);
+        lblTransactionCode.setValue(safeValue(cheque.getTransactionCode()));
 
-        fPayeeName.setValue(safe(c.getPayeeName()));
-        fAmount.setValue(formatAmount(c.getAmount()));
-        fAccountNo.setValue(safe(c.getPayeeAccountNo()));  // use payee_account_no — same as V1
-        fChequeDate.setValue(safe(c.getChequeDate()));
-        fAmountWords.setValue(safe(c.getAmountInWords()));
+        lblPayeeName.setValue(safeValue(cheque.getPayeeName()));
+        lblChequeAmount.setValue(formatAmount(cheque.getAmount()));
+        lblAccountNumber.setValue(safeValue(cheque.getPayeeAccountNo()));
+        lblChequeDate.setValue(safeValue(cheque.getChequeDate()));
+        lblAmountInWords.setValue(safeValue(cheque.getAmountInWords()));
 
-        // CBS live lookup — MUST use getPayeeAccountNo(), same as VerificationOneComposer.
-        // getAccountNo() reads account_no (MICR field) which does NOT match Firestore document IDs.
-        // getPayeeAccountNo() reads payee_account_no — the correct CBS key.
-        String accNo = c.getPayeeAccountNo() != null ? c.getPayeeAccountNo().trim() : null;
-        if (accNo != null && !accNo.isBlank()) {
-            com.fasterxml.jackson.databind.JsonNode fields = cbsService.lookupAccountFields(accNo);
-            if (fields != null && !fields.isMissingNode()) {
-                String cbsName = fields.path("accountHolderName").path("stringValue").asText(null);
-                boolean active = fields.path("active").path("booleanValue").asBoolean(false);
+        // CBS live lookup using payee_account_no (correct CBS key)
+        String accountNo = cheque.getPayeeAccountNo() != null ? cheque.getPayeeAccountNo().trim() : null;
+        if (accountNo != null && !accountNo.isBlank()) {
+            com.fasterxml.jackson.databind.JsonNode cbsFields = cbsService.lookupAccountFields(accountNo);
+            if (cbsFields != null && !cbsFields.isMissingNode()) {
+                String cbsPayeeName = cbsFields.path("accountHolderName").path("stringValue").asText(null);
+                boolean isActive    = cbsFields.path("active").path("booleanValue").asBoolean(false);
 
-                fCbsPayeeName.setValue(cbsName != null ? cbsName : "—");
-                fCbsAccStatus.setValue(active ? "Active" : "Inactive");
-                fCbsNewAccount.setValue(cbsService.getIsNewAccount(accNo));
+                lblCbsPayeeName.setValue(cbsPayeeName != null ? cbsPayeeName : "—");
+                lblCbsAccountStatus.setValue(isActive ? "Active" : "Inactive");
+                lblCbsNewAccount.setValue(cbsService.getIsNewAccount(accountNo));
 
-                String payee = c.getPayeeName();
-                if (cbsName != null && payee != null) {
-                    boolean match = cbsName.trim().equalsIgnoreCase(payee.trim());
-                    fCbsPayeeMatch.setValue(match ? "Match" : "Mismatch");
-                    fCbsPayeeMatch.setSclass(match ? "cbs-match-ok" : "cbs-match-fail");
+                String payeeName = cheque.getPayeeName();
+                if (cbsPayeeName != null && payeeName != null) {
+                    boolean nameMatches = cbsPayeeName.trim().equalsIgnoreCase(payeeName.trim());
+                    lblCbsPayeeMatch.setValue(nameMatches ? "Match" : "Mismatch");
+                    lblCbsPayeeMatch.setSclass(nameMatches ? "cbs-match-ok" : "cbs-match-fail");
                 } else {
-                    fCbsPayeeMatch.setValue("—");
-                    fCbsPayeeMatch.setSclass("");
+                    lblCbsPayeeMatch.setValue("—");
+                    lblCbsPayeeMatch.setSclass("");
                 }
             } else {
-                fCbsPayeeName.setValue("—");
-                fCbsAccStatus.setValue("Not found");
-                fCbsNewAccount.setValue("—");
-                fCbsPayeeMatch.setValue("—");
-                fCbsPayeeMatch.setSclass("");
+                lblCbsPayeeName.setValue("—");
+                lblCbsAccountStatus.setValue("Not found");
+                lblCbsNewAccount.setValue("—");
+                lblCbsPayeeMatch.setValue("—");
+                lblCbsPayeeMatch.setSclass("");
             }
         } else {
-            fCbsPayeeName.setValue("—");
-            fCbsAccStatus.setValue("—");
-            fCbsNewAccount.setValue("—");
-            fCbsPayeeMatch.setValue("—");
-            fCbsPayeeMatch.setSclass("");
+            lblCbsPayeeName.setValue("—");
+            lblCbsAccountStatus.setValue("—");
+            lblCbsNewAccount.setValue("—");
+            lblCbsPayeeMatch.setValue("—");
+            lblCbsPayeeMatch.setSclass("");
         }
 
-        ChequeStatus currentVs    = ChequeStatus.fromDb(c.getVerStatus());
-        boolean alreadyActioned = currentVs == ChequeStatus.VERIFIED
-                               || currentVs == ChequeStatus.REJECTED;
-        btnAccept.setDisabled(alreadyActioned);
-        btnReject.setDisabled(alreadyActioned);
+        ChequeStatus currentStatus = ChequeStatus.fromDb(cheque.getVerStatus());
+        boolean alreadyActioned    = currentStatus == ChequeStatus.VERIFIED
+                                  || currentStatus == ChequeStatus.REJECTED;
+        btnAcceptCheque.setDisabled(alreadyActioned);
+        btnRejectCheque.setDisabled(alreadyActioned);
 
-        fVerRemarks.setValue("");
-        fVerRemarks.setSclass("v2-remarks-box");
+        txtVerificationRemarks.setValue("");
+        txtVerificationRemarks.setSclass("v2-remarks-box");
 
-        byte[] frontBytes = c.getFrontImageBytes();
-        if (frontBytes != null && frontBytes.length > 0) {
-            frontChequeImage.setSrc("data:image/jpeg;base64,"
-                + Base64.getEncoder().encodeToString(frontBytes));
-            frontChequeImage.setVisible(true);
-            frontImagePlaceholder.setVisible(false);
+        byte[] frontImageBytes = cheque.getFrontImageBytes();
+        if (frontImageBytes != null && frontImageBytes.length > 0) {
+            imgChequeFront.setSrc("data:image/jpeg;base64,"
+                + Base64.getEncoder().encodeToString(frontImageBytes));
+            imgChequeFront.setVisible(true);
+            divFrontImagePlaceholder.setVisible(false);
         } else {
-            frontChequeImage.setVisible(false);
-            frontImagePlaceholder.setVisible(true);
+            imgChequeFront.setVisible(false);
+            divFrontImagePlaceholder.setVisible(true);
         }
 
-        byte[] rearBytes = c.getRearImageBytes();
-        if (rearBytes != null && rearBytes.length > 0) {
-            rearChequeImage.setSrc("data:image/jpeg;base64,"
-                + Base64.getEncoder().encodeToString(rearBytes));
-            rearChequeImage.setVisible(true);
-            rearImagePlaceholder.setVisible(false);
+        byte[] rearImageBytes = cheque.getRearImageBytes();
+        if (rearImageBytes != null && rearImageBytes.length > 0) {
+            imgChequeRear.setSrc("data:image/jpeg;base64,"
+                + Base64.getEncoder().encodeToString(rearImageBytes));
+            imgChequeRear.setVisible(true);
+            divRearImagePlaceholder.setVisible(false);
         } else {
-            rearChequeImage.setVisible(false);
-            rearImagePlaceholder.setVisible(true);
+            imgChequeRear.setVisible(false);
+            divRearImagePlaceholder.setVisible(true);
         }
 
-        // FIX: counter and nav buttons are relative to the filtered list
-        int total = list.size();
-        popupCounter.setValue((index + 1) + " / " + total);
+        int totalInList = list.size();
+        lblPopupChequeCounter.setValue((index + 1) + " / " + totalInList);
         btnPopupPrev.setDisabled(index == 0);
-        btnPopupNext.setDisabled(index == total - 1);
+        btnPopupNext.setDisabled(index == totalInList - 1);
     }
 
-    /**
-     * Flips the cheque image between FRONT and BACK.
-     * Button label toggles:  showing front → label is "Show Back"
-     *                        showing back  → label is "Show Front"
-     */
-    private void flipImage() {
-        showingFront = !showingFront;
-        imgPanelFront.setVisible(showingFront);
-        imgPanelBack.setVisible(!showingFront);
-        btnFlipImage.setLabel(showingFront ? "Show Back" : "Show Front");
+    // Flips the cheque image between FRONT and BACK
+    private void flipChequeImage() {
+        isShowingFrontImage = !isShowingFrontImage;
+        imgPanelFront.setVisible(isShowingFrontImage);
+        imgPanelBack.setVisible(!isShowingFrontImage);
+        btnFlipChequeImage.setLabel(isShowingFrontImage ? "Show Back" : "Show Front");
     }
 
-    /** Reset image to front side whenever a new cheque is opened */
-    private void resetImageToFront() {
-        showingFront = true;
+    // Resets image to front side whenever a new cheque is opened
+    private void resetChequeImageToFront() {
+        isShowingFrontImage = true;
         imgPanelFront.setVisible(true);
         imgPanelBack.setVisible(false);
-        btnFlipImage.setLabel("Show Back");
+        btnFlipChequeImage.setLabel("Show Back");
     }
 
     // ════════════════════════════════════════════════════════════════════
     //  VERIFICATION ACTIONS
     // ════════════════════════════════════════════════════════════════════
 
-    private void onAcceptClick() {
-        String verBy  = getVerifierUsername();
-        String remarks = fVerRemarks.getValue();
+    private void onAcceptChequeClick() {
+        String verifierUsername = getVerifierUsername();
+        String remarks = txtVerificationRemarks.getValue();
         if (remarks == null || remarks.isBlank()) {
-            remarks = "Accepted by " + verBy;
-            fVerRemarks.setValue(remarks);
+            remarks = "Accepted by " + verifierUsername;
+            txtVerificationRemarks.setValue(remarks);
         }
-        performVerification(ChequeStatus.VERIFIED.db(), remarks, verBy);
+        performVerification(ChequeStatus.VERIFIED.db(), remarks, verifierUsername);
     }
 
-    private void onRejectClick() {
-        String remarks = fVerRemarks.getValue();
+    private void onRejectChequeClick() {
+        String remarks = txtVerificationRemarks.getValue();
         if (remarks == null || remarks.isBlank()) {
-            fVerRemarks.setSclass("v2-remarks-box v2-remarks-box-error");
-            fVerRemarks.focus();
+            txtVerificationRemarks.setSclass("v2-remarks-box v2-remarks-box-error");
+            txtVerificationRemarks.focus();
             return;
         }
-        fVerRemarks.setSclass("v2-remarks-box");
+        txtVerificationRemarks.setSclass("v2-remarks-box");
 
-        String verBy = getVerifierUsername();
-        performVerification(ChequeStatus.REJECTED.db(), remarks, verBy);
+        String verifierUsername = getVerifierUsername();
+        performVerification(ChequeStatus.REJECTED.db(), remarks, verifierUsername);
     }
 
-    /**
-     * FIX: After saving the verification result the popup filtered list is
-     * refreshed from getFilteredCheques() so it reflects the new status.
-     * findNextPendingInList() then searches within that refreshed filtered list,
-     * not the full batch list — keeping navigation scoped to the active filter.
-     */
-    private void performVerification(String action, String remarks, String verBy) {
-        List<ChequeModel> list = activePopupList();
+    // Saves the verification result, refreshes the filtered list, and navigates to next pending
+    private void performVerification(String action, String remarks, String verifierUsername) {
+        List<ChequeModel> list = getActivePopupList();
         if (list == null || list.isEmpty()) return;
 
-        ChequeModel c      = list.get(popupIndex);
-        long        chequeId = Long.parseLong(c.getId());
+        ChequeModel cheque  = list.get(popupCurrentIndex);
+        long        chequeId = Long.parseLong(cheque.getId());
 
-        service.verifyHighValueCheque(chequeId, action, verBy, remarks);
+        verificationService.submitHighValueChequeVerification(chequeId, action, verifierUsername, remarks);
 
-        ChequeStatus resolved = ChequeStatus.fromDb(action);
-        String newStatus = (resolved == ChequeStatus.VERIFIED)
+        ChequeStatus resolvedChequeStatus = ChequeStatus.fromDb(action);
+        String updatedVerificationStatus = (resolvedChequeStatus == ChequeStatus.VERIFIED)
                 ? ChequeStatus.VERIFIED.db()
                 : ChequeStatus.REJECTED.db();
-        c.setVerStatus(newStatus);
+        cheque.setVerStatus(updatedVerificationStatus);
 
-        service.checkAndUpdateBatchStatus(c.getBatchId());
+        verificationService.evaluateAndUpdateBatchVerificationStatus(cheque.getBatchId());
 
-        // Refresh chip counts and cheque list rows
-        refreshChequeListChips();
+        refreshChequeFilterChips();
         buildFilteredPagedChequeRows();
 
-        // FIX: refresh the popup filtered list after the status change so the
-        // next-pending search operates on the up-to-date filtered set
-        popupFilteredList = getFilteredCheques();
+        // Refresh the popup filtered list after the status change
+        popupFilteredChequeList = getFilteredCheques();
 
-        int next = findNextPendingInList(popupIndex, popupFilteredList);
-        popupIndex = (next >= 0) ? next : popupIndex;
-        renderPopup(popupIndex);
+        int nextIndex = findNextPendingInList(popupCurrentIndex, popupFilteredChequeList);
+        popupCurrentIndex = (nextIndex >= 0) ? nextIndex : popupCurrentIndex;
+        renderPopup(popupCurrentIndex);
     }
 
-    /**
-     * FIX: Searches for the next pending cheque within the given list.
-     * Replaces the old findNextPending() which always used currentBatchCheques.
-     */
+    // Searches for the next pending cheque within the given list
     private int findNextPendingInList(int currentIndex, List<ChequeModel> list) {
         if (list == null) return -1;
         for (int i = currentIndex + 1; i < list.size(); i++) {
-            ChequeStatus cs = ChequeStatus.fromDb(list.get(i).getVerStatus());
-            if (cs != ChequeStatus.VERIFIED && cs != ChequeStatus.REJECTED) return i;
+            ChequeStatus status = ChequeStatus.fromDb(list.get(i).getVerStatus());
+            if (status != ChequeStatus.VERIFIED && status != ChequeStatus.REJECTED) return i;
         }
         for (int i = currentIndex - 1; i >= 0; i--) {
-            ChequeStatus cs = ChequeStatus.fromDb(list.get(i).getVerStatus());
-            if (cs != ChequeStatus.VERIFIED && cs != ChequeStatus.REJECTED) return i;
+            ChequeStatus status = ChequeStatus.fromDb(list.get(i).getVerStatus());
+            if (status != ChequeStatus.VERIFIED && status != ChequeStatus.REJECTED) return i;
         }
         return -1;
     }
@@ -1212,18 +1183,21 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
     public void onBackToBatches() {
         chequeListView.setVisible(false);
         batchListView.setVisible(true);
-        currentBatchCheques = null;
-        popupFilteredList   = null;
+        currentBatchChequeList  = null;
+        popupFilteredChequeList = null;
 
-        // Reset all cheque filter state on leaving the cheque list
-        hvActive = false; rfActive = false;
-        pendingActive = false; passedActive = false; rejectedActive = false;
-        chequeSearchText = "";
-        chequeDateFrom   = null;
-        chequeDateTo     = null;
-        chequePage       = 1;
+        // Reset all cheque filter state when leaving the cheque list
+        highValueActive  = false;
+        referredActive   = false;
+        pendingActive    = false;
+        passedActive     = false;
+        rejectedActive   = false;
+        chequeSearchKeyword  = "";
+        chequeFilterDateFrom = null;
+        chequeFilterDateTo   = null;
+        chequeCurrentPage    = 1;
 
-        clearViewState();
+        clearBatchViewState();
         loadHighValueBatches();
     }
 
@@ -1236,76 +1210,62 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
         return (username == null || username.isBlank()) ? "Unknown" : username;
     }
 
-    /**
-     * Keeps a From/To datebox pair from accepting an invalid range:
-     * To can't be set earlier than From, and From can't be set later than To.
-     * Uses ZK Datebox's built-in "after yyyyMMdd" / "before yyyyMMdd"
-     * constraint syntax (both bounds inclusive of the given date).
-     */
-    private void updateDateConstraints(Datebox fromBox, Datebox toBox, LocalDate from, LocalDate to) {
+    // Keeps a From/To datebox pair from accepting an invalid range
+    private void updateDateRangeConstraints(Datebox fromBox, Datebox toBox,
+                                            LocalDate fromDate, LocalDate toDate) {
         if (toBox != null) {
-            toBox.setConstraint(from != null ? "after " + yyyymmdd(from) : (String) null);
+            toBox.setConstraint(fromDate != null ? "after " + formatYyyyMmDd(fromDate) : (String) null);
         }
         if (fromBox != null) {
-            fromBox.setConstraint(to != null ? "before " + yyyymmdd(to) : (String) null);
+            fromBox.setConstraint(toDate != null ? "before " + formatYyyyMmDd(toDate) : (String) null);
         }
     }
 
-    private String yyyymmdd(LocalDate d) {
-        return d.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+    private String formatYyyyMmDd(LocalDate date) {
+        return date.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
     }
 
-    private Date toUtilDate(LocalDate d) {
-        return (d == null) ? null : Date.from(d.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    private Date toUtilDate(LocalDate localDate) {
+        return (localDate == null) ? null
+                : Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 
-    private boolean isReferred(String iqaStatus) {
-        if (iqaStatus == null) return false;
-        if (!iqaStatus.startsWith("VACTION:")) return false;
-        String action = iqaStatus.substring("VACTION:".length());
-        return "REFERRED".equalsIgnoreCase(action);
-    }
-
-    private String[] splitMicr(String sortCode) {
+    private String[] splitMicrSortCode(String sortCode) {
         if (sortCode == null || sortCode.isBlank() || "——".equals(sortCode) || "0".equals(sortCode)) {
             return new String[]{"—", "—", "—"};
         }
-        String s = sortCode.trim();
-        if (s.length() >= 9) return new String[]{s.substring(0, 3), s.substring(3, 6), s.substring(6, 9)};
-        if (s.length() >= 6) return new String[]{s.substring(0, 3), s.substring(3, 6), "—"};
-        return new String[]{s, "—", "—"};
+        String code = sortCode.trim();
+        if (code.length() >= 9) return new String[]{code.substring(0, 3), code.substring(3, 6), code.substring(6, 9)};
+        if (code.length() >= 6) return new String[]{code.substring(0, 3), code.substring(3, 6), "—"};
+        return new String[]{code, "—", "—"};
     }
 
-    private int getTotalPages(int listSize, int pageSize) {
+    private int getTotalPageCount(int listSize, int pageSize) {
         if (listSize == 0) return 1;
         return (int) Math.ceil((double) listSize / pageSize);
     }
 
-    private int parseHvCount(BatchModel b)        { return parsePart(b.getPresentingBankId(), 0); }
-    private int parsePendingCount(BatchModel b)   { return parsePart(b.getPresentingBankId(), 1); }
-    private int parseProcessedCount(BatchModel b) { return parsePart(b.getPresentingBankId(), 2); }
-    private int parseRefCount(BatchModel b)       { return parsePart(b.getPresentingBankId(), 3); }
+    private int parseHighValueCount(BatchModel batch)  { return parseEncodedPart(batch.getPresentingBankId(), 0); }
+    private int parsePendingCount(BatchModel batch)    { return parseEncodedPart(batch.getPresentingBankId(), 1); }
+    private int parseProcessedCount(BatchModel batch)  { return parseEncodedPart(batch.getPresentingBankId(), 2); }
+    private int parseReferredCount(BatchModel batch)   { return parseEncodedPart(batch.getPresentingBankId(), 3); }
 
-    private String getV2Status(BatchModel b) {
-        int hv        = parseHvCount(b);
-        int processed = parseProcessedCount(b);
-        if (processed == 0)   return "PENDING";
-        if (processed < hv)   return "INPROGRESS";
+    private String getBatchDisplayStatus(BatchModel batch) {
+        int hvCount       = parseHighValueCount(batch);
+        int processedCount = parseProcessedCount(batch);
+        if (processedCount == 0)             return "PENDING";
+        if (processedCount < hvCount)        return "INPROGRESS";
         return "VERIFIED";
     }
 
-    private int parsePart(String encoded, int index) {
-        if (encoded == null || encoded.isEmpty()) return 0;
+    private int parseEncodedPart(String encodedValue, int partIndex) {
+        if (encodedValue == null || encodedValue.isEmpty()) return 0;
         try {
-            String[] parts = encoded.split("\\|");
-            return parts.length > index ? Integer.parseInt(parts[index]) : 0;
+            String[] parts = encodedValue.split("\\|");
+            return parts.length > partIndex ? Integer.parseInt(parts[partIndex]) : 0;
         } catch (NumberFormatException e) {
             return 0;
         }
-    }
-
-    private void setFilterActive(Button btn, boolean active) {
-        btn.setSclass(active ? "v2-filter-btn v2-filter-active" : "v2-filter-btn");
     }
 
     private Cell cell(Component child, String sclass) {
@@ -1315,24 +1275,24 @@ public class VerificationIIComposer extends SelectorComposer<Component> {
         return c;
     }
 
-    private String safe(String val) {
-        return (val == null || val.isBlank()) ? "—" : val;
+    private String safeValue(String value) {
+        return (value == null || value.isBlank()) ? "—" : value;
     }
 
-    private String safeStatus(String status) {
+    private String safeStatusCss(String status) {
         return (status == null || status.isBlank()) ? "pending" : status.toLowerCase();
     }
 
     private String formatAmount(BigDecimal amount) {
         if (amount == null) return "——";
-        NumberFormat nf = NumberFormat.getNumberInstance(new Locale("en", "IN"));
-        nf.setMinimumFractionDigits(2);
-        nf.setMaximumFractionDigits(2);
-        return "Rs. " + nf.format(amount);
+        NumberFormat formatter = NumberFormat.getNumberInstance(new Locale("en", "IN"));
+        formatter.setMinimumFractionDigits(2);
+        formatter.setMaximumFractionDigits(2);
+        return "Rs. " + formatter.format(amount);
     }
 
-    private String formatBatchDate(java.time.LocalDateTime dt) {
-        if (dt == null) return "—";
-        return dt.format(BATCH_DATE_FMT);
+    private String formatBatchDate(java.time.LocalDateTime dateTime) {
+        if (dateTime == null) return "—";
+        return dateTime.format(BATCH_DATE_FORMATTER);
     }
 }

@@ -19,47 +19,62 @@ import com.cts.util.HibernateUtil;
 /**
  * VerificationIIDAOImpl
  *
- * JDBC implementation — uses only methods that exist in the
- * ORIGINAL BatchModel and ChequeModel (no model changes allowed).
+ * Pure JDBC implementation of VerificationIIDAO.
+ * All queries are plain SQL — no HQL or JPQL is used.
+ * Uses only the setters available on the original BatchModel and ChequeModel
+ * (no model changes are permitted).
  *
- * BatchModel available setters used here:
+ * ── BatchModel setters used ──────────────────────────────────────────────────
  *   setBatchId, setBranchCode, setStatus,
  *   setTotalCheques(int), setExpectedCheques(int),
  *   setTotalAmount, setExpectedAmount,
  *   setCreatedAt, setUpdatedAt
  *
- * ChequeModel available setters used here:
+ * ── ChequeModel setters used ─────────────────────────────────────────────────
  *   setId(String), setBatchId, setChequeNo, setAccountNo,
  *   setSortCode, setTransactionCode, setAmount, setChequeDate,
  *   setIqaStatus, setVerStatus, setStatus, setReferred(boolean),
  *   setDuplicate(boolean), setFrontImageBytes, setRearImageBytes,
  *   setCreatedAt, setUpdatedAt
  *
- * PIGGYBACK ENCODING (no model changes):
- *   iqa_status field is used to carry "ver_action" value from DB
- *   because iqa_status is not displayed as a column in this screen.
- *   Format stored: "VACTION:<ver_action_value>"
- *   e.g.  "VACTION:REFERRED"  or  "VACTION:VERIFIED"
- *   Composer reads this via getIqaStatus() and strips the prefix.
+ * ── Piggyback Encoding (no model changes) ────────────────────────────────────
+ *   The iqa_status field carries the "ver_action" value from the database,
+ *   because iqa_status is not displayed as a column on this screen.
+ *   Format: "VACTION:<ver_action_value>"
+ *   Examples:
+ *     "VACTION:REFERRED"  — cheque was referred from Verification Level I
+ *     "VACTION:VERIFIED"  — cheque has already been verified at Level II
+ *     "VACTION:"          — no ver_action set yet (direct high-value cheque)
+ *   The Composer reads this via getIqaStatus() and strips the prefix.
  *
- * BATCH STATUS ENCODING (presentingBankId):
- *   Format: "hv_count|pending_count|processed_count"
- *   Composer splits on "|" to get each number.
- *   Batch STATUS column: if pending_count == 0 => "VERIFIED"
- *                        else                  => "VERIFICATION IN PROGRESS"
+ * ── Batch Count Encoding (presentingBankId) ───────────────────────────────────
+ *   Format: "highValueCount|pendingCount|processedCount|referredCount"
+ *   The Composer splits on "|" to extract each individual count.
+ *   Status display logic:
+ *     pendingCount == 0  →  "VERIFIED"
+ *     pendingCount  > 0  →  "VERIFICATION IN PROGRESS"
  *
- * FIX — pending_count logic:
- *   OLD filter only matched ver_status = 'PENDING' OR NULL.
- *   Cheques created by the scan/batch workflow may have ver_status values
- *   like 'V2_PENDING', 'HV_PENDING', or other non-null strings that are
- *   still unverified. The new filter counts anything that is NOT
- *   'verified' or 'rejected' (case-insensitive) as still pending.
+ * ── Pending Count Logic ───────────────────────────────────────────────────────
+ *   Cheques created by the scan or batch workflow may carry ver_status values
+ *   such as "V2_PENDING", "HV_PENDING", or other non-null strings that are
+ *   still unverified. The pending filter counts anything that is NOT
+ *   "verified" or "rejected" (case-insensitive) as pending.
  */
 public class VerificationIIDAOImpl implements VerificationIIDAO {
 
-    // ── SQL ──────────────────────────────────────────────────────────────────
+    // ── SQL Constants ────────────────────────────────────────────────────────
 
-    private static final String SQL_HV_BATCHES =
+    /**
+     * Fetches all batches containing at least one high-value or referred cheque,
+     * along with aggregated counts for display in the batch list table.
+     *
+     * pending_count: counts any cheque whose ver_status is NOT "verified" or "rejected"
+     *   (catches NULL, "PENDING", "V2_PENDING", "HV_PENDING", and similar values).
+     * ref_count: uses is_referred (set permanently by Verification Level I);
+     *   this is the reliable source of truth because ver_action is overwritten
+     *   when Level II processes the cheque.
+     */
+    private static final String SQL_FETCH_HIGH_VALUE_BATCHES =
         "SELECT " +
         "    b.batch_id, " +
         "    b.branch_code, " +
@@ -70,17 +85,11 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
         "    b.expected_amount, " +
         "    b.created_at, " +
         "    b.updated_at, " +
-        "    COUNT(c.id)                                                              AS hv_count, " +
-        // FIX: treat anything that is NOT verified/rejected as pending
-        // This catches NULL, 'PENDING', 'V2_PENDING', 'HV_PENDING', etc.
+        "    COUNT(c.id)                                                              AS high_value_count, " +
         "    COUNT(c.id) FILTER (WHERE LOWER(c.ver_status) NOT IN ('verified','rejected') " +
         "                           OR c.ver_status IS NULL)                          AS pending_count, " +
-        // processed = verified OR rejected only
         "    COUNT(c.id) FILTER (WHERE LOWER(c.ver_status) IN ('verified','rejected')) AS processed_count, " +
-        // FIX: use the permanent is_referred flag (set once by V1) instead of
-        // ver_action, because ver_action gets overwritten to VERIFIED/REJECTED
-        // once V2 acts on the cheque — is_referred never changes.
-        "    COUNT(c.id) FILTER (WHERE c.is_referred = true)                            AS ref_count " +
+        "    COUNT(c.id) FILTER (WHERE c.is_referred = true)                          AS referred_count " +
         "FROM  public.cts_batches b " +
         "JOIN  public.cts_cheques c " +
         "      ON  c.batch_id = b.batch_id " +
@@ -93,12 +102,12 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
         "HAVING COUNT(c.id) > 0 " +
         "ORDER BY b.created_at DESC";
 
-    /*
-     * Fetches cheques that belong to V2 OR were referred from V1.
-     * ver_action is also selected so we can encode it into iqa_status
-     * for the "Flag" column display without touching ChequeModel.
+    /**
+     * Fetches all cheques for a given batch that belong to Verification Level II
+     * or were referred from Verification Level I.
+     * ver_action is also selected to encode it into iqa_status for the Flag column.
      */
-    private static final String SQL_HV_CHEQUES_FOR_BATCH =
+    private static final String SQL_FETCH_HIGH_VALUE_CHEQUES_FOR_BATCH =
         "SELECT " +
         "    id, batch_id, cheque_no, account_no, payee_account_no, payee_name, " +
         "    sort_code, transaction_code, " +
@@ -113,7 +122,10 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
         "  AND (ver_level = 'V2' OR is_referred = true) " +
         "ORDER BY cheque_no ASC";
 
-    private static final String SQL_CHEQUE_BY_ID =
+    /**
+     * Fetches a single cheque record by its primary key.
+     */
+    private static final String SQL_FETCH_CHEQUE_BY_ID =
         "SELECT " +
         "    id, batch_id, cheque_no, account_no, payee_account_no, payee_name, " +
         "    sort_code, transaction_code, " +
@@ -126,7 +138,10 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
         "FROM  public.cts_cheques " +
         "WHERE id = ?";
 
-    private static final String SQL_UPDATE_VERIFICATION =
+    /**
+     * Updates the Verification Level II decision columns for a single cheque.
+     */
+    private static final String SQL_PERSIST_VERIFICATION_DECISION =
         "UPDATE public.cts_cheques " +
         "SET    ver_action  = ?, " +
         "       ver_by      = ?, " +
@@ -137,17 +152,16 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
         "WHERE  id = ?";
 
     /**
-     * Count ALL cheques in the batch (V1 + V2 combined).
-     * Used to decide batch status after each verification action.
+     * Counts all cheques in the specified batch (Verification Level I and II combined).
+     * Used to determine the batch status after each verification action.
      */
     private static final String SQL_COUNT_ALL_CHEQUES_IN_BATCH =
         "SELECT COUNT(*) FROM public.cts_cheques WHERE batch_id = ?";
 
     /**
-     * Count cheques that are fully actioned (VERIFIED OR REJECTED) in the batch.
-     * Uses cts_cheques.status — the agreed source of truth.
-     * Tied to ChequeStatus enum: VERIFIED.db()="VERIFIED", REJECTED.db()="REJECTED".
-     * LOWER() makes this safe against any legacy mixed-case data in the DB.
+     * Counts cheques in the batch that are fully actioned (VERIFIED or REJECTED).
+     * Uses cts_cheques.status as the agreed source of truth.
+     * LOWER() ensures safety against any legacy mixed-case data in the database.
      */
     private static final String SQL_COUNT_ACTIONED_CHEQUES_IN_BATCH =
         "SELECT COUNT(*) FROM public.cts_cheques " +
@@ -156,250 +170,279 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
                                 "LOWER('" + ChequeStatus.REJECTED.db() + "'))";
 
     /**
-     * Update cts_batches.status for the given batch.
-     * "VerificationInProgress" and "Verified" are exact dbValues from BatchStatus enum.
+     * Updates the status of the specified batch in cts_batches.
+     * Status values are sourced from the BatchStatus enum (never hardcoded strings).
      */
-    private static final String SQL_UPDATE_BATCH_STATUS =
+    private static final String SQL_UPDATE_BATCH_VERIFICATION_STATUS =
         "UPDATE public.cts_batches " +
         "SET    status     = ?, " +
         "       updated_at = NOW() " +
         "WHERE  batch_id   = ?";
 
-    // ── DAO methods ──────────────────────────────────────────────────────────
+    // ── DAO Method Implementations ───────────────────────────────────────────
 
     @Override
-    public List<BatchModel> getHighValueBatches() {
-        return executeWithConnection(conn -> {
-            List<BatchModel> list = new ArrayList<>();
-            try (PreparedStatement ps = conn.prepareStatement(SQL_HV_BATCHES);
-                 ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    list.add(mapBatch(rs));
+    public List<BatchModel> fetchHighValueBatches() {
+        return executeWithConnection(connection -> {
+            List<BatchModel> highValueBatchList = new ArrayList<>();
+            try (PreparedStatement preparedStatement = connection.prepareStatement(SQL_FETCH_HIGH_VALUE_BATCHES);
+                 ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    highValueBatchList.add(mapResultSetToBatchModel(resultSet));
                 }
             }
-            return list;
+            return highValueBatchList;
         });
     }
 
     @Override
-    public List<ChequeModel> getHighValueChequesForBatch(String batchId) {
-        return executeWithConnection(conn -> {
-            List<ChequeModel> list = new ArrayList<>();
-            try (PreparedStatement ps = conn.prepareStatement(SQL_HV_CHEQUES_FOR_BATCH)) {
-                ps.setString(1, batchId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        list.add(mapCheque(rs));
+    public List<ChequeModel> fetchHighValueChequesForBatch(String batchIdentifier) {
+        return executeWithConnection(connection -> {
+            List<ChequeModel> highValueChequeList = new ArrayList<>();
+            try (PreparedStatement preparedStatement =
+                         connection.prepareStatement(SQL_FETCH_HIGH_VALUE_CHEQUES_FOR_BATCH)) {
+                preparedStatement.setString(1, batchIdentifier);
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    while (resultSet.next()) {
+                        highValueChequeList.add(mapResultSetToChequeModel(resultSet));
                     }
                 }
             }
-            return list;
+            return highValueChequeList;
         });
     }
 
     @Override
-    public ChequeModel getChequeById(long id) {
-        return executeWithConnection(conn -> {
-            try (PreparedStatement ps = conn.prepareStatement(SQL_CHEQUE_BY_ID)) {
-                ps.setLong(1, id);
-                try (ResultSet rs = ps.executeQuery()) {
-                    return rs.next() ? mapCheque(rs) : null;
+    public ChequeModel fetchChequeById(long chequeId) {
+        return executeWithConnection(connection -> {
+            try (PreparedStatement preparedStatement =
+                         connection.prepareStatement(SQL_FETCH_CHEQUE_BY_ID)) {
+                preparedStatement.setLong(1, chequeId);
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    return resultSet.next() ? mapResultSetToChequeModel(resultSet) : null;
                 }
             }
         });
     }
 
     @Override
-    public void updateVerification(long id, String action, String verBy, String remarks) {
+    public void persistVerificationDecision(long chequeId, String verificationAction,
+                                            String verifierUsername, String verificationRemarks) {
         // Resolve the action string to a canonical ChequeStatus enum constant.
         // ChequeStatus.VERIFIED.db() = "VERIFIED"
         // ChequeStatus.REJECTED.db() = "REJECTED"
-        // Both ver_status and status columns receive the same value.
-        ChequeStatus resolved = ChequeStatus.fromDb(action);
-        String statusValue = (resolved == ChequeStatus.VERIFIED)
+        // Both ver_status and status columns receive the same resolved value.
+        ChequeStatus resolvedChequeStatus = ChequeStatus.fromDb(verificationAction);
+        String resolvedStatusValue = (resolvedChequeStatus == ChequeStatus.VERIFIED)
                 ? ChequeStatus.VERIFIED.db()
                 : ChequeStatus.REJECTED.db();
 
-        executeWithConnection(conn -> {
-            try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_VERIFICATION)) {
-                ps.setString(1, statusValue);        // ver_action — canonical db value
-                ps.setString(2, verBy);
-                ps.setString(3, (remarks == null || remarks.isBlank()) ? null : remarks.trim());
-                ps.setString(4, statusValue);        // ver_status
-                ps.setString(5, statusValue);        // status
-                ps.setLong(6, id);
-                ps.executeUpdate();
+        executeWithConnection(connection -> {
+            try (PreparedStatement preparedStatement =
+                         connection.prepareStatement(SQL_PERSIST_VERIFICATION_DECISION)) {
+                preparedStatement.setString(1, resolvedStatusValue);   // ver_action
+                preparedStatement.setString(2, verifierUsername);
+                preparedStatement.setString(3,
+                    (verificationRemarks == null || verificationRemarks.isBlank())
+                        ? null
+                        : verificationRemarks.trim());
+                preparedStatement.setString(4, resolvedStatusValue);   // ver_status
+                preparedStatement.setString(5, resolvedStatusValue);   // status
+                preparedStatement.setLong(6, chequeId);
+                preparedStatement.executeUpdate();
             }
             return null;
         });
     }
 
-    /**
-     * Checks cts_cheques.status for ALL cheques in the batch (V1 + V2)
-     * and updates cts_batches.status accordingly:
-     *
-     *   All actioned  → "Verified"               (BatchStatus.VERIFIED.db())
-     *   Partially done → "VerificationInProgress" (BatchStatus.VERIFICATION_IN_PROGRESS.db())
-     */
     @Override
-    public void checkAndUpdateBatchStatus(String batchId) {
-        executeWithConnection(conn -> {
-            long totalCount    = 0;
-            long actionedCount = 0;
+    public void evaluateAndUpdateBatchVerificationStatus(String batchIdentifier) {
+        executeWithConnection(connection -> {
+            long totalChequeCount    = 0;
+            long actionedChequeCount = 0;
 
-            // Count all cheques in the batch
-            try (PreparedStatement ps = conn.prepareStatement(SQL_COUNT_ALL_CHEQUES_IN_BATCH)) {
-                ps.setString(1, batchId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) totalCount = rs.getLong(1);
+            // Count all cheques in the batch (Verification Level I and II combined)
+            try (PreparedStatement preparedStatement =
+                         connection.prepareStatement(SQL_COUNT_ALL_CHEQUES_IN_BATCH)) {
+                preparedStatement.setString(1, batchIdentifier);
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    if (resultSet.next()) totalChequeCount = resultSet.getLong(1);
                 }
             }
 
-            // Count actioned (Verified or Rejected) cheques in the batch
-            try (PreparedStatement ps = conn.prepareStatement(SQL_COUNT_ACTIONED_CHEQUES_IN_BATCH)) {
-                ps.setString(1, batchId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) actionedCount = rs.getLong(1);
+            // Count cheques that are fully actioned (Verified or Rejected)
+            try (PreparedStatement preparedStatement =
+                         connection.prepareStatement(SQL_COUNT_ACTIONED_CHEQUES_IN_BATCH)) {
+                preparedStatement.setString(1, batchIdentifier);
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    if (resultSet.next()) actionedChequeCount = resultSet.getLong(1);
                 }
             }
 
-            // Determine new batch status using enum db values — never hardcoded strings.
-            // BatchStatus.VERIFIED.db()                  = "Verified"
-            // BatchStatus.VERIFICATION_IN_PROGRESS.db()  = "VerificationInProgress"
-            String newBatchStatus = (totalCount > 0 && actionedCount >= totalCount)
+            // Determine the updated batch status using enum database values — never hardcoded strings.
+            // BatchStatus.VERIFIED.db()                 = "Verified"
+            // BatchStatus.VERIFICATION_IN_PROGRESS.db() = "VerificationInProgress"
+            String updatedBatchStatus = (totalChequeCount > 0 && actionedChequeCount >= totalChequeCount)
                     ? BatchStatus.VERIFIED.db()
                     : BatchStatus.VERIFICATION_IN_PROGRESS.db();
 
-            // Update cts_batches.status
-            try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_BATCH_STATUS)) {
-                ps.setString(1, newBatchStatus);
-                ps.setString(2, batchId);
-                ps.executeUpdate();
+            // Persist the updated batch status
+            try (PreparedStatement preparedStatement =
+                         connection.prepareStatement(SQL_UPDATE_BATCH_VERIFICATION_STATUS)) {
+                preparedStatement.setString(1, updatedBatchStatus);
+                preparedStatement.setString(2, batchIdentifier);
+                preparedStatement.executeUpdate();
             }
 
             return null;
         });
     }
 
-    // ── Mappers ──────────────────────────────────────────────────────────────
+    // ── ResultSet Mappers ────────────────────────────────────────────────────
 
     /**
-     * Maps ResultSet → BatchModel.
+     * Maps a ResultSet row to a BatchModel instance.
      *
-     * hv_count | pending_count | processed_count  encoded into presentingBankId.
-     * Composer derives STATUS display from pending_count:
-     *   pending_count == 0  →  "VERIFIED"
-     *   pending_count  > 0  →  "VERIFICATION IN PROGRESS"
+     * Aggregated counts are encoded into presentingBankId as a pipe-delimited string:
+     *   "highValueCount|pendingCount|processedCount|referredCount"
+     *
+     * The Composer derives the display status from pendingCount:
+     *   pendingCount == 0  →  "VERIFIED"
+     *   pendingCount  > 0  →  "VERIFICATION IN PROGRESS"
      */
-    private BatchModel mapBatch(ResultSet rs) throws SQLException {
-        BatchModel m = new BatchModel();
+    private BatchModel mapResultSetToBatchModel(ResultSet resultSet) throws SQLException {
+        BatchModel batchModel = new BatchModel();
 
-        m.setBatchId(rs.getString("batch_id"));
-        m.setBranchCode(rs.getString("branch_code"));
-        m.setStatus(rs.getString("status"));
-        m.setTotalCheques(rs.getInt("total_cheques"));
-        m.setExpectedCheques(rs.getInt("expected_cheques"));
-        m.setTotalAmount(rs.getBigDecimal("total_amount"));
-        m.setExpectedAmount(rs.getBigDecimal("expected_amount"));
+        batchModel.setBatchId(resultSet.getString("batch_id"));
+        batchModel.setBranchCode(resultSet.getString("branch_code"));
+        batchModel.setStatus(resultSet.getString("status"));
+        batchModel.setTotalCheques(resultSet.getInt("total_cheques"));
+        batchModel.setExpectedCheques(resultSet.getInt("expected_cheques"));
+        batchModel.setTotalAmount(resultSet.getBigDecimal("total_amount"));
+        batchModel.setExpectedAmount(resultSet.getBigDecimal("expected_amount"));
 
-        Timestamp ca = rs.getTimestamp("created_at");
-        if (ca != null) m.setCreatedAt(ca.toLocalDateTime());
+        Timestamp createdAtTimestamp = resultSet.getTimestamp("created_at");
+        if (createdAtTimestamp != null) batchModel.setCreatedAt(createdAtTimestamp.toLocalDateTime());
 
-        Timestamp ua = rs.getTimestamp("updated_at");
-        if (ua != null) m.setUpdatedAt(ua.toLocalDateTime());
+        Timestamp updatedAtTimestamp = resultSet.getTimestamp("updated_at");
+        if (updatedAtTimestamp != null) batchModel.setUpdatedAt(updatedAtTimestamp.toLocalDateTime());
 
-        long hvCount        = rs.getLong("hv_count");
-        long pendingCount   = rs.getLong("pending_count");
-        long processedCount = rs.getLong("processed_count");
-        long refCount       = rs.getLong("ref_count");
-        m.setPresentingBankId(hvCount + "|" + pendingCount + "|" + processedCount + "|" + refCount);
+        long highValueCount  = resultSet.getLong("high_value_count");
+        long pendingCount    = resultSet.getLong("pending_count");
+        long processedCount  = resultSet.getLong("processed_count");
+        long referredCount   = resultSet.getLong("referred_count");
 
-        return m;
+        batchModel.setPresentingBankId(
+            highValueCount + "|" + pendingCount + "|" + processedCount + "|" + referredCount
+        );
+
+        return batchModel;
     }
 
     /**
-     * Maps ResultSet → ChequeModel.
+     * Maps a ResultSet row to a ChequeModel instance.
      *
-     * PIGGYBACK: ver_action is stored in iqa_status as "VACTION:<value>"
-     * so the composer can read it for the FLAG column without any model change.
+     * Piggyback encoding: ver_action is stored in iqa_status as "VACTION:<value>"
+     * so the Composer can read it for the Flag column without any model changes.
      *
      * Example values stored in iqa_status:
-     *   "VACTION:REFERRED"   — cheque came from V1 via REFER
-     *   "VACTION:VERIFIED"   — already verified at V2
-     *   "VACTION:"           — no ver_action set yet (direct HV)
+     *   "VACTION:REFERRED"  — cheque was referred from Verification Level I via Refer action
+     *   "VACTION:VERIFIED"  — cheque has already been verified at Verification Level II
+     *   "VACTION:"          — no ver_action set yet (direct high-value cheque)
      */
-    private ChequeModel mapCheque(ResultSet rs) throws SQLException {
-        ChequeModel m = new ChequeModel();
+    private ChequeModel mapResultSetToChequeModel(ResultSet resultSet) throws SQLException {
+        ChequeModel chequeModel = new ChequeModel();
 
-        m.setId(Long.toString(rs.getLong("id")));
-        m.setBatchId(trim(rs.getString("batch_id")));
-        m.setChequeNo(trim(rs.getString("cheque_no")));
-        m.setAccountNo(trim(rs.getString("account_no")));        // MICR account_no — displayed in UI
-        // KEY FIX: payee_account_no is the CBS lookup key — same column V1 uses via getPayeeAccountNo().
-        // V2 was calling getAccountNo() which reads account_no — a DIFFERENT DB column that does NOT
-        // match Firestore document IDs → every CBS lookup returned HTTP 404 "Not found".
-        m.setPayeeAccountNo(trim(rs.getString("payee_account_no")));
-        m.setPayeeName(trim(rs.getString("payee_name")));        // used in CBS name match
-        m.setSortCode(trim(rs.getString("sort_code")));
-        m.setTransactionCode(trim(rs.getString("transaction_code")));
-        m.setAmount(rs.getBigDecimal("amount"));
-        m.setAmountInWords(trim(rs.getString("amount_in_words")));
-        m.setChequeDate(trim(rs.getString("cheque_date")));
+        chequeModel.setId(Long.toString(resultSet.getLong("id")));
+        chequeModel.setBatchId(trimToNull(resultSet.getString("batch_id")));
+        chequeModel.setChequeNo(trimToNull(resultSet.getString("cheque_no")));
 
-        // Encode ver_action into iqa_status using "VACTION:" prefix
-        // (kept as-is — other modules may still rely on this encoding)
-        String verAction = trim(rs.getString("ver_action"));
-        m.setIqaStatus("VACTION:" + (verAction != null ? verAction : ""));
+        // account_no is the MICR account number displayed in the UI
+        chequeModel.setAccountNo(trimToNull(resultSet.getString("account_no")));
 
-        // Permanent referred flag — set once by V1, does NOT change when
-        // V2 verifies/rejects the cheque. This is now the source of truth
-        // for the REF flag/count on this screen.
-        m.setReferred(rs.getBoolean("is_referred"));
+        // payee_account_no is the CBS lookup key (same column used by Verification Level I).
+        // Using account_no here would cause CBS lookups to return HTTP 404 (column mismatch).
+        chequeModel.setPayeeAccountNo(trimToNull(resultSet.getString("payee_account_no")));
+        chequeModel.setPayeeName(trimToNull(resultSet.getString("payee_name")));
+        chequeModel.setSortCode(trimToNull(resultSet.getString("sort_code")));
+        chequeModel.setTransactionCode(trimToNull(resultSet.getString("transaction_code")));
+        chequeModel.setAmount(resultSet.getBigDecimal("amount"));
+        chequeModel.setAmountInWords(trimToNull(resultSet.getString("amount_in_words")));
+        chequeModel.setChequeDate(trimToNull(resultSet.getString("cheque_date")));
 
-        m.setStatus(trim(rs.getString("status")));
-        m.setVerStatus(trim(rs.getString("ver_status")));
-        m.setDuplicate(rs.getBoolean("duplicate_flag"));
+        // Encode ver_action into iqa_status using the "VACTION:" piggyback prefix
+        String verificationAction = trimToNull(resultSet.getString("ver_action"));
+        chequeModel.setIqaStatus("VACTION:" + (verificationAction != null ? verificationAction : ""));
 
-        Timestamp ca = rs.getTimestamp("created_at");
-        if (ca != null) m.setCreatedAt(ca.toLocalDateTime());
+        // is_referred is set permanently by Verification Level I and is never overwritten.
+        // This is the reliable source of truth for the Referred flag and count on this screen.
+        chequeModel.setReferred(resultSet.getBoolean("is_referred"));
 
-        Timestamp ua = rs.getTimestamp("updated_at");
-        if (ua != null) m.setUpdatedAt(ua.toLocalDateTime());
+        chequeModel.setStatus(trimToNull(resultSet.getString("status")));
+        chequeModel.setVerStatus(trimToNull(resultSet.getString("ver_status")));
+        chequeModel.setDuplicate(resultSet.getBoolean("duplicate_flag"));
 
-        byte[] frontBytes = rs.getBytes("front_image");
-        if (frontBytes != null && frontBytes.length > 0) {
-            m.setFrontImageBytes(frontBytes);
+        Timestamp createdAtTimestamp = resultSet.getTimestamp("created_at");
+        if (createdAtTimestamp != null) chequeModel.setCreatedAt(createdAtTimestamp.toLocalDateTime());
+
+        Timestamp updatedAtTimestamp = resultSet.getTimestamp("updated_at");
+        if (updatedAtTimestamp != null) chequeModel.setUpdatedAt(updatedAtTimestamp.toLocalDateTime());
+
+        byte[] frontImageBytes = resultSet.getBytes("front_image");
+        if (frontImageBytes != null && frontImageBytes.length > 0) {
+            chequeModel.setFrontImageBytes(frontImageBytes);
         }
 
-        byte[] rearBytes = rs.getBytes("rear_image");
-        if (rearBytes != null && rearBytes.length > 0) {
-            m.setRearImageBytes(rearBytes);
+        byte[] rearImageBytes = resultSet.getBytes("rear_image");
+        if (rearImageBytes != null && rearImageBytes.length > 0) {
+            chequeModel.setRearImageBytes(rearImageBytes);
         }
 
-        return m;
+        return chequeModel;
     }
 
-    // ── Connection helper ────────────────────────────────────────────────────
+    // ── Connection Helper ────────────────────────────────────────────────────
 
+    /**
+     * Functional interface for a JDBC unit of work that returns a result.
+     *
+     * @param <T> the return type of the operation
+     */
     @FunctionalInterface
-    private interface JdbcWork<T> {
-        T execute(Connection conn) throws SQLException;
+    private interface JdbcOperation<T> {
+        T execute(Connection connection) throws SQLException;
     }
 
-    private <T> T executeWithConnection(JdbcWork<T> work) {
-        try (Session session = HibernateUtil.getSession()) {
-            return session.doReturningWork(conn -> {
+    /**
+     * Obtains a Hibernate-managed JDBC connection, executes the given operation,
+     * and returns its result. Wraps any SQLException in a RuntimeException.
+     *
+     * @param jdbcOperation  The unit of work to execute against the connection
+     * @param <T>            The return type of the operation
+     * @return The result produced by the operation
+     */
+    private <T> T executeWithConnection(JdbcOperation<T> jdbcOperation) {
+        try (Session hibernateSession = HibernateUtil.getSession()) {
+            return hibernateSession.doReturningWork(connection -> {
                 try {
-                    return work.execute(conn);
-                } catch (SQLException e) {
+                    return jdbcOperation.execute(connection);
+                } catch (SQLException sqlException) {
                     throw new RuntimeException(
-                        "VerificationIIDAOImpl error: " + e.getMessage(), e);
+                        "VerificationIIDAOImpl: Database operation failed. " +
+                        sqlException.getMessage(), sqlException);
                 }
             });
         }
     }
-    
-    private static String trim(String s) {
-        return s != null ? s.trim() : null;
+
+    /**
+     * Trims whitespace from the given string value.
+     * Returns null if the input is null.
+     *
+     * @param rawValue  The raw string value from the ResultSet
+     * @return Trimmed string, or null if the input was null
+     */
+    private static String trimToNull(String rawValue) {
+        return rawValue != null ? rawValue.trim() : null;
     }
 }
