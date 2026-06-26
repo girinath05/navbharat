@@ -713,7 +713,10 @@ public class MyBatchesComposer extends SelectorComposer<Component> {
 
         final String batchId = batchEntity.getBatchId() != null ? batchEntity.getBatchId() : "";
 
-        // Entire row click → navigate to Batch Detail
+        
+        //❤️❤️❤️❤️❤️🙏🙏🙏🙏🙏🙏🙏🙏
+        //❤️❤️❤️❤️❤️🙏🙏🙏🙏🙏🙏🙏🙏
+        // Entire row click → navigate to Batch Detail ❤️❤️❤️❤️❤️🙏🙏🙏🙏🙏🙏🙏🙏
         if (!batchId.isEmpty()) {
             row.addEventListener("onClick", e -> openBatch(batchId));
         }

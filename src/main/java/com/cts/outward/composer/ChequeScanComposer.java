@@ -42,7 +42,7 @@
  *       → DashboardComposer.loadPage(".../cheque-scan.zul")
  *
  * ──────────────────────────────────────────────────────────────
- * ZK LIFECYCLE  (call order guaranteed by ZK framework)
+ * ZK LIFECYCLE  (call order guaranteed by ZK framework)  
  * ──────────────────────────────────────────────────────────────
  *  doAfterCompose(comp)
  *      1. isSessionValid()          → redirect to index.zul if not logged in
@@ -219,9 +219,9 @@ public class ChequeScanComposer extends SelectorComposer<Component> {
 	// ══════════════════════════════════════════════════════════════════════
 
 	@Wire
-	private Label lblHdrUser; // "UMESH M." in the page header
+	private Label lblHdrUser; 
 	@Wire
-	private Label lblHdrRole; // "ADMINISTRATOR" in the page header
+	private Label lblHdrRole; 
 	@Wire
 	private Button btnLogout; // Invalidate session → redirect to login
 	@Wire
@@ -676,6 +676,7 @@ public class ChequeScanComposer extends SelectorComposer<Component> {
 				btnCreateBatch.setDisabled(false);
 			return;
 		}
+		
 
 		closeBatchModal();
 
@@ -835,7 +836,7 @@ public class ChequeScanComposer extends SelectorComposer<Component> {
 	 *                the Maker knows which batch they are scanning into)
 	 */
 	private void openScanModal(String batchId) {
-		if (scanBatchIdLabel != null)
+		if (scanBatchIdLabel != null) 
 			scanBatchIdLabel.setValue(batchId != null ? batchId : "—");
 		hideScanProgress(); // always reset progress bar before showing modal
 		if (scanModal != null)

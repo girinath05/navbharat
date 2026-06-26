@@ -351,7 +351,7 @@ public class HeaderComposer extends SelectorComposer<Component> {
             // Lambda handles the dialog result; only proceeds with logout on YES
             clickEvent -> {
                 if (Messagebox.Button.YES.equals(clickEvent.getButton())) {
-                    doLogout();
+//                    doLogout();
                 }
             }
         );

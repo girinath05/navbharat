@@ -57,7 +57,7 @@ public class LoginComposer extends SelectorComposer<Component> {
             return;
         }
 
-        usernameField.setFocus(true);
+        if(usernameField!=null)usernameField.setFocus(true);
         showAccessDeniedMessageIfPresent();
     }
 

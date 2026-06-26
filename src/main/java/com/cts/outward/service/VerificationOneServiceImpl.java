@@ -1,3 +1,4 @@
+
 /*
  * File        : VerificationOneServiceImpl.java
  * Package     : com.cts.outward.service
@@ -274,25 +275,7 @@ public class VerificationOneServiceImpl implements VerificationOneService {
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    // 2. CHEQUE LIST
-    // ══════════════════════════════════════════════════════════════════════
-
-    /**
-     * {@inheritDoc}
-     *
-     * Referred cheques are absent from this result because referring a cheque
-     * flips its ver_level column from "V1" to "V2" in the database; the DAO
-     * query filters on ver_level = "V1" so referred cheques naturally drop out.
-     * The composer keeps them visible for the current session through
-     * applyActionToInMemoryCheque().
-     */
-    @Override
-    public List<ChequeEntity> getAllV1ChequesForBatch(String batchId) {
-        List<ChequeEntity> cheques = chequeDAO.loadAllV1ChequesForBatch(batchId);
-        return cheques != null ? cheques : new ArrayList<>();
-    }
-
+  
     /**
      * {@inheritDoc}
      *
@@ -672,5 +655,24 @@ public class VerificationOneServiceImpl implements VerificationOneService {
     private Date toUtilDate(java.time.LocalDate localDate) {
         return java.util.Date.from(
                 localDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant());
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 2. CHEQUE LIST
+    // ══════════════════════════════════════════════════════════════════════
+
+    /**
+     * {@inheritDoc}
+     *
+     * Referred cheques are absent from this result because referring a cheque
+     * flips its ver_level column from "V1" to "V2" in the database; the DAO
+     * query filters on ver_level = "V1" so referred cheques naturally drop out.
+     * The composer keeps them visible for the current session through
+     * applyActionToInMemoryCheque().
+     */
+    @Override
+    public List<ChequeEntity> getAllV1ChequesForBatch(String batchId) {
+        List<ChequeEntity> cheques = chequeDAO.loadAllV1ChequesForBatch(batchId);
+        return cheques != null ? cheques : new ArrayList<>();
     }
 }

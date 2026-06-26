@@ -849,6 +849,8 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
 
 		// ── Validation state ──────────────────────────────────────────
 		clearAllFieldErrors();
+		
+		
 		if (c.isAmountWordsMismatch()) {
 			markField(popAmount, errAmount, "⚠ Amount in Words mismatch with Amount in Digits. Please verify.",
 					CSS_INPUT_NORM);

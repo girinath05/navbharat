@@ -189,7 +189,7 @@
             <n:div class="mb-card-head">
                 <n:span class="mb-card-title">ALL BATCHES</n:span>
                 <!-- batchCountLabel: updated by updateBatchCountLabel() in composer -->
-                <label id="batchCountLabel" sclass="mb-count-badge" value="0 batches"/>
+                <label id="batchCountLabel" sclass="mb-count-badge" value=""/>
             </n:div>
 
             <!-- ── 3B. Search + Filter Toolbar ─────────────────────────── -->
@@ -339,6 +339,7 @@
                             </n:label>
                             <!-- txtChequeCount: read by onCreateBatch() for validation + batch creation -->
                             <intbox id="txtChequeCount" sclass="mf-input" placeholder="e.g. 5"/>
+                            
                             <!-- errChequeCount: shown by composer when count is missing or < 1 -->
                             <label id="errChequeCount" sclass="mf-error" value=""/>
                         </div>
@@ -350,6 +351,7 @@
                             </n:label>
                             <!-- txtExpectedAmount: read by onCreateBatch() for validation + batch creation -->
                             <decimalbox id="txtExpectedAmount" sclass="mf-input" placeholder="e.g. 10000.00"/>
+                            
                             <!-- errExpectedAmount: shown by composer when amount is missing or <= 0 -->
                             <label id="errExpectedAmount" sclass="mf-error" value=""/>
                         </div>
@@ -359,8 +361,11 @@
 
                 <!-- Modal footer: Cancel and Save actions -->
                 <div sclass="modal-footer">
+                
                     <!-- Wired to onCancelBatchModal() → batchModal.setVisible(false) -->
                     <button id="btnCancelBatchModal" sclass="btn btn-outline" label="Cancel"/>
+                    
+                    
                     <!-- Wired to onCreateBatch() → validates → creates Draft batch → opens scan modal -->
                     <button id="btnCreateBatch" sclass="btn btn-primary" label="&#x1F4BE; Save Batch"/>
                 </div>

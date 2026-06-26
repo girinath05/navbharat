@@ -74,7 +74,7 @@
  * ──────────────────────────────────────────────────────────────
  *  This method calls ChequeDAO.updateChequeFields() — NOT
  *  ChequeDAO.saveOrUpdate(). This distinction is important:
- *  updateChequeFields() uses a targeted HQL UPDATE that writes
+ *  updateChequeFields() uses a targeted UPDATE that writes
  *  only Maker-editable columns and deliberately excludes
  *  verLevel/verStatus (which are set by BatchServiceImpl.submitBatch()
  *  and must not be overwritten by Maker edits after submission).
@@ -88,13 +88,11 @@
 
 package com.cts.outward.service;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import com.cts.outward.dao.CBSDAOImpl;
 import com.cts.outward.dao.ChequeDAO;
 import com.cts.outward.entity.ChequeEntity;
-import com.cts.util.HibernateUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
@@ -283,48 +281,7 @@ public class ChequeServiceImpl implements ChequeService {
      */
     @Override
     public void deleteCheque(long chequeId) {
-        try (org.hibernate.Session hibernateSession = HibernateUtil.getSession()) {
-            hibernateSession.beginTransaction();
-
-            // Step 1: Load cheque entity to retrieve batchId and amount before deleting.
-            // Both are needed for the batch decrement UPDATE that follows.
-            ChequeEntity chequeToDelete = hibernateSession.get(ChequeEntity.class, chequeId);
-            if (chequeToDelete == null) {
-                // Cheque not found — nothing to delete; roll back the empty transaction
-                hibernateSession.getTransaction().rollback();
-                return;
-            }
-
-            String parentBatchId = chequeToDelete.getBatchId();
-            BigDecimal chequeAmount = chequeToDelete.getAmount() != null
-                ? chequeToDelete.getAmount()
-                : BigDecimal.ZERO;
-
-            // Step 2: Delete the cheque row from cts_cheques
-            hibernateSession.remove(chequeToDelete);
-
-            // Step 3: Decrement parent batch control totals.
-            // Native SQL used to avoid loading the full BatchEntity just to modify
-            // two columns. GREATEST(0, …) prevents negative values on data inconsistency.
-            hibernateSession.createNativeMutationQuery(
-                "UPDATE cts_batches " +
-                "SET total_cheques  = GREATEST(0, total_cheques - 1), " +
-                "    control_amount = GREATEST(0, control_amount - :chequeAmount) " +
-                "WHERE batch_id = :parentBatchId")
-                .setParameter("chequeAmount", chequeAmount)
-                .setParameter("parentBatchId", parentBatchId)
-                .executeUpdate();
-
-            // Commit both operations atomically
-            hibernateSession.getTransaction().commit();
-
-        } catch (Exception transactionException) {
-            transactionException.printStackTrace();
-            throw new RuntimeException(
-                "Failed to delete cheque #" + chequeId + ": " + transactionException.getMessage(),
-                transactionException
-            );
-        }
+        chequeDAO.deleteAndDecrementBatch(chequeId);
     }
 
     // ══════════════════════════════════════════════════════════════════════
