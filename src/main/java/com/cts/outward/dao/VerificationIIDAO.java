@@ -64,6 +64,10 @@ public interface VerificationIIDAO {
      */
     void persistVerificationDecision(long chequeId, String verificationAction,
                                      String verifierUsername, String verificationRemarks);
+    // chequeId             → cts_cheques.id (bigserial PK); uniquely identifies the row to update.
+    // verificationAction   → "VERIFIED" or "REJECTED"; written to ver_action and resolved into ver_status/status.
+    // verifierUsername     → written to ver_by; sourced from the active session's login name.
+    // verificationRemarks  → optional free-text from the UI; stored as NULL if blank.
 
     /**
      * Evaluates cts_cheques.status for all cheques in the specified batch (V1 and V2 combined)

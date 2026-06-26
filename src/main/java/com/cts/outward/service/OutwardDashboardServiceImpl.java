@@ -1,15 +1,3 @@
-/*
- * ============================================================
- *  Project     : Navbharat CTS Outward
- *  File        : OutwardDashboardServiceImpl.java
- *  Package     : com.cts.outward.service
- *  Description : Implementation of OutwardDashboardService.
- *                Delegates to OutwardDashboardDAO. Logic copied
- *                from BatchServiceImpl.getDashboardStats(date) /
- *                getBatchesFilteredAsModels(), unchanged.
- * ============================================================
- */
-
 package com.cts.outward.service;
 
 import java.time.LocalDate;
@@ -18,9 +6,9 @@ import java.util.List;
 
 import com.cts.outward.dao.OutwardDashboardDAO;
 import com.cts.outward.entity.BatchEntity;
+import com.cts.outward.enums.BatchStatus;
 import com.cts.outward.model.BatchModel;
 import com.cts.outward.model.OutwardDashboardStats;
-// OutwardDashboardStats — used as return type for getDashboardStats() passthrough
 
 public class OutwardDashboardServiceImpl implements OutwardDashboardService {
 
@@ -32,31 +20,53 @@ public class OutwardDashboardServiceImpl implements OutwardDashboardService {
 
     @Override
     public OutwardDashboardStats getDashboardStats(LocalDate date) {
-        return outwardDashboardDAO.getDashboardStats(date);
-    }
 
-    // ════════════════════════════════════════════════════════════
-    //  FILTERED BATCH LIST AS MODELS — returns BatchModel list
-    //  Used by OutwardDashboardComposer to show submitted /
-    //  pending cheque counts per batch row.
-    //
-    //  Flow:
-    //    1. outwardDashboardDAO.getBatchesFiltered()    → List<BatchEntity>
-    //    2. For each batchEntity: map fields to BatchModel
-    //    3. outwardDashboardDAO.countSubmittedByBatch() → submittedCheques
-    //    4. outwardDashboardDAO.countPendingByBatch()   → pendingCheques
-    //    5. Return List<BatchModel>
-    // ════════════════════════════════════════════════════════════
+        // Get raw { status, count } rows from DB and map them to stat cards here
+        List<Object[]> rawStatusCounts = outwardDashboardDAO.getRawStatusCountsByDate(date);
+
+        OutwardDashboardStats stats = new OutwardDashboardStats();
+        int totalBatchCount = 0;
+
+        for (Object[] row : rawStatusCounts) {
+            String rawStatus  = (String) row[0];
+            int    batchCount = ((Number) row[1]).intValue();
+            totalBatchCount  += batchCount;
+
+            if (rawStatus == null) continue;
+
+            BatchStatus batchStatus = BatchStatus.fromDb(rawStatus);
+
+            if (batchStatus == BatchStatus.READY_FOR_VERIFICATION
+             || batchStatus == BatchStatus.VERIFICATION_IN_PROGRESS) {
+                stats.setVerificationBatches(stats.getVerificationBatches() + batchCount);
+
+            } else if (batchStatus == BatchStatus.VERIFIED) {
+                stats.setVerifiedBatches(stats.getVerifiedBatches() + batchCount);
+
+            } else if (batchStatus == BatchStatus.CXF_CIBF_GENERATED
+                    || batchStatus == BatchStatus.DISPATCHED) {
+                stats.setDispatchedBatches(stats.getDispatchedBatches() + batchCount);
+            }
+            // DRAFT / PENDING — counted in total only, no separate card
+        }
+
+        stats.setTotalBatches(totalBatchCount);
+        return stats;
+    }
 
     @Override
     public List<BatchModel> getBatchesFilteredAsModels(String batchIdFilter,
                                                         String statusFilter,
                                                         LocalDate dateFilter) {
-        List<BatchEntity> batchEntities = outwardDashboardDAO.getBatchesFiltered(
-                batchIdFilter, statusFilter, dateFilter);
+
+        List<BatchEntity> batchEntities =
+                outwardDashboardDAO.getBatchesFiltered(batchIdFilter, statusFilter, dateFilter);
 
         List<BatchModel> batchModels = new ArrayList<>();
+
         for (BatchEntity batchEntity : batchEntities) {
+
+            // Map entity fields to model
             BatchModel batchModel = new BatchModel();
             batchModel.setBatchId(batchEntity.getBatchId());
             batchModel.setBranchCode(batchEntity.getBranchCode());
@@ -68,12 +78,13 @@ public class OutwardDashboardServiceImpl implements OutwardDashboardService {
             batchModel.setCreatedAt(batchEntity.getCreatedAt());
             batchModel.setUpdatedAt(batchEntity.getUpdatedAt());
 
-            // Cheque-level counts — two lightweight COUNT queries per batch
+            // Fetch submitted and pending cheque counts for this batch
             batchModel.setSubmittedCheques(outwardDashboardDAO.countSubmittedByBatch(batchEntity.getBatchId()));
             batchModel.setPendingCheques(outwardDashboardDAO.countPendingByBatch(batchEntity.getBatchId()));
 
             batchModels.add(batchModel);
         }
+
         return batchModels;
     }
 }

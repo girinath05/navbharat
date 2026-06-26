@@ -28,11 +28,14 @@
                 <label sclass="v2-page-subtitle"
                     value="High Value &amp; Referred Cheque Authorisation" />
             </div>
+            <!-- Visual badges shown in the header to indicate what cheque types this screen handles -->
             <div sclass="v2-hv-badges-row">
+                <!-- Orange badge — high-value cheques (ver_level = 'V2') -->
                 <div sclass="v2-hv-badge-orange">
                     <span sclass="v2-hv-icon">₹</span>
                     <label value="HIGH VALUE" />
                 </div>
+                <!-- Blue badge — cheques referred from Verification Level I (is_referred = true) -->
                 <div sclass="v2-hv-badge-blue">
                     <span sclass="v2-hv-icon">⇄</span>
                     <label value="REFERRED" />
@@ -46,11 +49,15 @@
         <div sclass="v2-threshold-strip">
             <span sclass="v2-threshold-icon">⚠</span>
             <label value="Displaying batches containing cheques flagged as High Value or Referred from Verification I" />
+            <!-- Live summary chips — counts updated by composer after each page load -->
             <div sclass="v2-strip-right">
+                <!-- Total number of batches visible on this screen -->
                 <label sclass="v2-stat-chip pending-chip"
                     id="lblTotalBatchCount" value="— Batches" />
+                <!-- Total high-value cheque count across all visible batches -->
                 <label sclass="v2-stat-chip hv-chip"
                     id="lblTotalHighValueCount" value="— HV Cheques" />
+                <!-- Total referred cheque count (is_referred = true) across all visible batches -->
                 <label sclass="v2-stat-chip ref-chip"
                     id="lblTotalReferredCount" value="— Referred" />
             </div>
@@ -66,9 +73,11 @@
                     <label sclass="v2-card-title" value="BATCH LIST" />
                 </div>
                 <div sclass="v2-filter-bar">
+                    <!-- Free-text search — filters batch ID; instant="true" triggers on each keystroke -->
                     <textbox id="txtBatchSearch" sclass="v2-search-box"
                         placeholder="Search Batch ID..." instant="true" />
 
+                    <!-- Date range filter — composer enforces From ≤ To cross-constraint -->
                     <div sclass="v2-date-range">
                         <datebox id="dteBatchDateFrom" sclass="v2-date-box v2-date-from"
                             format="dd-MM-yyyy" placeholder="From" />
@@ -77,6 +86,7 @@
                             format="dd-MM-yyyy" placeholder="To" />
                     </div>
 
+                    <!-- Status filter — value="ALL" shows every batch regardless of status -->
                     <combobox id="cmbBatchStatus" sclass="v2-status-combo" readonly="true">
                         <comboitem label="All"                    value="ALL" />
                         <comboitem label="Ready for Verification" value="PENDING" />
@@ -84,10 +94,12 @@
                         <comboitem label="In Progress"            value="INPROGRESS" />
                     </combobox>
 
+                    <!-- Resets all three filters and reloads the full batch list -->
                     <button id="btnClearBatchFilters" sclass="v2-clear-btn" label="✕ Clear" />
                 </div>
             </div>
 
+            <!-- Batch list grid — rows populated dynamically by composer via batchGridRows -->
             <grid id="batchGrid" sclass="v2-grid" width="100%">
                 <columns sclass="v2-grid-columns">
                     <column label="BATCH ID"           width="9%"  sclass="v2-col-hd" />
@@ -99,14 +111,17 @@
                     <column label="CHEQUE STATUS"      width="14%" sclass="v2-col-hd v2-center" />
                     <column label="ACTION"             width="9%"  sclass="v2-col-hd v2-center" />
                 </columns>
+                <!-- Rows injected at runtime by composer; empty until fetchHighValueBatches() returns -->
                 <rows id="batchGridRows" />
             </grid>
 
+            <!-- Shown by composer when the filtered batch list is empty; hidden otherwise -->
             <div id="batchEmptyState" sclass="v2-empty-state" visible="false">
                 <label sclass="v2-empty-icon" value="📋" />
                 <label sclass="v2-empty-msg" value="No batches match the selected filter" />
             </div>
 
+            <!-- Pagination bar — prev/next buttons and page label updated by composer on each page change -->
             <div sclass="v2-pagination-bar">
                 <label id="lblBatchRecordCount" sclass="v2-page-count-label" value="Showing high-value batches" />
                 <div sclass="v2-page-nav">
@@ -129,12 +144,14 @@
 
                     <!-- Row 1: batch badge | CHEQUE QUEUE | Back to Batches (right end) -->
                     <div sclass="v2-cheque-header-row1">
+                        <!-- Active batch identifier pill — set by composer when user drills into a batch -->
                         <div sclass="v2-cheque-col-left">
                             <label sclass="v2-batch-badge" id="lblActiveBatchId" value="" />
                         </div>
                         <div sclass="v2-cheque-col-center">
                             <label sclass="v2-queue-label" value="CHEQUE QUEUE" />
                         </div>
+                        <!-- Returns to Screen 1 (batchListView); composer hides chequeListView on click -->
                         <div sclass="v2-cheque-col-right">
                             <button id="btnBackToBatches" sclass="v2-back-btn" label="← Back to Batches" />
                         </div>
@@ -142,9 +159,11 @@
 
                     <!-- Row 2: search -> date range -> chips -> clear -->
                     <div sclass="v2-cheque-filter-row">
+                        <!-- Free-text search — matches against cheque_no OR payee_name; instant fire on keystroke -->
                         <textbox id="txtChequeSearch" sclass="v2-search-box"
                             placeholder="Search cheque no. or payee..." instant="true" />
 
+                        <!-- Date range filter scoped to this batch's cheques -->
                         <div sclass="v2-date-range">
                             <datebox id="dteChequeDateFrom" sclass="v2-date-box v2-date-from"
                                 format="dd-MM-yyyy" placeholder="From" />
@@ -153,20 +172,27 @@
                                 format="dd-MM-yyyy" placeholder="To" />
                         </div>
 
+                        <!-- Toggle chips — clicking each chip filters cheques by type or status.
+                             Within each group (type / status) chips are OR-combined;
+                             across groups they are AND-combined. -->
                         <div sclass="v2-chip-group">
+                            <!-- Type chips (OR within group) -->
                             <label id="chipFilterHighValue"  sclass="v2-stat-chip chip-filter-hv chip-filter"  value="0 High Value" />
                             <label id="chipFilterReferred"   sclass="v2-stat-chip chip-filter-ref chip-filter" value="0 Referred" />
                             <span sclass="v2-chip-divider" />
+                            <!-- Status chips (OR within group) -->
                             <label id="chipStatusPending"    sclass="v2-stat-chip pending-chip chip-filter"    value="0 Pending" />
                             <label id="chipStatusPassed"     sclass="v2-stat-chip passed-chip chip-filter"     value="0 Passed" />
                             <label id="chipStatusRejected"   sclass="v2-stat-chip rejected-chip chip-filter"   value="0 Rejected" />
                         </div>
 
+                        <!-- Clears all cheque-level filters and reloads the full cheque list for this batch -->
                         <button id="btnClearChequeFilters" sclass="v2-clear-btn" label="✕ Clear" />
                     </div>
 
                 </div>
 
+                <!-- Cheque list grid — rows populated by composer; FLAG column uses VACTION piggyback from iqa_status -->
                 <grid id="chequeGrid" sclass="v2-grid" width="100%">
                     <columns sclass="v2-grid-columns">
                         <column label="S.NO."          width="6%"  sclass="v2-col-hd v2-center" />
@@ -174,18 +200,22 @@
                         <column label="PAYEE NAME"     width="13%" sclass="v2-col-hd v2-center" />
                         <column label="AMOUNT (Rs.)"   width="16%" sclass="v2-col-hd v2-center" />
                         <column label="DATE"           width="12%" sclass="v2-col-hd v2-center" />
+                        <!-- FLAG — shows HV / REFERRED badge; derived from is_referred and ver_level -->
                         <column label="FLAG"           width="8%"  sclass="v2-col-hd v2-center" />
                         <column label="VER STATUS"     width="11%" sclass="v2-col-hd v2-center" />
                         <column label="ACTION"         width="7%"  sclass="v2-col-hd v2-center" />
                     </columns>
+                    <!-- Rows injected at runtime; empty until fetchHighValueChequesForBatch() returns -->
                     <rows id="chequeGridRows" />
                 </grid>
 
+                <!-- Shown when no cheques match the active filter combination; hidden otherwise -->
                 <div id="chequeEmptyState" sclass="v2-empty-state" visible="false">
                     <label sclass="v2-empty-icon" value="✅" />
                     <label sclass="v2-empty-msg" value="No cheques match the selected filter" />
                 </div>
 
+                <!-- Pagination bar — prev/next and page label updated by composer on each page change -->
                 <div sclass="v2-pagination-bar">
                     <label id="lblChequeRecordCount" sclass="v2-page-count-label" value="Showing cheques" />
                     <div sclass="v2-page-nav">
@@ -214,6 +244,7 @@
               │ ‹Prev | 2/7 | REMARKS [textbox] | Accept|Reject | Next › │
               └──────────────────────────────────────────────────┘
             ═══════════════════════════════════════════════════════ -->
+        <!-- Popup window — mode="embedded" renders inline (no iframe); closable="false" because close is handled by btnClosePopup -->
         <window id="chequeDetailPopup" sclass="v2-popup-window"
             border="none" mode="embedded" closable="false" width="1050px" height="720px">
 
@@ -221,6 +252,7 @@
 
                 <!-- ── TITLE BAR ──────────────────────────────── -->
                 <div sclass="v2-popup-titlebar">
+                    <!-- Cheque number label — updated by composer each time a cheque is loaded -->
                     <label sclass="v2-popup-title" id="lblPopupChequeTitle" value="Cheque #——" />
                     <!--
                         popupTypeBadge id is used by composer to swap between
@@ -228,6 +260,7 @@
                         v2-badge-ref (orange,    REFERRED)
                     -->
                     <div id="divPopupChequeTypeBadge" sclass="v2-badge-hv">HIGH VALUE</div>
+                    <!-- Hides the popup and returns focus to the cheque list (Screen 2) -->
                     <button id="btnClosePopup" sclass="v2-close-btn" label="✕" />
                 </div>
 
@@ -237,10 +270,12 @@
                     <!-- LEFT COLUMN — image viewer with single flip button -->
                     <div sclass="v2-img-col">
 
-                        <!-- Front panel -->
+                        <!-- Front panel — visible by default; image shown when frontImageBytes is non-null -->
                         <div id="imgPanelFront" sclass="v2-img-panel">
                             <div sclass="v2-img-panel-inner">
+                                <!-- Src set by composer via Base64 data URI from cts_cheques.front_image (bytea) -->
                                 <image id="imgChequeFront" sclass="v2-cheque-img" visible="false" />
+                                <!-- Shown when front_image is null or zero-length -->
                                 <div id="divFrontImagePlaceholder" sclass="v2-img-placeholder">
                                     <label sclass="v2-img-ph-icon" value="🖼" />
                                     <label sclass="v2-img-ph-text" value="Front image not available" />
@@ -248,10 +283,12 @@
                             </div>
                         </div>
 
-                        <!-- Back panel (hidden by default) -->
+                        <!-- Back panel — hidden by default; toggled by btnFlipChequeImage -->
                         <div id="imgPanelBack" sclass="v2-img-panel" visible="false">
                             <div sclass="v2-img-panel-inner">
+                                <!-- Src set by composer via Base64 data URI from cts_cheques.rear_image (bytea) -->
                                 <image id="imgChequeRear" sclass="v2-cheque-img" visible="false" />
+                                <!-- Shown when rear_image is null or zero-length -->
                                 <div id="divRearImagePlaceholder" sclass="v2-img-placeholder">
                                     <label sclass="v2-img-ph-icon" value="🖼" />
                                     <label sclass="v2-img-ph-text" value="Rear image not available" />
@@ -260,6 +297,7 @@
                         </div>
 
                         <!-- Flip button — RIGHT side of image, vertically centred -->
+                        <!-- Toggles imgPanelFront / imgPanelBack visibility; label swaps between "Show Back" / "Show Front" -->
                         <div sclass="v2-flip-btn-col">
                             <button id="btnFlipChequeImage" sclass="v2-flip-btn" label="Show Back" />
                         </div>
@@ -353,22 +391,26 @@
                 <!--   ‹ Prev | 1/4 | Next ›  |  REMARKS [box]  Accept  Reject  -->
                 <div sclass="v2-action-bar">
 
-                    <!-- Navigation row -->
+                    <!-- Navigation row — moves between pending cheques in the queue; composer auto-advances after each action -->
                     <div sclass="v2-nav-row">
                         <button id="btnPopupPrev" sclass="v2-nav-btn" label="‹ Prev" />
+                        <!-- Counter label — e.g. "2 / 7"; updated by composer each time a cheque is loaded -->
                         <label sclass="v2-popup-counter" id="lblPopupChequeCounter" value="1 / 1" />
                         <button id="btnPopupNext" sclass="v2-nav-btn" label="Next ›" />
                     </div>
 
-                    <!-- Action row -->
+                    <!-- Action row — remarks are optional; Accept maps to "VERIFIED", Reject to "REJECTED" -->
                     <div sclass="v2-action-row">
+                        <!-- Optional free-text remarks written to cts_cheques.ver_remarks; stored as NULL if left blank -->
                         <div sclass="v2-remarks-wrap">
                             <textbox id="txtVerificationRemarks" sclass="v2-remarks-box"
                                 placeholder="Enter remarks..."
                                 multiline="true" rows="1" width="100%" />
                         </div>
                         <div sclass="v2-action-btns">
+                            <!-- Submits VERIFIED decision; composer calls submitHighValueChequeVerification then auto-advances -->
                             <button id="btnAcceptCheque" sclass="v2-accept-btn" label="✔  Accept" />
+                            <!-- Submits REJECTED decision; same flow as Accept but writes "Rejected" to ver_status/status -->
                             <button id="btnRejectCheque" sclass="v2-reject-btn" label="✘  Reject" />
                         </div>
                     </div>

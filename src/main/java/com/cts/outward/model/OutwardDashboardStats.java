@@ -18,13 +18,16 @@ package com.cts.outward.model;
 
 public class OutwardDashboardStats {
 
+    // ── Stat-card fields — each maps to one dashboard card count ─────────────
     private int totalBatches;
-    private int verificationBatches;  // Card 2 — in verification stage
-    private int verifiedBatches;      // Card 3 — all cheques verified
-    private int dispatchedBatches;    // Card 4 — CXF generated / dispatched
+    private int verificationBatches;  // Card 2 — in verification stage (ReadyForVerification + VerificationInProgress)
+    private int verifiedBatches;      // Card 3 — all cheques verified, batch is fully done
+    private int dispatchedBatches;    // Card 4 — CXF generated or dispatched to NPCI
 
+    // ── No-arg constructor required for frameworks (Hibernate, ZK binding) ───
     public OutwardDashboardStats() {}
 
+    // ── All-args constructor — used by OutwardDashboardDAOImpl.getDashboardStats() ──
     public OutwardDashboardStats(int totalBatches,
                                   int verificationBatches,
                                   int verifiedBatches,
@@ -48,8 +51,10 @@ public class OutwardDashboardStats {
     public void setDispatchedBatches(int dispatchedBatches)     { this.dispatchedBatches   = dispatchedBatches;   }
 
     // ── Legacy getters — keep until all callers updated ──────
+    // Retained for backward compatibility; delegates to the renamed field getter.
     /** @deprecated use getVerifiedBatches() */
     public int getCxfGenerating()  { return verifiedBatches;   }
+    // Retained for backward compatibility; delegates to the renamed field getter.
     /** @deprecated use getDispatchedBatches() */
     public int getSentToNpci()     { return dispatchedBatches; }
 }

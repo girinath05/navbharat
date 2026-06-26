@@ -1,30 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<!-- External CSS for header bar and profile popup modal styling -->
 <?link rel="stylesheet" href="/css/header.css"?>
 <?link rel="stylesheet" href="/css/profile-modal.css"?>
 
 <zk xmlns:n="native">
 
+    <!-- Root div for the entire header; HeaderComposer is wired here to control all child components -->
     <div id="hdrRoot" apply="com.cts.composer.HeaderComposer">
 
+        <!-- Timer fires every 1 second (repeating) to update the live clock and session time in the composer -->
         <timer id="hdrTimer" delay="1000" repeats="true" running="true" />
 
         <!-- ── HEADER BAR ──────────────────────────────────────── -->
         <div id="ctsHeader" sclass="cts-header">
 
+            <!-- Left section: Nav Bharat Bank logo -->
             <n:div class="hdr-left">
                 <image src="/images/navbharat.jpg" sclass="hdr-nbb-logo" />
             </n:div>
 
+            <!-- Centre section: live date and clock labels updated by hdrTimer via composer -->
             <div id="hdrCentre" sclass="hdr-centre">
                 <label id="lblHdrDate" sclass="hdr-date-label" value="01 JAN 2000" />
                 <label id="lblHdrTime" sclass="hdr-clock-label" value="00:00 AM" />
             </div>
 
+            <!-- Right section: ClearPay logo + avatar button that opens the profile popup -->
             <div sclass="hdr-right">
                 <n:div class="hdr-cp-block">
                     <image src="/images/clearpay.jpg" sclass="hdr-cp-logo-img" />
                 </n:div>
+                <!-- Clicking this avatar triggers onAvatarBtnClick() in the composer to toggle the profile popup -->
                 <div id="avatarBtn" sclass="hdr-avatar-btn">
                     <label id="lblHdrAvatar" sclass="hdr-avatar" value="A" />
                 </div>
@@ -38,40 +45,49 @@
              at 99999). Any click outside the popup lands here and the
              composer's onOverlayClick() closes the popup.
              Styling is inline so it never depends on header.css. -->
+        <!-- Transparent full-screen overlay; made visible when popup opens so outside clicks are caught -->
         <div id="ppOverlay" visible="false"
              style="position:fixed; top:0; left:0; width:100%; height:100%;
                     background:transparent; z-index:99998;" />
 
-        <!-- PROFILE POPUP -->
+        <!-- PROFILE POPUP: shown/hidden by composer when avatar is clicked -->
         <div id="profilePopup" sclass="profile-popup">
 
+            <!-- Top section: large avatar letter, user name, email, and role badge -->
             <n:div class="pp-top">
                 <n:div class="pp-avatar-big">
+                    <!-- Avatar initial letter — set dynamically by composer from logged-in user's name -->
                     <label id="lblPopupAvatar" sclass="pp-avatar-letter" value="A" />
                 </n:div>
                 <label id="lblPopupName"  sclass="pp-name"       value="Administrator" />
                 <label id="lblPopupEmail" sclass="pp-email"       value="user@navbharatbank.in" />
+                <!-- Role badge displays the user's role (e.g. ADMINISTRATOR, OPERATOR) from session -->
                 <label id="lblPopupRole"  sclass="pp-role-badge"  value="ADMINISTRATOR" />
             </n:div>
 
             <n:div class="pp-divider" />
 
+            <!-- Popup menu items: Change Password, Clock toggle, and Logout -->
             <n:div class="pp-menu">
 
+                <!-- Triggers the Change Password modal overlay when clicked -->
                 <div id="btnChangePassword" sclass="pp-menu-item">
                     <n:span class="pp-icon pp-icon-profile">&#128273;</n:span>
                     <n:span class="pp-menu-label">Change Password</n:span>
                 </div>
 
                 <!-- CLOCK TOGGLE ROW -->
+                <!-- Toggles the header clock visibility; pill label switches between ON and OFF -->
                 <div id="btnToggleClock" sclass="pp-menu-item">
                     <n:span class="pp-icon pp-icon-clock">&#128336;</n:span>
                     <n:span class="pp-menu-label">Show Clock</n:span>
+                    <!-- Toggle pill — composer switches sclass between pp-toggle-on and pp-toggle-off -->
                     <div id="clockTogglePill" sclass="pp-toggle pp-toggle-on">
                         <label id="lblClockToggle" sclass="pp-toggle-label" value="ON" />
                     </div>
                 </div>
 
+                <!-- Logout button; composer invalidates session and redirects to login page -->
                 <div id="btnLogout" sclass="pp-menu-item pp-logout">
                     <n:span class="pp-icon pp-icon-logout">&#9211;</n:span>
                     <n:span class="pp-menu-label">Logout</n:span>
@@ -79,6 +95,7 @@
 
             </n:div>
 
+            <!-- Footer: online indicator dot + active session duration updated every second by hdrTimer -->
             <n:div class="pp-footer">
                 <n:span class="pp-online-dot" />
                 <label id="lblSessionTime" sclass="pp-session-label"
@@ -87,44 +104,52 @@
 
         </div>
 
-        <!-- CHANGE PASSWORD MODAL -->
+        <!-- CHANGE PASSWORD MODAL: hidden by default; shown when "Change Password" menu item is clicked -->
         <div id="chpwModalOverlay" sclass="chpw-modal-overlay" visible="false">
             <div sclass="chpw-modal-card">
 
                 <div sclass="chpw-modal-header">
                     <n:span class="chpw-modal-title">&#128273; Change Password</n:span>
+                    <!-- Close button hides the modal without saving -->
                     <button id="btnChpwClose" sclass="btn btn-ghost btn-sm chpw-close-btn" label="✕" />
                 </div>
 
                 <div sclass="chpw-modal-body">
+                    <!-- Password policy hint shown to guide the user before they type -->
                     <n:div class="chpw-note">
                         Password must be ≥8 chars with at least one uppercase letter,
                         one digit, and one special character.
                     </n:div>
 
+                    <!-- Current password field: composer validates this against stored hash before allowing change -->
                     <div sclass="field-group">
                         <n:div class="field-label">Current Password <n:span class="req">*</n:span></n:div>
                         <textbox id="txtCurrentPw" sclass="field-input"
                             type="password" placeholder="Enter current password" />
                     </div>
 
+                    <!-- New password field: value is validated against the policy rule in the composer -->
                     <div sclass="field-group">
                         <n:div class="field-label">New Password <n:span class="req">*</n:span></n:div>
                         <textbox id="txtNewPw" sclass="field-input"
                             type="password" placeholder="Enter new password" />
                     </div>
 
+                    <!-- Confirm field: composer checks this matches txtNewPw before saving -->
                     <div sclass="field-group">
                         <n:div class="field-label">Confirm New Password <n:span class="req">*</n:span></n:div>
                         <textbox id="txtConfirmPw" sclass="field-input"
                             type="password" placeholder="Repeat new password" />
                     </div>
 
+                    <!-- Error label: displays validation or save failure messages; empty by default -->
                     <label id="lblChpwError" sclass="chpw-error-label" value="" />
                 </div>
 
                 <div sclass="chpw-modal-footer">
+                    <!-- Save button: composer reads all three textboxes, validates, and updates the DB -->
                     <button id="btnSavePassword" sclass="btn btn-primary"  label="Save Password" />
+                    <!-- Cancel button: closes modal and clears all textbox values without saving -->
                     <button id="btnChpwCancel"   sclass="btn btn-outline"  label="Cancel" />
                 </div>
 
