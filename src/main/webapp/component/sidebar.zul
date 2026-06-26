@@ -112,7 +112,7 @@
             <custom-attributes perm="OUTWARD_BATCH_SCANNING"
                 page="/zul/outward/cheque-scan.zul" />
             <div sclass="cts-sub-row">
-                <label sclass="cts-sub-label" value="Scan Module" />
+                <label sclass="cts-sub-label" value="Batch Creation / Scanning" />
             </div>
         </div>
         <!-- Batch management — view, edit, and submit scanned batches before verification -->
