@@ -183,11 +183,14 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
 
     @Override
     public List<BatchModel> fetchHighValueBatches() {
+        // Delegate to the JDBC helper; lambda receives an active connection scoped to the Hibernate session.
         return executeWithConnection(connection -> {
             List<BatchModel> highValueBatchList = new ArrayList<>();
+            // PreparedStatement and ResultSet are both auto-closed by try-with-resources.
             try (PreparedStatement preparedStatement = connection.prepareStatement(SQL_FETCH_HIGH_VALUE_BATCHES);
                  ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
+                    // Map each row to a BatchModel and accumulate in the result list.
                     highValueBatchList.add(mapResultSetToBatchModel(resultSet));
                 }
             }
@@ -201,9 +204,11 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
             List<ChequeModel> highValueChequeList = new ArrayList<>();
             try (PreparedStatement preparedStatement =
                          connection.prepareStatement(SQL_FETCH_HIGH_VALUE_CHEQUES_FOR_BATCH)) {
+                // Bind the batch identifier to filter cheques belonging to this batch only.
                 preparedStatement.setString(1, batchIdentifier);
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     while (resultSet.next()) {
+                        // Map each cheque row; ver_action is piggybacked into iqa_status inside the mapper.
                         highValueChequeList.add(mapResultSetToChequeModel(resultSet));
                     }
                 }
@@ -217,8 +222,10 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
         return executeWithConnection(connection -> {
             try (PreparedStatement preparedStatement =
                          connection.prepareStatement(SQL_FETCH_CHEQUE_BY_ID)) {
+                // Bind the primary key; returns at most one row since id is a bigserial PK.
                 preparedStatement.setLong(1, chequeId);
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    // Return the mapped model if found, or null for the popup to handle as "not found".
                     return resultSet.next() ? mapResultSetToChequeModel(resultSet) : null;
                 }
             }
@@ -240,15 +247,15 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
         executeWithConnection(connection -> {
             try (PreparedStatement preparedStatement =
                          connection.prepareStatement(SQL_PERSIST_VERIFICATION_DECISION)) {
-                preparedStatement.setString(1, resolvedStatusValue);   // ver_action
-                preparedStatement.setString(2, verifierUsername);
+                preparedStatement.setString(1, resolvedStatusValue);   // ver_action  — "Verified" or "Rejected"
+                preparedStatement.setString(2, verifierUsername);      // ver_by      — logged-in user's login name
                 preparedStatement.setString(3,
                     (verificationRemarks == null || verificationRemarks.isBlank())
                         ? null
-                        : verificationRemarks.trim());
-                preparedStatement.setString(4, resolvedStatusValue);   // ver_status
-                preparedStatement.setString(5, resolvedStatusValue);   // status
-                preparedStatement.setLong(6, chequeId);
+                        : verificationRemarks.trim());                 // ver_remarks — trimmed; stored as NULL if blank
+                preparedStatement.setString(4, resolvedStatusValue);   // ver_status  — mirrors ver_action resolved value
+                preparedStatement.setString(5, resolvedStatusValue);   // status      — master status column, same value
+                preparedStatement.setLong(6, chequeId);                // WHERE id = ? — targets exactly one cheque row
                 preparedStatement.executeUpdate();
             }
             return null;
@@ -266,6 +273,7 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
                          connection.prepareStatement(SQL_COUNT_ALL_CHEQUES_IN_BATCH)) {
                 preparedStatement.setString(1, batchIdentifier);
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    // getLong(1) reads the single COUNT(*) column; 0 if the batch has no cheques.
                     if (resultSet.next()) totalChequeCount = resultSet.getLong(1);
                 }
             }
@@ -289,6 +297,7 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
             // Persist the updated batch status
             try (PreparedStatement preparedStatement =
                          connection.prepareStatement(SQL_UPDATE_BATCH_VERIFICATION_STATUS)) {
+                // Bind resolved status first (param 1 = status), then the batch key (param 2 = WHERE batch_id = ?).
                 preparedStatement.setString(1, updatedBatchStatus);
                 preparedStatement.setString(2, batchIdentifier);
                 preparedStatement.executeUpdate();
@@ -321,6 +330,7 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
         batchModel.setTotalAmount(resultSet.getBigDecimal("total_amount"));
         batchModel.setExpectedAmount(resultSet.getBigDecimal("expected_amount"));
 
+        // Guard against NULL timestamps before converting — ResultSet.getTimestamp returns null for SQL NULL.
         Timestamp createdAtTimestamp = resultSet.getTimestamp("created_at");
         if (createdAtTimestamp != null) batchModel.setCreatedAt(createdAtTimestamp.toLocalDateTime());
 
@@ -332,6 +342,8 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
         long processedCount  = resultSet.getLong("processed_count");
         long referredCount   = resultSet.getLong("referred_count");
 
+        // Encode all four counts into presentingBankId (an unused column) to avoid adding new model fields.
+        // The Composer splits on "|" to render the badge columns in the batch list table.
         batchModel.setPresentingBankId(
             highValueCount + "|" + pendingCount + "|" + processedCount + "|" + referredCount
         );
@@ -388,6 +400,7 @@ public class VerificationIIDAOImpl implements VerificationIIDAO {
         Timestamp updatedAtTimestamp = resultSet.getTimestamp("updated_at");
         if (updatedAtTimestamp != null) chequeModel.setUpdatedAt(updatedAtTimestamp.toLocalDateTime());
 
+        // Guard against empty byte arrays — a non-null but zero-length array means no image was stored.
         byte[] frontImageBytes = resultSet.getBytes("front_image");
         if (frontImageBytes != null && frontImageBytes.length > 0) {
             chequeModel.setFrontImageBytes(frontImageBytes);

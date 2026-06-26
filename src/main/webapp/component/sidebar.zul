@@ -107,6 +107,7 @@
     </div>
 
     <div id="outwardMenu" sclass="cts-submenu" visible="false">
+        <!-- Cheque scanning — maker scans physical cheques into the system -->
         <div id="menuScanModule" sclass="cts-menu-item">
             <custom-attributes perm="OUTWARD_BATCH_SCANNING"
                 page="/zul/outward/cheque-scan.zul" />
@@ -114,6 +115,7 @@
                 <label sclass="cts-sub-label" value="Scan Module" />
             </div>
         </div>
+        <!-- Batch management — view, edit, and submit scanned batches before verification -->
         <div id="menuBatchManagement" sclass="cts-menu-item">
             <custom-attributes perm="OUTWARD_BATCH_MANAGEMENT"
                 page="/zul/outward/my-batches.zul" />
@@ -121,6 +123,7 @@
                 <label sclass="cts-sub-label" value="Batch Management" />
             </div>
         </div>
+        <!-- Verification Level I — first-level cheque review (standard value cheques) -->
         <div id="menuVerification1" sclass="cts-menu-item">
             <custom-attributes perm="OUTWARD_VERIFICATION_ONE"
                 page="/zul/outward/verification-I.zul" />
@@ -128,6 +131,7 @@
                 <label sclass="cts-sub-label" value="Verification - I" />
             </div>
         </div>
+        <!-- Verification Level II — second-level review for high-value and referred cheques -->
         <div id="menuVerification2" sclass="cts-menu-item">
             <custom-attributes perm="OUTWARD_VERIFICATION_TWO"
                 page="/zul/outward/verification-II.zul" />
@@ -135,6 +139,7 @@
                 <label sclass="cts-sub-label" value="Verification - II" />
             </div>
         </div>
+        <!-- CXF/CIBF generation — produces the clearing exchange file for dispatch to NPCI -->
         <div id="menuCxfCibf" sclass="cts-menu-item">
             <custom-attributes perm="OUTWARD_CBS_EXPORT"
                 page="/zul/outward/cxf-cxbf.zul" />
@@ -223,6 +228,7 @@
     </div>
 
     <div id="outwardReportsMenu" sclass="cts-submenu" visible="false">
+        <!-- CXF-CIBF report — lists all generated clearing exchange files with status -->
         <div id="menuCxfReport" sclass="cts-menu-item">
             <custom-attributes perm="OUTWARD_CXF_REPORT"
                 page="/zul/outward/reports/cxfReport.zul" />
@@ -230,6 +236,7 @@
                 <label sclass="cts-sub-label" value="CXF-CIBF Report" />
             </div>
         </div>
+        <!-- Batch summary — high-level batch-wise counts and amounts for outward clearing -->
         <div id="menuBatchSummaryReport" sclass="cts-menu-item">
             <custom-attributes perm="OUTWARD_BATCH_SUMMARY"
                 page="/zul/outward/reports/batchSummaryReport.zul" />
@@ -237,6 +244,7 @@
                 <label sclass="cts-sub-label" value="Batch Summary" />
             </div>
         </div>
+        <!-- Cheque level report — drill-down view per cheque across all outward batches -->
         <div id="menuChequeLevelReport" sclass="cts-menu-item">
             <custom-attributes perm="OUTWARD_CHEQUE_LEVEL"
                 page="/zul/outward/reports/chequeLevelReport.zul" />
@@ -285,6 +293,7 @@
     </div>
 
     <div id="userMenu" sclass="cts-submenu" visible="false">
+        <!-- Role management — create and edit roles with permission sets -->
         <div id="menuRoleManagement" sclass="cts-menu-item">
             <custom-attributes perm="UAM_ROLE_MGMT"
                 page="/zul/uam/role-mgmt.zul" />
@@ -292,6 +301,7 @@
                 <label sclass="cts-sub-label" value="Role Management" />
             </div>
         </div>
+        <!-- User management — create, edit, and deactivate user accounts -->
         <div id="menuUserManagement" sclass="cts-menu-item">
             <custom-attributes perm="UAM_USER_MGMT"
                 page="/zul/uam/user-mgmt.zul" />
@@ -299,6 +309,7 @@
                 <label sclass="cts-sub-label" value="User Management" />
             </div>
         </div>
+        <!-- Pending user approval — newly registered users awaiting admin activation -->
         <div id="menuPendingUserApproval" sclass="cts-menu-item">
             <custom-attributes perm="UAM_PENDING_APPROVAL"
                 page="/zul/uam/pending-approval.zul" />
@@ -306,6 +317,7 @@
                 <label sclass="cts-sub-label" value="Pending User Approval" />
             </div>
         </div>
+        <!-- Pending role approval — role assignment requests awaiting admin sign-off -->
         <div id="menuPendingRoleApproval" sclass="cts-menu-item">
             <custom-attributes perm="UAM_PENDING_ROLE_APPROVAL"
                 page="/zul/uam/pending-role-approval.zul" />
