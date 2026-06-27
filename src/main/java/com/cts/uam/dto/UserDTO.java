@@ -4,8 +4,15 @@ import com.cts.uam.model.User;
 import java.time.LocalDateTime;
 
 /**
- * UserDTO — safe data transfer object for the User entity.
- * passwordHash never leaves this class.
+ * UserDTO - a safe version of the User entity for sending to the UI layer.
+ *
+ * Why use a DTO instead of the entity directly?
+ * - The User entity has passwordHash. We never want that field to reach the UI.
+ * - DTOs carry only what the UI actually needs.
+ *
+ * How to create one: call UserDTO.fromEntity(user) with a User object.
+ * The constructor is public but the recommended way is the static factory
+ * method.
  */
 public class UserDTO {
 
@@ -16,19 +23,25 @@ public class UserDTO {
     private String mobile;
     private Long roleId;
     private String roleLabel;
-    private String status;
+    private String status; // stored as String, not enum, so UI gets plain text
     private boolean active;
     private LocalDateTime lockedUntil;
     private int failedAttempts;
     private LocalDateTime lastLogin;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private String requestedBy;
-    private String rejectedReason;
+    private String requestedBy; // maker who submitted this user for approval
+    private String rejectedReason; // reason given by checker when rejecting
 
     public UserDTO() {
     }
 
+    /**
+     * Creates a UserDTO from a User entity.
+     * passwordHash is intentionally NOT copied - it stays inside the entity only.
+     *
+     * Returns null if the input user is null.
+     */
     public static UserDTO fromEntity(User user) {
         if (user == null)
             return null;
@@ -41,7 +54,7 @@ public class UserDTO {
         dto.mobile = user.getMobile();
         dto.roleId = user.getRoleId();
         dto.roleLabel = user.getRoleLabel();
-        dto.status = user.getStatus().name();
+        dto.status = user.getStatus().name(); // enum to string for UI
         dto.active = user.isActive();
         dto.lockedUntil = user.getLockedUntil();
         dto.failedAttempts = user.getFailedAttempts();
@@ -53,12 +66,17 @@ public class UserDTO {
         return dto;
     }
 
+    /**
+     * Returns true if this user is locked - either by status OR by a timed lock
+     * that has not expired yet.
+     */
     public boolean isLocked() {
         if ("LOCKED".equals(status))
             return true;
         return lockedUntil != null && LocalDateTime.now().isBefore(lockedUntil);
     }
 
+    // Returns true if the user is waiting for checker approval
     public boolean isPending() {
         return "PENDING".equals(status);
     }

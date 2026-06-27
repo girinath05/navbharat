@@ -10,34 +10,69 @@
         The shell (header + sidebar) is already rendered by app.zul.
         DO NOT add borderlayout / north / west here.
 
-        NOTE: all numbers below are STATIC PLACEHOLDERS for UI review.
-        Wiring to DashboardComposer / DashboardService / AnalyticsService
-        happens in a separate pass once this layout is approved.
+        Restyle pass: visual language now matches
+        outwardDashboard.zul / outwardDashboard.css so the app reads
+        as one consistent product —
+          - KPI cards: gradient + icon, same tokens as od-stat-card
+          - Recent Batches: pill filter bar (search / module / status /
+            clear) + navy listbox header + chip badges + prev/next
+            pagination, same structure as od-list-card
+        Prefix kept as cts- (not renamed to od-) per app convention.
+
+        WIRING — CombinedDashboardComposer (com.cts.composer):
+        KPI cards, Inward/Outward mini panels, Recent Batches
+        listbox, the 4 Analytics metric cards, all 4 charts, and
+        the 2 Insights cards are populated by this composer from
+        static placeholder data (see loadStaticXxx() methods and
+        Supplier fields in CombinedDashboardComposer.java).
+        Charts are rendered by calling ctsRenderChartsWithData(json)
+        via Clients.evalJavaScript() once the composer's chart data
+        source resolves. Filter/search/pagination controls on the
+        Recent Batches card, and the Analytics rangeFilter combobox,
+        are still markup + ids only — no wiring yet for those.
+
+        Once Inward/Outward services are fully built, only the
+        loadStaticXxx() methods in the composer need to change —
+        this layout, its ids, and the rest of this file stay the
+        same, the same way OutwardDashboardComposer wires
+        outwardDashboard.zul today.
     -->
-    <div sclass="cts-content" style="padding:20px;">
+    <div sclass="cts-content" style="padding:20px;" apply="com.cts.uam.composer.MainDashboardComposer">
 
         <div sclass="cts-dash-topbar">
             <label value="Combined Dashboard" sclass="cts-page-title" />
-            <label value="21 Jun 2026  |  09:50 PM" sclass="cts-dash-datetime" id="dashDateTime" />
         </div>
 
         <!-- ===================== TOP KPI ROW ===================== -->
+        <!-- Same shape as od-cards-row: gradient card, big number, label, icon -->
         <div sclass="cts-kpi-grid">
             <div sclass="cts-kpi-card cts-kpi-blue">
-                <label value="7" sclass="cts-kpi-num" />
-                <label value="Total Batches" sclass="cts-kpi-label" />
+                <div>
+                    <label id="lblTotalBatchesKpi" value="7" sclass="cts-kpi-num" />
+                    <div sclass="cts-kpi-label">Total Batches</div>
+                </div>
+                <div sclass="cts-kpi-icon">&#128230;</div>
             </div>
             <div sclass="cts-kpi-card cts-kpi-amber">
-                <label value="3" sclass="cts-kpi-num" />
-                <label value="Pending Verification" sclass="cts-kpi-label" />
+                <div>
+                    <label id="lblPendingVerifyKpi" value="3" sclass="cts-kpi-num" />
+                    <div sclass="cts-kpi-label">Pending Verification</div>
+                </div>
+                <div sclass="cts-kpi-icon">&#128269;</div>
             </div>
             <div sclass="cts-kpi-card cts-kpi-teal">
-                <label value="4" sclass="cts-kpi-num" />
-                <label value="Verified / Processed" sclass="cts-kpi-label" />
+                <div>
+                    <label id="lblVerifiedKpi" value="4" sclass="cts-kpi-num" />
+                    <div sclass="cts-kpi-label">Verified / Processed</div>
+                </div>
+                <div sclass="cts-kpi-icon">&#9989;</div>
             </div>
             <div sclass="cts-kpi-card cts-kpi-red">
-                <label value="2" sclass="cts-kpi-num" />
-                <label value="Dispatched Batches" sclass="cts-kpi-label" />
+                <div>
+                    <label id="lblDispatchedKpi" value="2" sclass="cts-kpi-num" />
+                    <div sclass="cts-kpi-label">Dispatched Batches</div>
+                </div>
+                <div sclass="cts-kpi-icon">&#128640;</div>
             </div>
         </div>
 
@@ -49,10 +84,38 @@
                     <label value="Inward" />
                 </div>
                 <n:table class="cts-mini-table">
-                    <n:tr><n:td><label value="Total batches" /></n:td><n:td><label value="4" /></n:td></n:tr>
-                    <n:tr><n:td><label value="Total cheques" /></n:td><n:td><label value="45" /></n:td></n:tr>
-                    <n:tr><n:td><label value="MICR repair count" /></n:td><n:td><label value="2" /></n:td></n:tr>
-                    <n:tr><n:td><label value="Pending cheques" /></n:td><n:td><label value="6" /></n:td></n:tr>
+                    <n:tr>
+                        <n:td>
+                            <label value="Total batches" />
+                        </n:td>
+                        <n:td>
+                            <label id="lblInwardTotalBatches" value="4" />
+                        </n:td>
+                    </n:tr>
+                    <n:tr>
+                        <n:td>
+                            <label value="Total cheques" />
+                        </n:td>
+                        <n:td>
+                            <label id="lblInwardTotalCheques" value="45" />
+                        </n:td>
+                    </n:tr>
+                    <n:tr>
+                        <n:td>
+                            <label value="Total amount" />
+                        </n:td>
+                        <n:td>
+                            <label id="lblInwardTotalAmount" value="₹24,55,200" />
+                        </n:td>
+                    </n:tr>
+                    <n:tr>
+                        <n:td>
+                            <label value="Pending cheques" />
+                        </n:td>
+                        <n:td>
+                            <label id="lblInwardPending" value="6" />
+                        </n:td>
+                    </n:tr>
                 </n:table>
             </div>
 
@@ -62,68 +125,110 @@
                     <label value="Outward" />
                 </div>
                 <n:table class="cts-mini-table">
-                    <n:tr><n:td><label value="Total batches" /></n:td><n:td><label value="3" /></n:td></n:tr>
-                    <n:tr><n:td><label value="Total cheques" /></n:td><n:td><label value="28" /></n:td></n:tr>
-                    <n:tr><n:td><label value="Total amount" /></n:td><n:td><label value="₹24,55,200" /></n:td></n:tr>
-                    <n:tr><n:td><label value="High value pending" /></n:td><n:td><label value="1" class="cts-mini-danger" /></n:td></n:tr>
+                    <n:tr>
+                        <n:td>
+                            <label value="Total batches" />
+                        </n:td>
+                        <n:td>
+                            <label id="lblOutwardTotalBatches" value="3" />
+                        </n:td>
+                    </n:tr>
+                    <n:tr>
+                        <n:td>
+                            <label value="Total cheques" />
+                        </n:td>
+                        <n:td>
+                            <label id="lblOutwardTotalCheques" value="28" />
+                        </n:td>
+                    </n:tr>
+                    <n:tr>
+                        <n:td>
+                            <label value="Total amount" />
+                        </n:td>
+                        <n:td>
+                            <label id="lblOutwardTotalAmount" value="₹24,55,200" />
+                        </n:td>
+                    </n:tr>
+                    <n:tr>
+                        <n:td>
+                            <label value="Pending cheques" />
+                        </n:td>
+                        <n:td>
+                            <label id="lblOutwardPending" value="9" />
+                        </n:td>
+                    </n:tr>
                 </n:table>
             </div>
         </div>
 
         <!-- ===================== RECENT BATCHES ===================== -->
-        <div sclass="cts-card" style="margin-top:16px;">
-            <div sclass="cts-panel-title">
-                <label value="Recent Batches" />
+        <!-- Structure matches od-list-card: header w/ title + filter bar,
+             listbox w/ navy header + chips, then pagination bar -->
+        <div sclass="cts-list-card">
+
+            <div sclass="cts-list-card-header">
+
+                <div sclass="cts-header-left">
+                    <label sclass="cts-list-card-title" value="RECENT BATCHES" />
+                    <label id="lblRecentBatchCount" sclass="cts-card-hint"
+                        value="Showing 5 of 7 batches" />
+                </div>
+
+                <div sclass="cts-filter-bar">
+                    <!-- Free-text search — filters by batch ID -->
+                    <textbox id="txtRecentBatchSearch" sclass="cts-search-box"
+                        placeholder="Search Batch ID..." instant="true" />
+
+                    <!-- Module filter — Inward / Outward / All -->
+                    <combobox id="cmbRecentModule" sclass="cts-module-combo" readonly="true">
+                        <comboitem label="All Modules" value="All" />
+                        <comboitem label="Inward" value="Inward" />
+                        <comboitem label="Outward" value="Outward" />
+                    </combobox>
+
+                    <!-- Status filter -->
+                    <combobox id="cmbRecentStatus" sclass="cts-status-combo" readonly="true">
+                        <comboitem label="All Status" value="All" />
+                        <comboitem label="Pending" value="Pending" />
+                        <comboitem label="PendingAtChecker" value="PendingAtChecker" />
+                        <comboitem label="Verified" value="Verified" />
+                    </combobox>
+
+                    <!-- Resets all filters and reloads the recent batch list -->
+                    <button id="btnClearRecentFilters" sclass="cts-clear-btn" label="✕ Clear" />
+                </div>
+
             </div>
-            <n:table class="cts-recent-table">
-                <n:thead>
-                    <n:tr>
-                        <n:th><label value="Module" /></n:th>
-                        <n:th><label value="Batch ID" /></n:th>
-                        <n:th><label value="Created" /></n:th>
-                        <n:th><label value="Cheques" /></n:th>
-                        <n:th><label value="Status" /></n:th>
-                    </n:tr>
-                </n:thead>
-                <n:tbody>
-                    <n:tr>
-                        <n:td><label value="Inward" /></n:td>
-                        <n:td><label value="Batch_005" /></n:td>
-                        <n:td><label value="18 Jun" /></n:td>
-                        <n:td><label value="10" /></n:td>
-                        <n:td><n:span class="cts-badge cts-badge-pending">Pending</n:span></n:td>
-                    </n:tr>
-                    <n:tr>
-                        <n:td><label value="Outward" /></n:td>
-                        <n:td><label value="BATCH20102" /></n:td>
-                        <n:td><label value="20 Jun" /></n:td>
-                        <n:td><label value="8" /></n:td>
-                        <n:td><n:span class="cts-badge cts-badge-verified">Verified</n:span></n:td>
-                    </n:tr>
-                    <n:tr>
-                        <n:td><label value="Inward" /></n:td>
-                        <n:td><label value="Batch_004" /></n:td>
-                        <n:td><label value="16 Jun" /></n:td>
-                        <n:td><label value="15" /></n:td>
-                        <n:td><n:span class="cts-badge cts-badge-pending">PendingAtChecker</n:span></n:td>
-                    </n:tr>
-                    <n:tr>
-                        <n:td><label value="Outward" /></n:td>
-                        <n:td><label value="BATCH20101" /></n:td>
-                        <n:td><label value="20 Jun" /></n:td>
-                        <n:td><label value="6" /></n:td>
-                        <n:td><n:span class="cts-badge cts-badge-verified">Verified</n:span></n:td>
-                    </n:tr>
-                    <n:tr>
-                        <n:td><label value="Inward" /></n:td>
-                        <n:td><label value="Batch_003" /></n:td>
-                        <n:td><label value="17 Jun" /></n:td>
-                        <n:td><label value="10" /></n:td>
-                        <n:td><n:span class="cts-badge cts-badge-pending">PendingAtChecker</n:span></n:td>
-                    </n:tr>
-                </n:tbody>
-            </n:table>
-        </div>
+
+            <listbox id="recentBatchListbox" sclass="cts-recent-table" width="100%"
+                emptyMessage="No batches found for the selected filters.">
+                <listhead sizable="false">
+                    <listheader label="MODULE" hflex="1" />
+                    <listheader label="BATCH ID" hflex="1.5" />
+                    <listheader label="CREATED" hflex="1" />
+                    <listheader label="CHEQUES" hflex="1" />
+                    <listheader label="STATUS" hflex="1.5" />
+                </listhead>
+                <!-- Rows are populated by CombinedDashboardComposer.populateRecentBatches() —
+                     no static <listitem> markup here so the composer's rows aren't duplicated. -->
+            </listbox>
+
+            <!-- Pagination bar — same structure as od-pagination-bar -->
+            <div sclass="cts-pagination-bar">
+                <div sclass="cts-pagination-left">
+                    <label id="lblRecentBatchPageHint" sclass="cts-card-hint"
+                        value="Showing 5 of 7 batches" />
+                </div>
+                <div sclass="cts-pagination-controls">
+                    <button id="btnRecentBatchPagePrev" sclass="cts-page-btn" label="‹ Prev"
+                        disabled="true" />
+                    <label id="lblRecentBatchPageInfo" sclass="cts-page-info" value="Page 1 of 2" />
+                    <button id="btnRecentBatchPageNext" sclass="cts-page-btn" label="Next ›" />
+                </div>
+            </div>
+
+        </div><!--
+        /cts-list-card -->
 
         <!-- ===================== ANALYTICS SECTION ===================== -->
         <div sclass="cts-filter-row">
@@ -138,27 +243,27 @@
         <div sclass="cts-metric-row">
             <div sclass="cts-metric-card">
                 <label value="Avg verify time" sclass="cts-metric-label" />
-                <label value="3.2h" sclass="cts-metric-val" />
+                <label id="lblMetricAvgVerifyTime" value="3.2h" sclass="cts-metric-val" />
             </div>
             <div sclass="cts-metric-card">
                 <label value="Rejection rate" sclass="cts-metric-label" />
-                <label value="4.1%" sclass="cts-metric-val" />
+                <label id="lblMetricRejectionRate" value="4.1%" sclass="cts-metric-val" />
             </div>
             <div sclass="cts-metric-card">
                 <label value="MICR repair rate" sclass="cts-metric-label" />
-                <label value="6.8%" sclass="cts-metric-val" />
+                <label id="lblMetricMicrRepairRate" value="6.8%" sclass="cts-metric-val" />
             </div>
             <div sclass="cts-metric-card">
                 <label value="High value cheques" sclass="cts-metric-label" />
-                <label value="12" sclass="cts-metric-val" />
+                <label id="lblMetricHighValueCheques" value="12" sclass="cts-metric-val" />
             </div>
         </div>
 
         <div sclass="cts-card cts-chart-card">
             <n:h4>Cheques processed, inward vs outward</n:h4>
             <div sclass="cts-legend">
-                <n:span><n:span class="cts-sw" style="background:#378ADD;" />Inward</n:span>
-                <n:span><n:span class="cts-sw" style="background:#1D9E75;" />Outward</n:span>
+                <n:span><n:span class="cts-sw" style="background:#4f46e5;" />Inward</n:span>
+                <n:span><n:span class="cts-sw" style="background:#0d9488;" />Outward</n:span>
             </div>
             <div sclass="cts-chart-box">
                 <n:div id="volumeChartHost" style="width:100%;height:220px;" />
@@ -173,9 +278,9 @@
                 </div>
             </div>
             <div sclass="cts-card cts-chart-card">
-                <n:h4>Branch wise volume</n:h4>
+                <n:h4>Amount processed (inward)</n:h4>
                 <div sclass="cts-chart-box-sm">
-                    <n:div id="branchChartHost" style="width:100%;height:180px;" />
+                    <n:div id="amountChartHostInward" style="width:100%;height:180px;" />
                 </div>
             </div>
         </div>
@@ -192,7 +297,8 @@
                     <label value="Next 7 Days Forecast" sclass="cts-insight-title" />
                 </div>
                 <label value="~78 cheques" sclass="cts-insight-big-num" id="forecastValue" />
-                <label value="Based on last 30 days average, trending up 6% vs previous week" sclass="cts-insight-desc" id="forecastDesc" />
+                <label value="Based on last 30 days average, trending up 6% vs previous week"
+                    sclass="cts-insight-desc" id="forecastDesc" />
             </div>
 
             <!-- Rejection Insight Card -->
@@ -201,11 +307,34 @@
                     <n:span class="cts-insight-icon cts-insight-icon-red">⚠</n:span>
                     <label value="Rejection Insight" sclass="cts-insight-title" />
                 </div>
-                <label value="Rejection rate up 2.1% vs last week, mostly from Batch_004 (MICR mismatch)" sclass="cts-insight-sentence" id="rejectionInsightText" />
+                <label
+                    value="Rejection rate up 2.1% vs last week, mostly from Batch_004 (MICR mismatch)"
+                    sclass="cts-insight-sentence" id="rejectionInsightText" />
                 <n:table class="cts-insight-mini-table" id="rejectionReasonTable">
-                    <n:tr><n:td><label value="MICR mismatch" /></n:td><n:td><label value="9" /></n:td></n:tr>
-                    <n:tr><n:td><label value="Signature mismatch" /></n:td><n:td><label value="4" /></n:td></n:tr>
-                    <n:tr><n:td><label value="Insufficient funds" /></n:td><n:td><label value="2" /></n:td></n:tr>
+                    <n:tr>
+                        <n:td>
+                            <label value="MICR mismatch" />
+                        </n:td>
+                        <n:td>
+                            <label id="lblRejectionMicr" value="9" />
+                        </n:td>
+                    </n:tr>
+                    <n:tr>
+                        <n:td>
+                            <label value="Signature mismatch" />
+                        </n:td>
+                        <n:td>
+                            <label id="lblRejectionSignature" value="4" />
+                        </n:td>
+                    </n:tr>
+                    <n:tr>
+                        <n:td>
+                            <label value="Insufficient funds" />
+                        </n:td>
+                        <n:td>
+                            <label id="lblRejectionInsufficientFunds" value="2" />
+                        </n:td>
+                    </n:tr>
                 </n:table>
             </div>
 
@@ -217,11 +346,28 @@
         Chart.js loaded from CDN (already whitelisted pattern used in app.zul
         for font-awesome). Rendering native <canvas> inside ZK divs via
         Clients.evalJavaScript so ZK's own DOM diffing does not fight Chart.js.
+
+        ctsRenderCharts(chartData) now takes its numbers from the JSON object
+        passed in by CombinedDashboardComposer (see chartsDataSource /
+        buildChartsJson() in the composer). If called with no argument
+        (e.g. on a plain page reload before the composer runs), it falls
+        back to the same static defaults this page always shipped with —
+        so the page never breaks, it just shows placeholder numbers.
     -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" />
     <script><![CDATA[
-        function ctsRenderCharts() {
-            var days = ['15 Jun','16 Jun','17 Jun','18 Jun','19 Jun','20 Jun','21 Jun'];
+        function ctsDefaultChartData() {
+            return {
+                days: ['15 Jun','16 Jun','17 Jun','18 Jun','19 Jun','20 Jun','21 Jun'],
+                volumeInward:  [8,12,10,15,9,14,11],
+                volumeOutward: [6,9,7,8,6,10,8],
+                amountOutward: [18,22,15,28,20,25,19],
+                amountInward:  [20,19,17,24,22,21,23]
+            };
+        }
+
+        function ctsRenderCharts(chartData) {
+            var data = chartData || ctsDefaultChartData();
 
             function mountCanvas(hostId) {
                 var host = document.getElementById(hostId);
@@ -237,10 +383,10 @@
                 new Chart(volumeCanvas, {
                     type: 'line',
                     data: {
-                        labels: days,
+                        labels: data.days,
                         datasets: [
-                            { label: 'Inward', data: [8,12,10,15,9,14,11], borderColor: '#378ADD', backgroundColor: '#378ADD', tension: 0.3 },
-                            { label: 'Outward', data: [6,9,7,8,6,10,8], borderColor: '#1D9E75', backgroundColor: '#1D9E75', tension: 0.3, borderDash: [6,3] }
+                            { label: 'Inward', data: data.volumeInward, borderColor: '#4f46e5', backgroundColor: '#4f46e5', tension: 0.3 },
+                            { label: 'Outward', data: data.volumeOutward, borderColor: '#0d9488', backgroundColor: '#0d9488', tension: 0.3, borderDash: [6,3] }
                         ]
                     },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
@@ -251,25 +397,42 @@
             if (amountCanvas) {
                 new Chart(amountCanvas, {
                     type: 'bar',
-                    data: { labels: days, datasets: [{ label: 'Amount (lakh)', data: [18,22,15,28,20,25,19], backgroundColor: '#D85A30' }] },
+                    data: { labels: data.days, datasets: [{ label: 'Amount (lakh)', data: data.amountOutward, backgroundColor: '#e11d48' }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
             }
 
-            var branchCanvas = mountCanvas('branchChartHost');
-            if (branchCanvas) {
-                new Chart(branchCanvas, {
+            var amountCanvasInward = mountCanvas('amountChartHostInward');
+            if (amountCanvasInward) {
+                new Chart(amountCanvasInward, {
                     type: 'bar',
-                    data: { labels: ['Connaught Place','Karol Bagh','Lajpat Nagar','Dwarka'], datasets: [{ label: 'Volume', data: [14,9,11,7], backgroundColor: '#7F77DD' }] },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                    data: { labels: data.days, datasets: [{ label: 'Amount (lakh)', data: data.amountInward, backgroundColor: '#d97706' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
+            }
+
+        }
+
+        // Composer calls Clients.evalJavaScript("ctsRenderChartsWithData(<json>)") once
+        // its data source is ready; falls back to defaults if data fails to load.
+        // Guarded with a short retry in case this fires before Chart.js (loaded
+        // from CDN) has finished loading on a slow connection.
+        function ctsRenderChartsWithData(chartDataJson) {
+            if (typeof Chart === 'undefined') {
+                setTimeout(function () { ctsRenderChartsWithData(chartDataJson); }, 100);
+                return;
+            }
+            try {
+                ctsRenderCharts(JSON.parse(chartDataJson));
+            } catch (e) {
+                ctsRenderCharts();
             }
         }
 
-        zk.afterMount(function () {
-            setTimeout(ctsRenderCharts, 50);
-        });
-
+        // NOTE: charts are now rendered by CombinedDashboardComposer calling
+        // ctsRenderChartsWithData(json) via Clients.evalJavaScript() once its
+        // data source resolves — no auto-render-on-mount here anymore, to
+        // avoid a render-then-immediately-re-render flash.
         // Chatbot widget toggle (UI only — static placeholder messages for now)
         function ctsToggleChatbot() {
             var win = document.getElementById('chatbotWindow') ||
@@ -292,7 +455,7 @@
         <n:span class="cts-chatbot-fab-icon">💬</n:span>
     </div>
 
-    <div sclass="cts-chatbot-window" id="chatbotWindow">
+    <div sclass="cts-chatbot-window" id="chatbotWindow" apply="com.cts.uam.composer.ChatbotComposer">
         <div sclass="cts-chatbot-header">
             <label value="CTS Assistant" sclass="cts-chatbot-title" />
             <label value="✕" sclass="cts-chatbot-close" id="chatbotClose" />
@@ -300,7 +463,8 @@
 
         <div sclass="cts-chatbot-body" id="chatbotBody">
             <div sclass="cts-chat-msg cts-chat-msg-bot">
-                <label value="Hi! Aap mujhse pooch sakte ho: 'pending batches', 'rejection rate', 'high value pending'." />
+                <label
+                    value="Hi! you can ask: 'pending batches', 'rejection rate', 'high value pending'." />
             </div>
             <div sclass="cts-chat-msg cts-chat-msg-user">
                 <label value="pending batches kitne hain" />
@@ -311,7 +475,8 @@
         </div>
 
         <div sclass="cts-chatbot-input-row">
-            <textbox id="chatbotInput" sclass="cts-chatbot-input" placeholder="Type your question..." />
+            <textbox id="chatbotInput" sclass="cts-chatbot-input"
+                placeholder="Type your question..." />
             <button id="chatbotSendBtn" label="Send" sclass="cts-chatbot-send-btn" />
         </div>
     </div>

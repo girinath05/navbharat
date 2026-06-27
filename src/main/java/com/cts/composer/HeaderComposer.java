@@ -17,6 +17,7 @@ import org.zkoss.zul.Textbox;
 import org.zkoss.zul.Timer;
 
 import com.cts.uam.service.UserService;
+import com.cts.uam.service.UserServiceImpl;
 import com.cts.util.SecurityUtil;
 
 public class HeaderComposer extends SelectorComposer<Component> {
@@ -67,7 +68,7 @@ public class HeaderComposer extends SelectorComposer<Component> {
     private final SimpleDateFormat timeFormat  = new SimpleDateFormat("hh:mm a");
     private final SimpleDateFormat dateFormat  = new SimpleDateFormat("dd MMM yyyy");
     // Service used to call changeOwnPassword() during password change flow
-    private final UserService      userService = new UserService();
+    private final UserService      userService = new UserServiceImpl();
 
     // ══════════════════════════════════════════════════════════════
     // INIT
