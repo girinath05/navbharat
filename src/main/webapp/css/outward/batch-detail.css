@@ -221,8 +221,7 @@
 	transition: border-color .15s, box-shadow .15s !important;
 }
 
-.bd-search-input.z-textbox:focus, .bd-search-input.z-textbox:focus-within
-	{
+.bd-search-input.z-textbox:focus, .bd-search-input.z-textbox:focus-within {
 	border-color: #3b82f6 !important;
 	box-shadow: 0 0 0 3px rgba(59, 130, 246, .12) !important;
 	outline: none !important;
@@ -241,7 +240,6 @@
 	box-shadow: none !important;
 }
 
-/* ── Datebox — pill ── */
 /* ── Datebox — split pill ── */
 .bd-datebox-filter.z-datebox {
 	height: 32px !important;
@@ -254,9 +252,8 @@
 	box-sizing: border-box !important;
 	vertical-align: middle !important;
 }
-/* left half — text input */
-.bd-datebox-filter.z-datebox input, .bd-datebox-filter.z-datebox .z-datebox-input
-	{
+
+.bd-datebox-filter.z-datebox input, .bd-datebox-filter.z-datebox .z-datebox-input {
 	width: 108px !important;
 	flex: 0 0 108px !important;
 	height: 32px !important;
@@ -274,14 +271,12 @@
 	transition: border-color .15s !important;
 }
 
-.bd-datebox-filter.z-datebox input:focus, .bd-datebox-filter.z-datebox .z-datebox-input:focus
-	{
+.bd-datebox-filter.z-datebox input:focus, .bd-datebox-filter.z-datebox .z-datebox-input:focus {
 	border-color: #3b82f6 !important;
 	background: #f8fbff !important;
 }
-/* right half — calendar icon button, tight fixed size */
-.bd-datebox-filter.z-datebox .z-datebox-button, .bd-datebox-filter.z-datebox button
-	{
+
+.bd-datebox-filter.z-datebox .z-datebox-button, .bd-datebox-filter.z-datebox button {
 	flex: 0 0 28px !important;
 	width: 28px !important;
 	min-width: 28px !important;
@@ -302,29 +297,25 @@
 	transition: background .15s !important;
 }
 
-.bd-datebox-filter.z-datebox .z-datebox-button:hover, .bd-datebox-filter.z-datebox button:hover
-	{
+.bd-datebox-filter.z-datebox .z-datebox-button:hover, .bd-datebox-filter.z-datebox button:hover {
 	background: #e2e8f0 !important;
 }
-/* hide ZK default sprite/img icon, replace with small unicode via ::after */
+
 .bd-datebox-filter.z-datebox .z-datebox-button i, .bd-datebox-filter.z-datebox .z-datebox-button .z-icon-calendar,
-	.bd-datebox-filter.z-datebox button i, .bd-datebox-filter.z-datebox .z-datebox-button img
-	{
+	.bd-datebox-filter.z-datebox button i, .bd-datebox-filter.z-datebox .z-datebox-button img {
 	display: none !important;
 	width: 0 !important;
 	height: 0 !important;
 }
 
-.bd-datebox-filter.z-datebox .z-datebox-button, .bd-datebox-filter.z-datebox button
-	{
+.bd-datebox-filter.z-datebox .z-datebox-button, .bd-datebox-filter.z-datebox button {
 	background-image: none !important;
 	font-size: 0 !important;
 	text-indent: -9999px !important;
 	position: relative !important;
 }
 
-.bd-datebox-filter.z-datebox .z-datebox-button::after,
-	.bd-datebox-filter.z-datebox button::after {
+.bd-datebox-filter.z-datebox .z-datebox-button::after, .bd-datebox-filter.z-datebox button::after {
 	content: "\1F4C5" !important;
 	font-size: 11px !important;
 	line-height: 1 !important;
@@ -350,8 +341,7 @@
 	vertical-align: middle !important;
 }
 
-.bd-status-combo.z-combobox input, .bd-status-combo.z-combobox .z-combobox-input
-	{
+.bd-status-combo.z-combobox input, .bd-status-combo.z-combobox .z-combobox-input {
 	width: 90px !important;
 	flex: 0 0 90px !important;
 	height: 32px !important;
@@ -366,8 +356,7 @@
 	box-sizing: border-box !important;
 }
 
-.bd-status-combo.z-combobox .z-combobox-button, .bd-status-combo.z-combobox button
-	{
+.bd-status-combo.z-combobox .z-combobox-button, .bd-status-combo.z-combobox button {
 	flex: 0 0 28px !important;
 	width: 28px !important;
 	min-width: 28px !important;
@@ -386,26 +375,22 @@
 	box-shadow: none !important;
 	overflow: hidden !important;
 }
-/* dropdown arrow glyph — force small */
-/* hide ZK sprite, replace with small ▾ via ::after */
+
 .bd-status-combo.z-combobox .z-combobox-button i, .bd-status-combo.z-combobox .z-combobox-button .z-icon-caret-down,
-	.bd-status-combo.z-combobox .z-combobox-button img, .bd-status-combo.z-combobox button i
-	{
+	.bd-status-combo.z-combobox .z-combobox-button img, .bd-status-combo.z-combobox button i {
 	display: none !important;
 	width: 0 !important;
 	height: 0 !important;
 }
 
-.bd-status-combo.z-combobox .z-combobox-button, .bd-status-combo.z-combobox button
-	{
+.bd-status-combo.z-combobox .z-combobox-button, .bd-status-combo.z-combobox button {
 	background-image: none !important;
 	font-size: 0 !important;
 	text-indent: -9999px !important;
 	position: relative !important;
 }
 
-.bd-status-combo.z-combobox .z-combobox-button::after, .bd-status-combo.z-combobox button::after
-	{
+.bd-status-combo.z-combobox .z-combobox-button::after, .bd-status-combo.z-combobox button::after {
 	content: "\25BE" !important;
 	font-size: 10px !important;
 	line-height: 1 !important;
@@ -418,7 +403,6 @@
 	pointer-events: none !important;
 }
 
-/* ── Date separator arrow ── */
 .bd-filter-sep {
 	font-size: 11px;
 	color: #94a3b8;
@@ -426,7 +410,6 @@
 	flex-shrink: 0;
 }
 
-/* ── Vertical divider ── */
 .bd-filter-divider {
 	display: inline-block;
 	width: 1px;
@@ -437,7 +420,6 @@
 	align-self: center;
 }
 
-/* ── Clear button — pill ── */
 .bd-clear-btn.z-button, .bd-clear-btn.z-button .z-button-cm {
 	display: inline-flex !important;
 	align-items: center !important;
@@ -460,8 +442,7 @@
 	transition: all .15s !important;
 }
 
-.bd-clear-btn.z-button:hover, .bd-clear-btn.z-button:hover .z-button-cm
-	{
+.bd-clear-btn.z-button:hover, .bd-clear-btn.z-button:hover .z-button-cm {
 	background: #fee2e2 !important;
 	background-image: none !important;
 	border-color: #fca5a5 !important;
@@ -498,16 +479,14 @@
 	text-align: center !important;
 }
 
-.bd-listhead .z-listheader .z-listheader-content, .bd-lh.z-listheader .z-listheader-content
-	{
+.bd-listhead .z-listheader .z-listheader-content, .bd-lh.z-listheader .z-listheader-content {
 	width: 100% !important;
 	text-align: center !important;
 	justify-content: center !important;
 }
 
 .bd-lh-filler.z-listheader, .bd-lh-filler.z-listheader:hover,
-	.bd-lh-filler.z-listheader-over, .bd-lh-filler.z-listheader.z-listheader-over
-	{
+	.bd-lh-filler.z-listheader-over, .bd-lh-filler.z-listheader.z-listheader-over {
 	background: #0f2347 !important;
 	border-left: none !important;
 	border-right: none !important;
@@ -642,8 +621,7 @@
 }
 
 .bd-pg-btn.z-button:hover:not(.z-button-disd):not([disabled]),
-	.bd-pg-btn.z-button:hover:not(.z-button-disd):not([disabled]) .z-button-cm
-	{
+	.bd-pg-btn.z-button:hover:not(.z-button-disd):not([disabled]) .z-button-cm {
 	background: #eff6ff !important;
 	background-image: none !important;
 	border-color: #3b82f6 !important;
@@ -651,8 +629,7 @@
 }
 
 .bd-pg-btn.z-button.z-button-disd, .bd-pg-btn.z-button[disabled],
-	.bd-pg-btn.z-button.z-button-disd .z-button-cm, .bd-pg-btn.z-button[disabled] .z-button-cm
-	{
+	.bd-pg-btn.z-button.z-button-disd .z-button-cm, .bd-pg-btn.z-button[disabled] .z-button-cm {
 	opacity: 0.4 !important;
 	background: #ffffff !important;
 	background-image: none !important;
@@ -963,7 +940,7 @@ img.img-viewer-img {
 	white-space: nowrap;
 	min-width: 116px;
 }
-/* Wrapper: fixed 1/3 width */
+
 .pop-input.acct-no-input.z-textbox {
 	flex: 0 0 220px !important;
 	width: 220px !important;
@@ -973,7 +950,7 @@ img.img-viewer-img {
 	font-weight: 600 !important;
 	letter-spacing: .03em !important;
 }
-/* ZK inner <input> — must also be capped */
+
 .pop-input.acct-no-input.z-textbox input {
 	width: 100% !important;
 	max-width: 220px !important;
@@ -1133,7 +1110,6 @@ img.img-viewer-img {
 	color: #0f2347 !important;
 }
 
-/* ── MICR row — professional widths (breathing room per digit count) ── */
 .pop-input-chqno.z-textbox,
 .pop-input-chqno.z-textbox input {
 	width: 185px !important;
@@ -1280,8 +1256,24 @@ img.img-viewer-img {
 	border: 1px solid #0f2347 !important;
 }
 
-.btn-primary.z-button:hover {
+.btn-primary.z-button:hover:not(.z-button-disd):not([disabled]) {
 	background: #1a3a6b !important;
+}
+
+/* ── Disabled btn-primary — gray, not blue ── */
+.btn-primary.z-button.z-button-disd,
+.btn-primary.z-button[disabled],
+.btn-primary.z-button.z-button-disd .z-button-cm,
+.btn-primary.z-button[disabled] .z-button-cm {
+	background: #94a3b8 !important;
+	background-image: none !important;
+	border-color: #94a3b8 !important;
+	color: #fff !important;
+	opacity: 1 !important;
+	cursor: not-allowed !important;
+	pointer-events: none !important;
+	text-shadow: none !important;
+	box-shadow: none !important;
 }
 
 .btn-outline.z-button {
@@ -1331,14 +1323,12 @@ img.img-viewer-img {
 	}
 }
 
-#bdRoot .pop-body>div[style*="background:#f0f4ff"], #bdRoot .pop-body>div[style*="background: #f0f4ff"]
-	{
+#bdRoot .pop-body>div[style*="background:#f0f4ff"], #bdRoot .pop-body>div[style*="background: #f0f4ff"] {
 	margin-top: 0 !important;
 	flex-shrink: 0 !important;
 }
 
-#divAcctFound.z-div[style*="display:none"], #divAcctNotFound.z-div[style*="display:none"]
-	{
+#divAcctFound.z-div[style*="display:none"], #divAcctNotFound.z-div[style*="display:none"] {
 	height: 0 !important;
 	overflow: hidden !important;
 	padding: 0 !important;

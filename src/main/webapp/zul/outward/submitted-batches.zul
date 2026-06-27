@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?page title="Submitted Batches" contentType="text/html;charset=UTF-8"?>
+
+<!--
+ ============================================================
+  Project : Navbharat CTS Outward
+  File    : submitted-batches.zul
+  Author  : Umesh M.  |  June 2026
+
+  Purpose : Lists only ReadyForVerification batches — batches
+            the Maker has fully completed and submitted.
+            Read-only: no Create Batch, no Save Batch.
+
+  Status scope  : ReadyForVerification only.
+  Composer      : SubmittedBatchesComposer
+  CSS reused    : cheque-scan.css + my-batches.css
+ ============================================================
+-->
+
+<zk xmlns="http://www.zkoss.org/2005/zul"
+    xmlns:n="native">
+
+    <style src="/css/outward/cheque-scan.css"/>
+    <style src="/css/outward/my-batches.css"/>
+
+    <div id="mbRoot" apply="com.cts.outward.composer.SubmittedBatchesComposer"
+         style="padding: 20px;">
+
+        <!-- ── Page Header ───────────────────────────────────────── -->
+        <n:div class="pg-head">
+            <n:div>
+                <n:div class="pg-title">Submitted Batches</n:div>
+                <n:div class="pg-subtitle">Outward Clearing — Batches submitted and awaiting Verification</n:div>
+            </n:div>
+            <!-- No Create Batch or any action button — read-only listing -->
+        </n:div>
+
+        <!-- ── Batch Listing Card ─────────────────────────────────── -->
+        <n:div class="mb-card">
+
+            <!-- ── Toolbar ──────────────────────────────────────── -->
+            <n:div class="mb-toolbar">
+
+                <n:div class="mb-search-wrap">
+                    <n:span class="mb-search-icon">&#x1F50D;</n:span>
+                    <textbox id="txtSearch"
+                             sclass="mb-search-input"
+                             placeholder="Search batch ID, branch..."/>
+                </n:div>
+
+                <n:div class="mb-filter-group">
+                    <n:span class="mb-filter-lbl">From:</n:span>
+                    <datebox id="dtFrom" sclass="mb-filter-date" format="dd/MM/yyyy" lenient="false"/>
+                </n:div>
+
+                <n:div class="mb-filter-group">
+                    <n:span class="mb-filter-lbl">To:</n:span>
+                    <datebox id="dtTo" sclass="mb-filter-date" format="dd/MM/yyyy" lenient="false"/>
+                </n:div>
+
+                <n:div class="mb-filter-group">
+                    <button id="btnClearDate" sclass="btn btn-sm btn-secondary" label="Clear"/>
+                </n:div>
+
+            </n:div>
+
+            <!-- ── Listbox ──────────────────────────────────────── -->
+            <listbox id="lbBatches"
+                     sclass="mb-listbox"
+                     hflex="1"
+                     rows="5"
+                     mold="default"
+                     emptyMessage="No submitted batches found.">
+                <listhead sclass="mb-listhead" hflex="1">
+                    <listheader label="BATCH ID"     sclass="mb-th" hflex="2"/>
+                    <listheader label="CHEQUE COUNT" sclass="mb-th" hflex="2"/>
+                    <listheader label="TOTAL AMOUNT" sclass="mb-th" hflex="2"/>
+                    <listheader label="CREATED DATE" sclass="mb-th" hflex="2"/>
+                    <listheader label="STATUS"       sclass="mb-th" hflex="2"/>
+                    <listheader label="ACTION"       sclass="mb-th" hflex="2"/>
+                </listhead>
+            </listbox>
+
+            <!-- ── Pagination Bar ───────────────────────────────── -->
+            <n:div class="mb-pg-bar">
+                <n:div class="mb-pg-inner">
+                    <label id="lblBatchCount" sclass="mb-count-badge" value=""/>
+                    <button id="btnPgFirst" sclass="mb-pg-btn" label="&#x00AB; First" disabled="true"/>
+                    <button id="btnPgPrev"  sclass="mb-pg-btn" label="&#x2039; Prev"  disabled="true"/>
+                    <label  id="lblPgInfo"  sclass="mb-pg-info" value="Page 1 of 1"/>
+                    <button id="btnPgNext"  sclass="mb-pg-btn" label="Next &#x203A;"/>
+                    <button id="btnPgLast"  sclass="mb-pg-btn" label="Last &#x00BB;"/>
+                </n:div>
+            </n:div>
+
+        </n:div>
+
+    </div>
+
+</zk>
