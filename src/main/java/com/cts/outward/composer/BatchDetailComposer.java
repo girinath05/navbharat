@@ -9,25 +9,7 @@
  *                Batch Detail screen.  Pure ZK MVC — all
  *                previous JS dependencies removed:
  *
- *                  REMOVED                      REPLACED BY
- *                  ──────────────────────────   ─────────────────────────────
- *                  bd_ensurePopupPortal()       ZK Div setVisible() — no
- *                                               stacking-context problem since
- *                                               popup is ZK div, not n:div
- *                  bce_renderImages()           ZK <image> setSrc() + servlet
- *                  bce_imagesLoading()          show/hide ZK image + empty div
- *                  validatePayeeAccount() JS    @Listen onClick btnValidateAcct
- *                  _setPayeeState() JS          setVisible on divAcctPending /
- *                                               divAcctFound / divAcctNotFound
- *                  confirmDeleteCheque() toast  Messagebox.show() + @Listen
- *                  resetPayeeLookup() JS        inline in openChequePopup()
- *                  Ctrl+S keybind JS            not re-implemented server-side
- *                  btnPopPrev2/Next2 n:button   ZK buttons btnPopPrev / btnPopNext
- *                  btnZkLookupAccount bridge    removed (direct @Listen)
- *                  btnZkDeleteCheque bridge     removed (direct @Listen)
- *                  hiddenPayeeAcct bridge       removed (txtPayeeAcct direct)
- *                  batch-detail.js              entire file removed from ZUL
- *                  bce.js                       entire file removed from ZUL
+ *                 
  * ============================================================
  */
 package com.cts.outward.composer;
@@ -368,15 +350,16 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
 
 		loadBatchSummary();
 
-		// Lock if batch is already submitted (any state beyond Maker's PENDING)
 		BatchEntity batch = batchService.getBatchById(batchId);
 		if (batch != null) {
-			BatchStatus bs = BatchStatus.fromDb(batch.getStatus());
-			batchSubmitted = (bs == BatchStatus.READY_FOR_VERIFICATION || bs == BatchStatus.VERIFICATION_IN_PROGRESS
-					|| bs == BatchStatus.VERIFIED || bs == BatchStatus.CXF_CIBF_GENERATED
-					|| bs == BatchStatus.DISPATCHED);
-			if (batchSubmitted && btnSaveBatch != null)
-				btnSaveBatch.setDisabled(true);
+		    LOG.info("RAW STATUS='" + batch.getStatus() + "'");
+		    BatchStatus bs = BatchStatus.fromDb(batch.getStatus());
+		    batchSubmitted = (bs == BatchStatus.READY_FOR_VERIFICATION || bs == BatchStatus.VERIFICATION_IN_PROGRESS
+		            || bs == BatchStatus.VERIFIED || bs == BatchStatus.CXF_CIBF_GENERATED
+		            || bs == BatchStatus.DISPATCHED);
+		    LOG.info("ENUM=" + bs + " batchSubmitted=" + batchSubmitted);
+		    if (batchSubmitted && btnSaveBatch != null)
+		        btnSaveBatch.setDisabled(true);
 		}
 
 		loadCheques();
@@ -978,33 +961,27 @@ public class BatchDetailComposer extends SelectorComposer<Component> {
 	 * @param readOnly {@code true} to lock all fields and disable action buttons
 	 */
 	private void applyReadOnly(boolean readOnly) {
-		if (popCheckNo != null)
-			popCheckNo.setReadonly(readOnly);
-		if (popCity != null)
-			popCity.setReadonly(readOnly);
-		if (popBank != null)
-			popBank.setReadonly(readOnly);
-		if (popBranch != null)
-			popBranch.setReadonly(readOnly);
-		if (popTc != null)
-			popTc.setReadonly(readOnly);
-		if (popAccountNo != null)
-			popAccountNo.setReadonly(readOnly);
-		if (popChequeDate != null)
-			popChequeDate.setReadonly(readOnly);
-		if (popAmount != null)
-			popAmount.setReadonly(readOnly);
-		if (popAmountWords != null)
-			popAmountWords.setReadonly(readOnly);
-		if (txtPayeeAcct != null)
-			txtPayeeAcct.setReadonly(readOnly);
-		if (btnPopSave != null)
-			btnPopSave.setDisabled(readOnly);
-		if (btnDeleteCheque != null)
-			btnDeleteCheque.setDisabled(readOnly);
-		if (btnValidateAcct != null)
-			btnValidateAcct.setDisabled(readOnly);
+	    if (popCheckNo != null)     popCheckNo.setReadonly(readOnly);
+	    if (popCity != null)        popCity.setReadonly(readOnly);
+	    if (popBank != null)        popBank.setReadonly(readOnly);
+	    if (popBranch != null)      popBranch.setReadonly(readOnly);
+	    if (popTc != null)          popTc.setReadonly(readOnly);
+	    if (popAccountNo != null)   popAccountNo.setReadonly(readOnly);
+	    if (popChequeDate != null)  popChequeDate.setReadonly(readOnly);
+	    if (popAmount != null)      popAmount.setReadonly(readOnly);
+	    if (popAmountWords != null) popAmountWords.setReadonly(readOnly);
+	    if (txtPayeeAcct != null)   txtPayeeAcct.setReadonly(readOnly);
+	    if (btnValidateAcct != null) btnValidateAcct.setDisabled(readOnly);
+	    if (btnDeleteCheque != null) btnDeleteCheque.setDisabled(readOnly);
+	    if (btnPopSave != null) {
+	        btnPopSave.setDisabled(readOnly);
+	        btnPopSave.setLabel(readOnly ? "\uD83D\uDCBE Save" : "\uD83D\uDCBE Save \u0026 Next");
+	    }
 	}
+	
+	
+	
+	
 
 	// ══════════════════════════════════════════════════════════════════
 	// VALIDATION ENGINE

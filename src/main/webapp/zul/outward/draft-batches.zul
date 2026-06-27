@@ -1,0 +1,492 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?page title="Draft Batches" contentType="text/html;charset=UTF-8"?>
+
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  File      : draft-batches.zul
+  Package   : src/main/webapp/zul/outward
+  Purpose   : Lists Draft-status batches for the Maker.
+              Provides Create Batch (Step 1) + ZIP Scan (Step 2) flow
+              entirely within this page — no navigation to cheque-scan.zul.
+
+  Status scope  : Draft only (VerificationInProgressAtMaker excluded).
+  Composer      : DraftBatchesComposer
+  CSS reused    : cheque-scan.css · my-batches.css
+
+  ───────────────────────────────────────────────────────────────────────────
+  PAGE SECTIONS
+  ───────────────────────────────────────────────────────────────────────────
+  1.  External resources
+  2.  Page header            → title + "Create Batch" button (btnOpenBatchModal)
+  3.  Batch listing panel    → search toolbar, listbox, pagination
+  4.  Create Batch modal     → Step 1: cheque count + control amount
+  5.  Scan modal             → Step 2: ZIP upload
+  6.  Mismatch dialog        → ZIP count ≠ declared count
+  7.  All-duplicates dialog  → every cheque already in DB
+  8.  Success toast          → confirmed import summary
+  9.  Auto-dismiss timer     → closes toast after 5 s
+  10. Hidden discard button  → JS-triggered scan cancel fallback
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+
+<zk xmlns="http://www.zkoss.org/2005/zul"
+    xmlns:n="native">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SECTION 1 — EXTERNAL RESOURCES
+    ═══════════════════════════════════════════════════════════════════ -->
+    <style src="/css/outward/cheque-scan.css"/>
+    <style src="/css/outward/my-batches.css"/>
+
+    <!--
+      ROOT DIV — mbRoot
+      apply: wires this page to DraftBatchesComposer.
+      All @Wire IDs inside this div must match the composer exactly.
+    -->
+    <div id="mbRoot" apply="com.cts.outward.composer.DraftBatchesComposer"
+         style="padding: 20px;">
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             SECTION 2 — PAGE HEADER
+             ─────────────────────────────────────────────────────────────
+             btnOpenBatchModal → onOpenBatchModal() → opens Create Batch modal
+        ═══════════════════════════════════════════════════════════════════ -->
+        <n:div class="pg-head">
+            <n:div>
+                <n:div class="pg-title">Draft Batches</n:div>
+                <n:div class="pg-subtitle">Outward Clearing — Batches awaiting ZIP scan</n:div>
+            </n:div>
+            <n:div class="pg-actions">
+                <button id="btnOpenBatchModal" sclass="btn btn-primary" label="+ Create Batch"/>
+            </n:div>
+        </n:div>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             SECTION 3 — BATCH LISTING PANEL
+             ─────────────────────────────────────────────────────────────
+             A. Card header  : title + batch count badge
+             B. Toolbar      : search · date range · clear
+             C. Listbox      : rows injected by renderBatches()
+             D. Pagination   : First / Prev / Page X of Y / Next / Last
+        ═══════════════════════════════════════════════════════════════════ -->
+        <n:div class="mb-card">
+
+            <!-- ── 3A. Card Header ──────────────────────────────────────── -->
+            <n:div class="mb-card-head">
+                <n:span class="mb-card-title">DRAFT BATCHES</n:span>
+                <!-- batchCountLabel: updated by updateBatchCountLabel() in composer -->
+                <label id="batchCountLabel" sclass="mb-count-badge" value=""/>
+            </n:div>
+
+            <!-- ── 3B. Search + Filter Toolbar ─────────────────────────── -->
+            <!--
+              txtBatchSearch  → onChange/onChanging → onBatchSearch()
+              dtBatchFrom     → onChange             → onBatchDateFilter()
+              dtBatchTo       → onChange             → onBatchDateFilter()
+              btnBatchClearDate → onClick            → onBatchClearDate()
+            -->
+            <n:div class="mb-toolbar">
+
+                <n:div class="mb-search-wrap">
+                    <n:span class="mb-search-icon">&#x1F50D;</n:span>
+                    <textbox id="txtBatchSearch"
+                             sclass="mb-search-input"
+                             placeholder="Search batch ID, branch..."
+                             instant="true"/>
+                </n:div>
+
+                <n:div class="mb-filter-group">
+                    <n:span class="mb-filter-lbl">From:</n:span>
+                    <datebox id="dtBatchFrom" sclass="mb-filter-combo"
+                             format="dd/MM/yyyy" lenient="false"/>
+                </n:div>
+
+                <n:div class="mb-filter-group">
+                    <n:span class="mb-filter-lbl">To:</n:span>
+                    <datebox id="dtBatchTo" sclass="mb-filter-combo"
+                             format="dd/MM/yyyy" lenient="false"/>
+                </n:div>
+
+                <n:div class="mb-filter-group">
+                    <button id="btnBatchClearDate" sclass="btn btn-sm btn-secondary" label="Clear"/>
+                </n:div>
+
+            </n:div><!-- /mb-toolbar -->
+
+            <!-- ── 3C. Batch Listbox ────────────────────────────────────── -->
+            <!--
+              Rows injected at runtime by renderBatches() → appendBatchRow().
+              emptyMessage is a fallback; composer also renders a styled empty row.
+            -->
+            <listbox id="lbBatches"
+                     sclass="mb-listbox"
+                     hflex="1"
+                     mold="default"
+                     emptyMessage="No draft batches found.">
+                <listhead sclass="mb-listhead" hflex="1">
+                    <listheader label="BATCH ID"     sclass="mb-th" hflex="2"/>
+                    <listheader label="CHEQUE COUNT" sclass="mb-th" hflex="2"/>
+                    <listheader label="TOTAL AMOUNT" sclass="mb-th" hflex="2"/>
+                    <listheader label="CREATED DATE" sclass="mb-th" hflex="2"/>
+                    <listheader label="STATUS"       sclass="mb-th" hflex="2"/>
+                    <listheader label="ACTION"       sclass="mb-th" hflex="2"/>
+                </listhead>
+            </listbox>
+
+            <!-- ── 3D. Pagination Bar ───────────────────────────────────── -->
+            <!--
+              btnBatchPgFirst → onBatchPgFirst() → batchPage = 1
+              btnBatchPgPrev  → onBatchPgPrev()  → batchPage
+              btnBatchPgNext  → onBatchPgNext()  → batchPage++
+              btnBatchPgLast  → onBatchPgLast()  → batchPage = totalPages
+              lblBatchPgInfo  → "Page X of Y" — set by updateBatchPagination()
+            -->
+            <n:div class="mb-pg-bar">
+                <n:div class="mb-pg-inner">
+                    <button id="btnBatchPgFirst" sclass="mb-pg-btn" label="&#x00AB; First" disabled="true"/>
+                    <button id="btnBatchPgPrev"  sclass="mb-pg-btn" label="&#x2039; Prev"  disabled="true"/>
+                    <label  id="lblBatchPgInfo"  sclass="mb-pg-info" value="Page 1 of 1"/>
+                    <button id="btnBatchPgNext"  sclass="mb-pg-btn" label="Next &#x203A;"/>
+                    <button id="btnBatchPgLast"  sclass="mb-pg-btn" label="Last &#x00BB;"/>
+                </n:div>
+            </n:div>
+
+        </n:div><!-- /mb-card -->
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             SECTION 4 — CREATE BATCH MODAL  (Step 1 of 2)
+             ─────────────────────────────────────────────────────────────
+             Maker declares cheque count + control amount.
+             Visibility: batchModal.setVisible(true/false) in composer.
+             Opens via : onOpenBatchModal() / autoOpenBatchModal session flag.
+             Closes via: btnCloseBatchModal (×) or btnCancelBatchModal (Cancel).
+             Submit    : btnCreateBatch → onCreateBatch() → Draft batch created
+                         → this modal closes → Scan Modal opens (Step 2).
+        ═══════════════════════════════════════════════════════════════════ -->
+        <div id="batchModal" sclass="modal-overlay open" visible="false">
+            <div sclass="modal-box">
+
+                <!-- Modal header -->
+                <div sclass="modal-head">
+                    <div sclass="modal-head-left">
+                        <div sclass="modal-head-icon">&#x1F4C2;</div>
+                        <span sclass="modal-title">Create New Batch</span>
+                    </div>
+                    <!-- Wired to onCloseBatchModal() → batchModal.setVisible(false) -->
+                    <button id="btnCloseBatchModal" sclass="modal-close-btn" label="&#x2715;"/>
+                </div>
+
+                <!-- Modal body: two input fields -->
+                <div sclass="modal-body">
+                    <div sclass="mf-row">
+
+                        <!-- Field 1: Total cheque count -->
+                        <div sclass="mf-group mf-half">
+                            <n:label class="mf-label">
+                                Total Cheques <n:span class="mf-req">*</n:span>
+                            </n:label>
+                            <!-- txtChequeCount: read by onCreateBatch() -->
+                            <intbox id="txtChequeCount" sclass="mf-input" placeholder="e.g. 5"/>
+                            <!-- errChequeCount: shown when count missing or &lt; 1 -->
+                            <label id="errChequeCount" sclass="mf-error" value=""/>
+                        </div>
+
+                        <!-- Field 2: Control amount -->
+                        <div sclass="mf-group mf-half">
+                            <n:label class="mf-label">
+                                Control Amount (&#x20B9;) <n:span class="mf-req">*</n:span>
+                            </n:label>
+                            <!-- txtExpectedAmount: read by onCreateBatch() -->
+                            <decimalbox id="txtExpectedAmount" sclass="mf-input" placeholder="e.g. 10000.00"/>
+                            <!-- errExpectedAmount: shown when amount missing or &lt;= 0 -->
+                            <label id="errExpectedAmount" sclass="mf-error" value=""/>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Modal footer -->
+                <div sclass="modal-footer">
+                    <!-- Wired to onCancelBatchModal() → batchModal.setVisible(false) -->
+                    <button id="btnCancelBatchModal" sclass="btn btn-outline" label="Cancel"/>
+                    <!-- Wired to onCreateBatch() → validate → create Draft → open scan modal -->
+                    <button id="btnCreateBatch" sclass="btn btn-primary" label="&#x1F4BE; Save Batch"/>
+                </div>
+
+            </div>
+        </div><!-- /batchModal -->
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             SECTION 5 — SCAN MODAL  (Step 2 of 2)
+             ─────────────────────────────────────────────────────────────
+             Maker uploads ZIP file with scanned cheque images + MICR XML.
+             Visibility: scanModal.setVisible(true/false) in composer.
+             Opens via : openScanModal(batchId) after onCreateBatch().
+             Closes via: btnCloseScanModal (×) → closeScanModal() + discardPendingBatch().
+
+             On Upload (btnScanUploadZip) → onScanZipUpload(UploadEvent):
+               Case 1 (All Duplicates) → openDuplicateDialog()
+               Case 2 (Count Mismatch) → openMismatchDialog()
+               Case 3 (Clean Import)   → finishSuccessfulImport()
+        ═══════════════════════════════════════════════════════════════════ -->
+        <div id="scanModal" sclass="modal-overlay open" visible="false">
+            <div sclass="modal-box scan-modal-box">
+
+                <!-- Modal header: title + batch ID label + close button -->
+                <div sclass="modal-head">
+                    <div sclass="modal-head-left">
+                        <div sclass="modal-head-icon">&#x1F4F7;</div>
+                        <div>
+                            <span sclass="modal-title">Scan Cheques</span>
+                            <div sclass="scan-modal-subtitle">
+                                Step 2 &#x2014; Scan Instruments
+                                <!-- scanBatchIdLabel: set by openScanModal(batchId) -->
+                                <label id="scanBatchIdLabel" sclass="scan-bid" value="—"/>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Wired to onCloseScanModal() → closeScanModal() + discardPendingBatch() -->
+                    <button id="btnCloseScanModal" sclass="modal-close-btn" label="&#x2715;"/>
+                </div>
+
+                <!-- Modal body: dropzone + progress bar -->
+                <div sclass="scan-body">
+
+                    <div sclass="scan-dropzone">
+                        <div sclass="scan-dz-icon">&#x1F4C2;</div>
+                        <div sclass="scan-dz-title">Place cheques in scanner</div>
+                        <div sclass="scan-dz-sub">or click Browse to load captured cheque data</div>
+                        <div sclass="scan-dz-action">
+                            <!--
+                              btnScanUploadZip → onScanZipUpload(UploadEvent).
+                              upload attr: ZK handles browser-level type validation;
+                              composer also validates extension server-side.
+                            -->
+                            <button id="btnScanUploadZip"
+                                    sclass="btn btn-primary scan-upload-btn"
+                                    label="&#x2B06; Browse &amp; Load Scan Data"
+                                    upload="true,maxsize=-1,accept=.zip"/>
+                        </div>
+                    </div>
+
+                    <!--
+                      scanProgress: shown by showScanProgress() during ZIP processing.
+                      scanProgressFill width set by composer: setStyle("width:90%;")
+                      scanProgressText set by composer: "Processing ZIP — please wait…"
+                    -->
+                    <div id="scanProgress" sclass="scan-progress-wrap" visible="false">
+                        <div sclass="scan-progress-bar">
+                            <div id="scanProgressFill" sclass="scan-progress-fill"/>
+                        </div>
+                        <label id="scanProgressText" sclass="scan-progress-text" value="Scanning…"/>
+                    </div>
+
+                </div>
+
+            </div>
+        </div><!-- /scanModal -->
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             SECTION 6 — MISMATCH DIALOG
+             ─────────────────────────────────────────────────────────────
+             Shown when ZIP cheque count ≠ declared count from Step 1.
+             Cheques already saved to DB at this point.
+             Maker chooses Accept (keep) or Discard (delete from DB).
+
+             Dynamic labels:
+               lblMdExpectedCount → declared count
+               lblMdControlAmt    → declared amount
+               lblMdParsedCount   → actual cheques in ZIP
+               lblMdParsedAmt     → total amount from ZIP
+               mdDupRow           → visible only when skippedDuplicates > 0
+               lblMdSkippedCount  → duplicate count
+               lblMdSavedCount    → new cheques saved
+               lblMdFooterAmt     → amount in footer paragraph
+        ═══════════════════════════════════════════════════════════════════ -->
+        <div id="mismatchDialog" sclass="modal-overlay open bce-dialog-top" visible="false">
+            <div sclass="bce-md-box">
+
+                <div sclass="bce-md-head">
+                    <span sclass="bce-md-icon">&#x26A0;&#xFE0F;</span>
+                    <span sclass="bce-md-title">Cheque Count Mismatch</span>
+                </div>
+
+                <div sclass="bce-md-grid">
+
+                    <!-- Row 1: Declared by Maker -->
+                    <div sclass="bce-md-row">
+                        <span sclass="bce-md-lbl">Expected (batch entry)</span>
+                        <span sclass="bce-md-val">
+                            <label id="lblMdExpectedCount" sclass="bce-md-num"/>
+                            <span sclass="bce-md-sep">&#xB7;</span>
+                            <label id="lblMdControlAmt"    sclass="bce-md-mono"/>
+                        </span>
+                    </div>
+
+                    <!-- Row 2: Parsed from ZIP -->
+                    <div sclass="bce-md-row">
+                        <span sclass="bce-md-lbl">Parsed from ZIP</span>
+                        <span sclass="bce-md-val bce-md-accent">
+                            <label id="lblMdParsedCount" sclass="bce-md-num"/>
+                            <span sclass="bce-md-sep">&#xB7;</span>
+                            <label id="lblMdParsedAmt"   sclass="bce-md-mono"/>
+                        </span>
+                    </div>
+
+                    <!-- Row 3: Duplicates skipped (hidden when 0) -->
+                    <div id="mdDupRow" sclass="bce-md-row bce-md-warn" visible="false">
+                        <span sclass="bce-md-lbl">&#x26A0; Already in system (duplicates)</span>
+                        <span sclass="bce-md-val bce-md-dup">
+                            <label id="lblMdSkippedCount"/>
+                        </span>
+                    </div>
+
+                    <!-- Row 4: New cheques saved -->
+                    <div sclass="bce-md-row bce-md-new">
+                        <span sclass="bce-md-lbl">New cheques to be saved</span>
+                        <span sclass="bce-md-val bce-md-green">
+                            <label id="lblMdSavedCount"/>
+                        </span>
+                    </div>
+
+                </div>
+
+                <!-- Footer paragraph + action buttons -->
+                <div sclass="bce-md-body">
+                    Click <n:strong>Accept</n:strong> to proceed with the new cheques
+                    (<label id="lblMdFooterAmt" sclass="bce-md-mono"/>),
+                    or <n:strong>Discard</n:strong> to delete this batch entirely.
+                </div>
+
+                <div sclass="bce-md-actions">
+                    <!-- btnMismatchAccept → onMismatchAccept() → finishSuccessfulImport() -->
+                    <button id="btnMismatchAccept"  label="Accept"  sclass="btn-primary"/>
+                    <!-- btnMismatchDiscard → onMismatchDiscard() → batchService.discardBatch() -->
+                    <button id="btnMismatchDiscard" label="Discard" sclass="btn-outline"/>
+                </div>
+
+            </div>
+        </div><!-- /mismatchDialog -->
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             SECTION 7 — ALL-DUPLICATES DIALOG
+             ─────────────────────────────────────────────────────────────
+             Shown when every cheque in ZIP already exists in cts_cheques.
+             Nothing saved to DB. Pending batch is discarded automatically.
+
+             Dynamic labels:
+               lblDupCount → total cheques in ZIP
+               lblDupAmt   → total amount
+               lblDupFlag  → e.g. "All 5 cheques are already registered..."
+
+             btnDuplicateOk → onDuplicateOk() → closeDuplicateDialog()
+        ═══════════════════════════════════════════════════════════════════ -->
+        <div id="duplicateDialog" sclass="modal-overlay open bce-dialog-top" visible="false">
+            <div sclass="bce-dup-box">
+
+                <div sclass="bce-dup-stripe"/>
+
+                <div sclass="bce-dup-body">
+
+                    <div sclass="bce-dup-head">
+                        <div sclass="bce-dup-head-icon">&#x26A0;&#xFE0F;</div>
+                        <div>
+                            <div sclass="bce-dup-title">All Cheques Already Present</div>
+                            <div sclass="bce-dup-subtitle">No new records were added to the system</div>
+                        </div>
+                    </div>
+
+                    <div sclass="bce-dup-card">
+
+                        <div sclass="bce-dup-row">
+                            <span sclass="bce-dup-lbl">Cheques in Scanner</span>
+                            <!-- lblDupCount: set by openDuplicateDialog() -->
+                            <label id="lblDupCount" sclass="bce-dup-val"/>
+                        </div>
+
+                        <div sclass="bce-dup-row">
+                            <span sclass="bce-dup-lbl">Total Amount</span>
+                            <!-- lblDupAmt: set by openDuplicateDialog() -->
+                            <label id="lblDupAmt" sclass="bce-dup-val bce-dup-mono"/>
+                        </div>
+
+                        <div sclass="bce-dup-flag">
+                            <span sclass="bce-dup-dot"/>
+                            <!-- lblDupFlag: e.g. "All 5 cheques are already registered..." -->
+                            <label id="lblDupFlag" sclass="bce-dup-flag-text"/>
+                        </div>
+
+                    </div>
+
+                    <div sclass="bce-dup-actions">
+                        <!-- btnDuplicateOk → onDuplicateOk() → closeDuplicateDialog() -->
+                        <button id="btnDuplicateOk" label="OK, Got It" sclass="btn-primary"/>
+                    </div>
+
+                </div>
+            </div>
+        </div><!-- /duplicateDialog -->
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             SECTION 8 — BATCH SUCCESS TOAST
+             ─────────────────────────────────────────────────────────────
+             Shown after every successful import (all 3 import paths).
+             Auto-dismissed after 5 s by toastTimer.
+             Manual dismiss: btnToastDismiss or btnToastClose.
+
+             Dynamic labels:
+               lblToastBatchId     → e.g. "BATCH0001"
+               lblToastChequeCount → e.g. "12 cheques"
+               lblToastAmount      → e.g. "₹1,20,000.00"
+        ═══════════════════════════════════════════════════════════════════ -->
+        <div id="batchSuccessToast" sclass="bce-toast" visible="false">
+            <div sclass="bce-toast-stripe"/>
+            <div sclass="bce-toast-icon">&#x2705;</div>
+            <div sclass="bce-toast-body">
+                <div sclass="bce-toast-title">Batch Created Successfully</div>
+                <div sclass="bce-toast-meta">
+                    <!-- lblToastBatchId: batch ID -->
+                    <label id="lblToastBatchId"     sclass="bce-toast-bid"/>
+                    <span  sclass="bce-toast-dot">&#xB7;</span>
+                    <!-- lblToastChequeCount: e.g. "12 cheques" -->
+                    <label id="lblToastChequeCount"/>
+                    <span  sclass="bce-toast-dot">&#xB7;</span>
+                    <!-- lblToastAmount: e.g. "₹1,20,000.00" -->
+                    <label id="lblToastAmount"/>
+                </div>
+                <div sclass="bce-toast-actions">
+                    <!-- btnToastDismiss → onToastDismiss() → closeSuccessToast() -->
+                    <button id="btnToastDismiss" sclass="bce-toast-btn-dismiss" label="&#x2715; Close"/>
+                </div>
+            </div>
+            <!-- btnToastClose → onToastClose() → closeSuccessToast() -->
+            <button id="btnToastClose" sclass="bce-toast-x" label="&#x2715;"/>
+        </div><!-- /batchSuccessToast -->
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             SECTION 9 — AUTO-DISMISS TIMER
+             ─────────────────────────────────────────────────────────────
+             Pure ZK MVC timer. Fires once 5 s after showSuccessToast() starts it.
+             toastTimer.setRunning(true/false) controlled by composer.
+             onTimer → onToastTimer() → closeSuccessToast()
+        ═══════════════════════════════════════════════════════════════════ -->
+        <timer id="toastTimer" delay="5000" repeats="false" running="false"/>
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             SECTION 10 — HIDDEN DISCARD BUTTON
+             ─────────────────────────────────────────────────────────────
+             Fallback for JS-triggered scan cancel. Kept invisible.
+             Wired to onScanCancelDiscard() → discardPendingBatch()
+        ═══════════════════════════════════════════════════════════════════ -->
+        <button id="btnScanCancelDiscard" visible="false"/>
+
+    </div><!-- /mbRoot -->
+
+</zk>
