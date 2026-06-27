@@ -19,191 +19,215 @@ import org.zkoss.zul.Textbox;
 
 import com.cts.uam.model.Permission;
 import com.cts.uam.model.Role;
-import com.cts.uam.service.RoleService;
+import com.cts.uam.service.RoleServiceImpl;
 import com.cts.util.SecurityUtil;
 
 /**
- * RoleManagementComposer — role-mgmt.zul
+ * RoleManagementComposer - handles the Role Management page (role-mgmt.zul).
  *
- * Left panel  : paginated role list with search filter.
- * Right panel : role editor (name, description, permission tree).
+ * The page has two panels:
+ * LEFT : Role list with search and pagination (clickable cards)
+ * RIGHT : Editor form for the selected role (permissions, description,
+ * activate/deactivate)
  *
- * Flows:
- *   Create role → PENDING, goes to Pending Role Approvals.
- *   Edit role   → applied directly.
- *   Enable/Disable → applied directly, no maker-checker.
+ * Rules:
+ * Create new role -> goes to PENDING status -> checker must approve before it
+ * becomes usable
+ * Edit a role -> saved directly (no approval needed)
+ * Enable/Disable -> saved directly (no approval needed)
  */
 public class RoleManagementComposer extends SelectorComposer<Component> {
 
-    // ── Pagination config ─────────────────────────────────────────
+    // How many role cards to show per page on the left panel
     private static final int ROLE_PAGE_SIZE = 6;
 
-    // ── Wired — Left panel ────────────────────────────────────────
+    // ── LEFT PANEL - UI components ────────────────────────────────
     @Wire("#roleListContainer")
-    private Div roleListContainer;
+    private Div roleListContainer; // role cards are rendered here
+
     @Wire("#txtRoleSearch")
-    private Textbox txtRoleSearch;
+    private Textbox txtRoleSearch; // search input box
+
     @Wire("#lblRoleCount")
-    private Label lblRoleCount;
+    private Label lblRoleCount; // shows "12 Roles"
+
     @Wire("#lblRolePaginationInfo")
-    private Label lblRolePaginationInfo;
+    private Label lblRolePaginationInfo; // shows "1-6 of 12"
+
     @Wire("#lblRolePageNum")
-    private Label lblRolePageNum;
+    private Label lblRolePageNum; // shows "Page 1 of 2"
+
     @Wire("#btnRoleFirstPage")
     private Button btnRoleFirstPage;
+
     @Wire("#btnRolePrevPage")
     private Button btnRolePrevPage;
+
     @Wire("#btnRoleNextPage")
     private Button btnRoleNextPage;
+
     @Wire("#btnRoleLastPage")
     private Button btnRoleLastPage;
 
-    // ── Wired — Right panel (editor) ──────────────────────────────
+    // ── RIGHT PANEL - Editor form ─────────────────────────────────
     @Wire("#permTreeContainer")
-    private Div permTreeContainer;
+    private Div permTreeContainer; // permission module+checkbox tree goes here
+
     @Wire("#editorEmptyState")
-    private Div editorEmptyState;
+    private Div editorEmptyState; // "Select a role to modify" placeholder
+
     @Wire("#editorForm")
-    private Div editorForm;
+    private Div editorForm; // the actual edit form
+
     @Wire("#txtRoleName")
     private Textbox txtRoleName;
+
     @Wire("#txtRoleDesc")
     private Textbox txtRoleDesc;
+
     @Wire("#lblEditorTitle")
     private Label lblEditorTitle;
+
     @Wire("#lblRoleNameHint")
-    private Label lblRoleNameHint;
+    private Label lblRoleNameHint; // hint text below the role name field
+
     @Wire("#btnToggleActive")
-    private Button btnToggleActive;
+    private Button btnToggleActive; // shows "Activate" or "Deactivate"
+
     @Wire("#btnSaveRole")
     private Button btnSaveRole;
+
     @Wire("#btnDeleteRole")
-    private Button btnDeleteRole;
+    private Button btnDeleteRole; // hidden - delete not yet implemented
 
     // ── State ─────────────────────────────────────────────────────
-    private Role selectedRole = null;
-    private List<Role> allRoles = new ArrayList<>();
-    private List<Role> filteredRoles = new ArrayList<>();
-    private int currentRolePage = 0;
+    private Role selectedRole = null; // which role is open in the editor (null = New Role mode)
+    private int currentPage = 0; // which page of the role list is showing
+    private long totalRoleCount = 0; // total roles matching current search query
 
-    private final RoleService roleService = new RoleService();
+    private final RoleServiceImpl roleService = new RoleServiceImpl();
 
-    // ── Init ──────────────────────────────────────────────────────
+    // ── INIT ──────────────────────────────────────────────────────
 
+    /**
+     * Runs once when the page loads.
+     * Shows the "select a role" placeholder on the right and loads roles on the
+     * left.
+     */
     @Override
     public void doAfterCompose(Component comp) throws Exception {
         super.doAfterCompose(comp);
-        showEditorEmptyState();
-        loadAndRenderRoleList();
+        showEditorEmptyState(); // show "select a role" placeholder on right panel
+        loadRolesFromDb(); // load roles from DB and show them on left panel
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // LEFT PANEL — Role list + search + pagination
-    // ═══════════════════════════════════════════════════════════════
+    // ── LEFT PANEL - Role list + search + pagination ──────────────
 
-
-    //this functions runs when page opens
-    private void loadAndRenderRoleList() {
-        allRoles = roleService.getAllRoles();
-        applySearchFilter();
+    /**
+     * Loads roles from DB starting from page 0.
+     * Called on page open and after any save or cancel action.
+     */
+    private void loadRolesFromDb() {
+        currentPage = 0;
+        applySearchAndRender();
     }
-    
-    //this runs when we write to search on searchbox
+
+    /**
+     * Fires when user types in the search box.
+     * Resets to page 0 so search always starts from the first result.
+     */
     @Listen("onChanging = #txtRoleSearch; onChange = #txtRoleSearch")
     public void onSearchRoles() {
-        currentRolePage = 0;  // reset to first page on new search
-        applySearchFilter();
+        currentPage = 0;
+        applySearchAndRender();
     }
 
-    /** Filter allRoles by search query, then render. */
-    //it is used to get role list whether we search or not
-    private void applySearchFilter() {
+    /**
+     * Counts roles matching the current search query, then renders the current
+     * page.
+     * DB-level search via LIKE on role_name and description.
+     */
+    private void applySearchAndRender() {
         String query = txtRoleSearch.getValue().trim().toLowerCase();
-        if (query.isEmpty()) {
-            filteredRoles = new ArrayList<>(allRoles);
-        } else {
-            filteredRoles = allRoles.stream()
-                    .filter(r -> roleMatchesSearch(r, query))
-                    .toList();
-        }
-        lblRoleCount.setValue(allRoles.size() + " Roles");
-        implementPaginationInRoleList();
+        totalRoleCount = roleService.countRoles(query);
+        renderCurrentPage();
     }
 
-    //it is used when in filter stream try to search role matches with query and it isused to pass true or false based on
-    //matches
-    private boolean roleMatchesSearch(Role role, String query) {
-        return role.getRoleName().toLowerCase().contains(query)
-                || (role.getDescription() != null
-                        && role.getDescription().toLowerCase().contains(query));
-    }
-
-    /** Render only current page slice from filteredRoles. */
-    //it is used to implement pagination in role list
-    private void implementPaginationInRoleList() {
+    /**
+     * Fetches only the current page's roles from DB (LIMIT/OFFSET) and renders them
+     * as cards.
+     * Also updates pagination labels and enables/disables navigation buttons.
+     */
+    private void renderCurrentPage() {
         roleListContainer.getChildren().clear();
 
-        int total = filteredRoles.size();
-        int totalPages = total == 0 ? 1 : (int) Math.ceil((double) total / ROLE_PAGE_SIZE);
+        String query = txtRoleSearch.getValue().trim().toLowerCase();
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalRoleCount / ROLE_PAGE_SIZE));
 
-        // Clamp page index
-        if (currentRolePage >= totalPages) currentRolePage = totalPages - 1;
-        if (currentRolePage < 0) currentRolePage = 0;
+        // Keep page index within valid range
+        currentPage = Math.max(0, Math.min(currentPage, totalPages - 1));
 
-        int from = currentRolePage * ROLE_PAGE_SIZE;
-        int to   = Math.min(from + ROLE_PAGE_SIZE, total);
+        int offset = currentPage * ROLE_PAGE_SIZE;
+        List<Role> pageRoles = roleService.searchRoles(query, offset, ROLE_PAGE_SIZE);
 
-        // Update pagination labels
+        int from = offset;
+        int to = offset + pageRoles.size();
+
+        // Update info labels
+        lblRoleCount.setValue(totalRoleCount + " Roles");
         lblRolePaginationInfo.setValue(
-                total == 0 ? "No roles" : (from + 1) + "–" + to + " of " + total);
-        lblRolePageNum.setValue((currentRolePage + 1) + " / " + totalPages);
+                totalRoleCount == 0 ? "No roles" : (from + 1) + "-" + to + " of " + totalRoleCount);
+        lblRolePageNum.setValue((currentPage + 1) + " / " + totalPages);
 
-        // Disable/enable pagination buttons
-        btnRoleFirstPage.setDisabled(currentRolePage == 0);
-        btnRolePrevPage.setDisabled(currentRolePage == 0);
-        btnRoleNextPage.setDisabled(to >= total);
-        btnRoleLastPage.setDisabled(to >= total);
+        // Disable buttons that are not usable on this page
+        btnRoleFirstPage.setDisabled(currentPage == 0);
+        btnRolePrevPage.setDisabled(currentPage == 0);
+        btnRoleNextPage.setDisabled(to >= totalRoleCount);
+        btnRoleLastPage.setDisabled(to >= totalRoleCount);
 
-        if (total == 0) {
+        if (totalRoleCount == 0) {
             roleListContainer.appendChild(buildEmptyListMessage());
             return;
         }
 
-        for (int i = from; i < to; i++) {
-            roleListContainer.appendChild(buildRoleListItem(filteredRoles.get(i)));
+        // Build a card for each role on this page
+        for (Role role : pageRoles) {
+            roleListContainer.appendChild(buildRoleCard(role));
         }
     }
 
-    // ── Pagination button listeners ───────────────────────────────
+    // ── Pagination button click handlers ──────────────────────────
 
     @Listen("onClick = #btnRoleFirstPage")
-    public void onClickRoleFirstPage() {
-        currentRolePage = 0;
-        implementPaginationInRoleList();
+    public void onClickFirstPage() {
+        currentPage = 0;
+        renderCurrentPage();
     }
 
     @Listen("onClick = #btnRolePrevPage")
-    public void onClickRolePrevPage() {
-        currentRolePage--;
-        implementPaginationInRoleList();
+    public void onClickPrevPage() {
+        currentPage--;
+        renderCurrentPage();
     }
 
     @Listen("onClick = #btnRoleNextPage")
-    public void onClickRoleNextPage() {
-        currentRolePage++;
-        implementPaginationInRoleList();
+    public void onClickNextPage() {
+        currentPage++;
+        renderCurrentPage();
     }
 
     @Listen("onClick = #btnRoleLastPage")
-    public void onClickRoleLastPage() {
-        int total = filteredRoles.size();
-        int totalPages = total == 0 ? 1 : (int) Math.ceil((double) total / ROLE_PAGE_SIZE);
-        currentRolePage = totalPages - 1;
-        implementPaginationInRoleList();
+    public void onClickLastPage() {
+        currentPage = Math.max(0, (int) Math.ceil((double) totalRoleCount / ROLE_PAGE_SIZE) - 1);
+        renderCurrentPage();
     }
 
-    // ── List item builders ────────────────────────────────────────
-    // this used to show empty message when role is empty on the place of role list
+    // ── Role card builders ────────────────────────────────────────
+
+    /**
+     * Returns a "No roles found." message block.
+     * Shown when the role list is empty (no roles exist or search has no results).
+     */
     private Div buildEmptyListMessage() {
         Div emptyMsg = new Div();
         emptyMsg.setSclass("role-list-empty");
@@ -212,17 +236,21 @@ public class RoleManagementComposer extends SelectorComposer<Component> {
         emptyMsg.appendChild(label);
         return emptyMsg;
     }
-    
-    //it is used to create role list of each role on list 
-    private Div buildRoleListItem(Role role) {
-        boolean isSelected = selectedRole != null
-                && role.getId().equals(selectedRole.getId());
 
-        Div item = new Div();
-        item.setSclass(isSelected ? "role-item selected" : "role-item");
-        item.setAttribute("roleId", role.getId());
+    /**
+     * Builds one clickable card for a role on the left panel.
+     * Shows: role name, description, and Active/Inactive badge.
+     * Clicking the card loads that role into the right panel editor.
+     */
+    private Div buildRoleCard(Role role) {
+        // Highlight this card if it is currently open in the editor
+        boolean isSelected = selectedRole != null && role.getId().equals(selectedRole.getId());
 
-        // Name + description block
+        Div card = new Div();
+        card.setSclass(isSelected ? "role-item selected" : "role-item");
+        card.setAttribute("roleId", role.getId()); // stored so we can highlight it later
+
+        // Role name and description block
         Div info = new Div();
         info.setSclass("role-item-info");
 
@@ -231,26 +259,28 @@ public class RoleManagementComposer extends SelectorComposer<Component> {
 
         Div descDiv = new Div();
         descDiv.setSclass("role-item-desc");
-        descDiv.appendChild(new Label(
-                role.getDescription() != null ? role.getDescription() : "—"));
+        descDiv.appendChild(new Label(role.getDescription() != null ? role.getDescription() : "-"));
 
         info.appendChild(nameLabel);
         info.appendChild(descDiv);
 
-        // Status badge
+        // Active or Inactive status badge
         Label statusBadge = new Label(role.isActive() ? "Active" : "Inactive");
         statusBadge.setSclass(role.isActive() ? "badge badge-active" : "badge badge-inactive");
 
-        item.appendChild(info);
-        item.appendChild(statusBadge);
-        item.addEventListener("onClick", e -> loadRoleIntoEditor(role));
-        return item;
+        card.appendChild(info);
+        card.appendChild(statusBadge);
+        card.addEventListener("onClick", e -> loadRoleIntoEditor(role));
+        return card;
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // RIGHT PANEL — Editor: Add new role
-    // ═══════════════════════════════════════════════════════════════
-    //when we click add role button then this is used to load form to create new role
+    // ── RIGHT PANEL - Editor ──────────────────────────────────────
+
+    /**
+     * Runs when "Add New Role" button is clicked.
+     * Clears the form and shows it ready for creating a new role.
+     * Permission tree shows all permissions unchecked.
+     */
     @Listen("onClick = #btnAddRole")
     public void onClickAddRole() {
         selectedRole = null;
@@ -260,33 +290,68 @@ public class RoleManagementComposer extends SelectorComposer<Component> {
         lblRoleNameHint.setValue("Uppercase, underscores only. Cannot be changed after creation.");
         btnToggleActive.setVisible(false);
         btnDeleteRole.setVisible(false);
-        buildPermissionTree(null);
+        buildPermissionTree(null); // null = all checkboxes unchecked
         showEditorForm();
         txtRoleName.setFocus(true);
-        refreshSelectionHighlight(null);
+        refreshSelectionHighlight(null); // no card highlighted on the left
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // RIGHT PANEL — Editor: Load existing role
-    // ═══════════════════════════════════════════════════════════════
-    // it is run when when select any role and from role list on right sections
+    /**
+     * Loads a role into the editor when a card is clicked on the left panel.
+     * Fills form fields and shows currently assigned permissions as checked.
+     */
     private void loadRoleIntoEditor(Role role) {
         selectedRole = role;
+
         txtRoleName.setValue(role.getRoleName());
         txtRoleName.setReadonly(true);
         txtRoleDesc.setValue(role.getDescription() != null ? role.getDescription() : "");
-        lblEditorTitle.setValue("MODIFY ROLE — " + role.getRoleName());
+        lblEditorTitle.setValue("MODIFY ROLE - " + role.getRoleName());
         lblRoleNameHint.setValue("Role name cannot be changed after creation.");
-        setupToggleButton(role);
         btnDeleteRole.setVisible(false);
+
+        // User cannot modify their own role
+        boolean isOwnRole = role.getId().equals(SecurityUtil.getCurrentUser().getRoleId());
+        if (isOwnRole) {
+            lblEditorTitle.setValue("VIEW ROLE - " + role.getRoleName() + "  (read-only)");
+            txtRoleDesc.setReadonly(true);
+            btnSaveRole.setVisible(false);
+            btnToggleActive.setVisible(false);
+            // Permission checkboxes bhi disable karo
+            setPermissionTreeReadOnly(true);
+            showEditorForm();
+            refreshSelectionHighlight(role.getId());
+            return;
+        }
+
+        // Normal edit flow
+        txtRoleDesc.setReadonly(false);
+        btnSaveRole.setVisible(true);
+        setPermissionTreeReadOnly(false);
+        setupToggleButton(role);
 
         Set<String> assignedKeys = roleService.getAssignedPermissionKeys(role.getId());
         buildPermissionTree(assignedKeys);
+
         showEditorForm();
         refreshSelectionHighlight(role.getId());
     }
-    
-    //it is used to show deactivate or activate on button of the toggle button based on on role is active or inactive
+
+    // Enables or disables all checkboxes in the permission tree
+    private void setPermissionTreeReadOnly(boolean readOnly) {
+        permTreeContainer.getChildren().forEach(child -> child.getChildren().stream()
+                .filter(c -> c instanceof Checkbox)
+                .map(c -> (Checkbox) c)
+                .forEach(cb -> cb.setDisabled(readOnly)));
+    }
+
+    /**
+     * Sets the label and style of the Activate/Deactivate toggle button
+     * based on the role's current status.
+     *
+     * Active role -> shows "Deactivate" (outline style)
+     * Inactive role -> shows "Activate" (green style)
+     */
     private void setupToggleButton(Role role) {
         boolean isActive = role.isActive();
         btnToggleActive.setLabel(isActive ? "Deactivate" : "Activate");
@@ -294,8 +359,7 @@ public class RoleManagementComposer extends SelectorComposer<Component> {
         btnToggleActive.setVisible(true);
     }
 
-    // ── Cancel ────────────────────────────────────────────────────
-    //this function will remove the edit form editor space
+    // Runs when Cancel is clicked - hides the editor and clears the selection
     @Listen("onClick = #btnCancelRole")
     public void onClickCancelRole() {
         selectedRole = null;
@@ -303,8 +367,16 @@ public class RoleManagementComposer extends SelectorComposer<Component> {
         refreshSelectionHighlight(null);
     }
 
-    // ── Save ──────────────────────────────────────────────────────
-    //this function is called when we create and make changes in roles
+    /**
+     * Runs when Save is clicked.
+     *
+     * New role -> submitted as PENDING (checker must approve before it becomes
+     * ACTIVE)
+     * Edit role -> saved directly to DB (no approval needed)
+     *
+     * Validates form inputs and ensures at least one permission is selected before
+     * saving.
+     */
     @Listen("onClick = #btnSaveRole")
     public void onClickSaveRole() {
         String roleName = selectedRole != null
@@ -312,7 +384,8 @@ public class RoleManagementComposer extends SelectorComposer<Component> {
                 : txtRoleName.getValue().trim().toUpperCase();
         String description = txtRoleDesc.getValue().trim();
 
-        if (!isEditorInputValid(roleName, description)) return;
+        if (!isEditorInputValid(roleName, description))
+            return;
 
         Set<String> checkedPermissions = collectCheckedPermissions(permTreeContainer);
         if (checkedPermissions.isEmpty()) {
@@ -324,27 +397,38 @@ public class RoleManagementComposer extends SelectorComposer<Component> {
 
         try {
             if (selectedRole == null) {
-                // CREATE → submit for checker approval
+                // CREATE - goes to checker for approval before becoming ACTIVE
                 roleService.submitNewRoleForApproval(roleName, description, checkedPermissions, makerId);
                 Messagebox.show(
                         "New role submitted for checker approval.\n"
                                 + "It will appear in Pending Role Approvals.",
                         "Submitted", Messagebox.OK, Messagebox.INFORMATION,
-                        e -> { onClickCancelRole(); loadAndRenderRoleList(); });
+                        e -> {
+                            onClickCancelRole();
+                            loadRolesFromDb();
+                        });
             } else {
-                // EDIT → applied directly
+                // EDIT - saved directly, no approval needed
                 roleService.updateRoleDirectly(selectedRole.getId(), description, checkedPermissions, makerId);
                 Messagebox.show("Role updated successfully.",
                         "Saved", Messagebox.OK, Messagebox.INFORMATION,
-                        e -> { onClickCancelRole(); loadAndRenderRoleList(); });
+                        e -> {
+                            onClickCancelRole();
+                            loadRolesFromDb();
+                        });
             }
         } catch (Exception ex) {
             showError(ex.getMessage());
         }
     }
 
+    /**
+     * Validates form inputs before saving.
+     * Returns false and shows an error if anything is wrong.
+     */
     private boolean isEditorInputValid(String roleName, String description) {
         if (selectedRole == null) {
+            // New role: run full name validation (format + uniqueness)
             String nameError = roleService.validateNewRoleName(roleName);
             if (nameError != null) {
                 showError(nameError);
@@ -365,77 +449,112 @@ public class RoleManagementComposer extends SelectorComposer<Component> {
         return true;
     }
 
-    // ── Toggle Enable / Disable ───────────────────────────────────
-
+    /**
+     * Runs when Activate/Deactivate button is clicked.
+     * Shows a confirm dialog, then updates the role status in DB.
+     * Deactivate will fail (with an error popup) if active users still have this
+     * role.
+     */
     @Listen("onClick = #btnToggleActive")
     public void onClickToggleActive() {
-        if (selectedRole == null) return;
+        if (selectedRole == null)
+            return;
 
         boolean isCurrentlyActive = selectedRole.isActive();
-        String message = isCurrentlyActive
-                ? "Deactivate role \"" + selectedRole.getRoleName()
-                        + "\"? Users assigned to it will lose access."
+        String confirmMessage = isCurrentlyActive
+                ? "Deactivate role \"" + selectedRole.getRoleName() + "\"? Users with this role will lose access."
                 : "Activate role \"" + selectedRole.getRoleName() + "\"?";
 
-        Messagebox.show(message, "Confirm",
+        Messagebox.show(confirmMessage, "Confirm",
                 Messagebox.YES | Messagebox.NO, Messagebox.QUESTION,
                 event -> {
-                    if (!Messagebox.ON_YES.equals(event.getName())) return;
+                    if (!Messagebox.ON_YES.equals(event.getName()))
+                        return;
                     try {
                         if (isCurrentlyActive) {
                             roleService.deactivateRole(selectedRole.getId());
                         } else {
                             roleService.activateRole(selectedRole.getId());
                         }
-                        Messagebox.show(
-                                "Role " + (isCurrentlyActive ? "deactivated" : "activated") + " successfully.",
-                                "Done", Messagebox.OK, Messagebox.INFORMATION,
-                                e -> { onClickCancelRole(); loadAndRenderRoleList(); });
+                        String doneMsg = "Role " + (isCurrentlyActive ? "deactivated" : "activated") + " successfully.";
+                        Messagebox.show(doneMsg, "Done", Messagebox.OK, Messagebox.INFORMATION,
+                                e -> {
+                                    onClickCancelRole();
+                                    loadRolesFromDb();
+                                });
                     } catch (Exception ex) {
                         showError(ex.getMessage());
                     }
                 });
     }
 
-    // Stub — no delete in current workflow
+    // Delete is not implemented yet - button is hidden in the ZUL
     @Listen("onClick = #btnDeleteRole")
-    public void onClickDeleteRole() { /* intentionally empty */ }
+    public void onClickDeleteRole() {
+        /* intentionally empty - delete not implemented */
+    }
 
-    // ═══════════════════════════════════════════════════════════════
-    // PERMISSION TREE
-    // ═══════════════════════════════════════════════════════════════
-    //this is used create all permission in div container like tree
+    // ── PERMISSION TREE - module-wise grouped checkboxes ──────────
+
+    /**
+     * Loads all permissions from DB (grouped by module) and builds the checkbox
+     * tree.
+     *
+     * @param assignedKeys keys of permissions already assigned to this role (shown
+     *                     checked).
+     *                     Pass null for a new role (all checkboxes start
+     *                     unchecked).
+     */
     private void buildPermissionTree(Set<String> assignedKeys) {
         permTreeContainer.getChildren().clear();
-        Map<String, List<Permission>> grouped = roleService.getPermissionsGroupedByModule();
+        Map<String, List<Permission>> groupedByModule = roleService.getPermissionsGroupedByModule();
 
-        for (Map.Entry<String, List<Permission>> entry : grouped.entrySet()) {
-            permTreeContainer.appendChild(
-                    buildModuleBlock(entry.getKey(), entry.getValue(), assignedKeys));
+        // Build one collapsible block per module
+        for (Map.Entry<String, List<Permission>> entry : groupedByModule.entrySet()) {
+            Div moduleBlock = buildModuleBlock(entry.getKey(), entry.getValue(), assignedKeys);
+            permTreeContainer.appendChild(moduleBlock);
         }
     }
 
-    //this is the helper method to create permissions like tree in role management
+    /**
+     * Builds one module block in the permission tree.
+     *
+     * Structure:
+     * [module checkbox] [icon] [module name]
+     * -> [permission checkbox 1]
+     * -> [permission checkbox 2]
+     * -> ...
+     *
+     * Module checkbox state:
+     * All assigned -> checked
+     * Some assigned -> indeterminate (dash)
+     * None assigned -> unchecked
+     */
     private Div buildModuleBlock(String moduleName, List<Permission> permissions,
             Set<String> assignedKeys) {
 
+        // Count how many of this module's permissions are already assigned
         long assignedCount = assignedKeys == null ? 0
                 : permissions.stream()
                         .filter(p -> assignedKeys.contains(p.getPermissionKey()))
                         .count();
 
-        Div moduleBlock = new Div();
-        moduleBlock.setSclass("perm-module");
+        Checkbox moduleCheckbox = new Checkbox();
+        moduleCheckbox.setSclass("perm-module-chk");
+        // All assigned -> checked; some assigned -> indeterminate; none -> unchecked
+        moduleCheckbox.setChecked(assignedCount == permissions.size() && permissions.size() > 0);
+        moduleCheckbox.setIndeterminate(assignedCount > 0 && assignedCount < permissions.size());
 
-        Checkbox moduleCheckbox = buildModuleCheckbox(assignedCount, permissions.size());
-        Div childrenContainer = buildPermissionChildren(permissions, assignedKeys, moduleCheckbox);
+        // Build children first - needed to wire events with moduleCheckbox
+        Div childrenDiv = buildPermissionChildrenDiv(permissions, assignedKeys, moduleCheckbox);
 
-        // Module header row: checkbox + icon + name
+        // Header row: [checkbox] [icon] [module name]
         Div header = new Div();
         header.setSclass("perm-module-header");
 
-        Label iconLabel = new Label(moduleIcon(moduleName));
-        iconLabel.setSclass("perm-module-icon " + moduleIconCssClass(moduleName));
+        String[] iconAndClass = resolveModuleIconAndClass(moduleName);
+        Label iconLabel = new Label(iconAndClass[0]);
+        iconLabel.setSclass("perm-module-icon " + iconAndClass[1]);
 
         Label nameLabel = new Label(moduleName);
         nameLabel.setSclass("perm-module-name");
@@ -444,70 +563,81 @@ public class RoleManagementComposer extends SelectorComposer<Component> {
         header.appendChild(iconLabel);
         header.appendChild(nameLabel);
 
+        Div moduleBlock = new Div();
+        moduleBlock.setSclass("perm-module");
         moduleBlock.appendChild(header);
-        moduleBlock.appendChild(childrenContainer);
+        moduleBlock.appendChild(childrenDiv);
         return moduleBlock;
     }
 
-    //this is used to create checkbox with 
-    private Checkbox buildModuleCheckbox(long assignedCount, int totalCount) {
-        Checkbox moduleCheckbox = new Checkbox();
-        moduleCheckbox.setSclass("perm-module-chk");
-        moduleCheckbox.setChecked(assignedCount == totalCount && totalCount > 0);
-        moduleCheckbox.setIndeterminate(assignedCount > 0 && assignedCount < totalCount);
-        return moduleCheckbox;
-    }
-    //
-    private Div buildPermissionChildren(List<Permission> permissions,
+    /**
+     * Builds the individual permission checkboxes inside a module.
+     *
+     * Two-way sync is wired here:
+     * Child changes -> module checkbox state is recalculated
+     * Module clicked -> all children are checked or unchecked together
+     */
+    private Div buildPermissionChildrenDiv(List<Permission> permissions,
             Set<String> assignedKeys, Checkbox moduleCheckbox) {
 
-        Div childrenContainer = new Div();
-        childrenContainer.setSclass("perm-children");
+        Div childrenDiv = new Div();
+        childrenDiv.setSclass("perm-children");
 
-        for (Permission permission : permissions) {
+        for (Permission perm : permissions) {
+            Checkbox permCheckbox = new Checkbox(perm.getDisplayName());
+            permCheckbox.setId("chk_" + perm.getPermissionKey()); // "chk_" prefix marks these as leaf checkboxes
+            permCheckbox.setValue(perm.getPermissionKey());
+            permCheckbox.setChecked(assignedKeys != null && assignedKeys.contains(perm.getPermissionKey()));
+
+            // When any child changes, recalculate the module checkbox state
+            permCheckbox.addEventListener("onCheck",
+                    e -> syncModuleCheckboxState(moduleCheckbox, childrenDiv));
+
             Div row = new Div();
             row.setSclass("perm-child");
-
-            Checkbox permCheckbox = new Checkbox(permission.getDisplayName());
-            permCheckbox.setId("chk_" + permission.getPermissionKey());
-            permCheckbox.setValue(permission.getPermissionKey());
-            permCheckbox.setChecked(
-                    assignedKeys != null && assignedKeys.contains(permission.getPermissionKey()));
-            permCheckbox.addEventListener("onCheck",
-                    e -> syncModuleCheckboxState(moduleCheckbox, childrenContainer));
-
             row.appendChild(permCheckbox);
-            childrenContainer.appendChild(row);
+            childrenDiv.appendChild(row);
         }
 
-        // Module checkbox → check/uncheck all children
+        // When module checkbox is clicked, check or uncheck all its children together
         moduleCheckbox.addEventListener("onCheck", e -> {
             boolean checked = moduleCheckbox.isChecked();
-            for (Component child : childrenContainer.getChildren()) {
-                if (child instanceof Div row) {
-                    for (Component c : row.getChildren()) {
-                        if (c instanceof Checkbox cb) cb.setChecked(checked);
+            for (Component row : childrenDiv.getChildren()) {
+                if (row instanceof Div d) {
+                    for (Component c : d.getChildren()) {
+                        if (c instanceof Checkbox cb)
+                            cb.setChecked(checked);
                     }
                 }
             }
             moduleCheckbox.setIndeterminate(false);
         });
 
-        return childrenContainer;
+        return childrenDiv;
     }
 
-    private void syncModuleCheckboxState(Checkbox moduleCheckbox, Div childrenContainer) {
+    /**
+     * Recalculates the module checkbox state after a child checkbox changes.
+     *
+     * 0 of N checked -> module unchecked
+     * N of N checked -> module checked
+     * 1 to N-1 checked -> module indeterminate (dash icon)
+     */
+    private void syncModuleCheckboxState(Checkbox moduleCheckbox, Div childrenDiv) {
         long total = 0, checked = 0;
-        for (Component child : childrenContainer.getChildren()) {
-            if (child instanceof Div row) {
-                for (Component c : row.getChildren()) {
+        for (Component row : childrenDiv.getChildren()) {
+            if (row instanceof Div d) {
+                for (Component c : d.getChildren()) {
+                    // Only count leaf checkboxes (the ones with a "chk_" prefixed id)
                     if (c instanceof Checkbox cb && cb.getValue() != null) {
                         total++;
-                        if (cb.isChecked()) checked++;
+                        if (cb.isChecked())
+                            checked++;
                     }
                 }
             }
         }
+
         if (checked == 0) {
             moduleCheckbox.setChecked(false);
             moduleCheckbox.setIndeterminate(false);
@@ -520,6 +650,12 @@ public class RoleManagementComposer extends SelectorComposer<Component> {
         }
     }
 
+    /**
+     * Walks the entire permission tree and returns the keys of all checked
+     * permissions.
+     * Only picks checkboxes whose ID starts with "chk_" (skips module-level
+     * checkboxes).
+     */
     private Set<String> collectCheckedPermissions(Component parent) {
         Set<String> result = new HashSet<>();
         collectCheckedRecursive(parent, result);
@@ -533,66 +669,83 @@ public class RoleManagementComposer extends SelectorComposer<Component> {
                     && cb.getId() != null
                     && cb.getId().startsWith("chk_")) {
                 String key = cb.getValue() != null ? cb.getValue().toString() : "";
-                if (!key.isEmpty()) result.add(key);
+                if (!key.isEmpty())
+                    result.add(key);
             }
             collectCheckedRecursive(child, result);
         }
     }
 
-    // ── Module icon helpers ───────────────────────────────────────
+    // ── MODULE ICON HELPER ────────────────────────────────────────
 
-    private String moduleIcon(String moduleName) {
+    /**
+     * Maps each module name to its icon emoji and CSS class.
+     * index 0 = emoji icon, index 1 = CSS class name.
+     *
+     * Merged from two separate methods (moduleIcon and moduleIconCssClass)
+     * that had the same if-else logic repeated twice.
+     */
+    private static final Map<String, String[]> MODULE_ICON_MAP = Map.of(
+            "admin", new String[] { "⚙", "icon-admin" },
+            "dashboard", new String[] { "▦", "icon-dashboard" },
+            "inward", new String[] { "↙", "icon-inward" },
+            "outward", new String[] { "↗", "icon-outward" },
+            "report", new String[] { "📊", "icon-reports" },
+            "user", new String[] { "👤", "icon-uam" },
+            "uam", new String[] { "👤", "icon-uam" });
+
+    /**
+     * Finds the icon and CSS class for the given module name.
+     * Checks if the module name contains any known keyword.
+     * Falls back to the admin icon if nothing matches.
+     */
+    private String[] resolveModuleIconAndClass(String moduleName) {
         String lower = moduleName.toLowerCase();
-        if (lower.contains("admin") || lower.contains("administration")) return "⚙";
-        if (lower.contains("dashboard"))  return "▦";
-        if (lower.contains("inward"))     return "↙";
-        if (lower.contains("outward"))    return "↗";
-        if (lower.contains("report"))     return "📊";
-        if (lower.contains("uam") || lower.contains("user")) return "👤";
-        return "⚙";
+        return MODULE_ICON_MAP.entrySet().stream()
+                .filter(e -> lower.contains(e.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(new String[] { "⚙", "icon-admin" });
     }
 
-    private String moduleIconCssClass(String moduleName) {
-        String lower = moduleName.toLowerCase();
-        if (lower.contains("admin") || lower.contains("administration")) return "icon-admin";
-        if (lower.contains("dashboard"))  return "icon-dashboard";
-        if (lower.contains("inward"))     return "icon-inward";
-        if (lower.contains("outward"))    return "icon-outward";
-        if (lower.contains("report"))     return "icon-reports";
-        if (lower.contains("uam") || lower.contains("user")) return "icon-uam";
-        return "icon-admin";
-    }
+    // ── UI STATE HELPERS ──────────────────────────────────────────
 
-    // ═══════════════════════════════════════════════════════════════
-    // UI STATE HELPERS
-    // ═══════════════════════════════════════════════════════════════
-
+    // Shows the editor form on the right panel and hides the empty state
     private void showEditorForm() {
         editorEmptyState.setVisible(false);
         editorForm.setVisible(true);
     }
-    //it will show editor form with empty textboxes or when we click on create new roles then it will work.
+
+    // Shows the "Select a role to modify" placeholder and hides the editor form
     private void showEditorEmptyState() {
         editorForm.setVisible(false);
         editorEmptyState.setVisible(true);
         lblEditorTitle.setValue("SELECT A ROLE TO MODIFY");
     }
 
+    // Clears the role name and description fields in the editor form
     private void clearEditorForm() {
         txtRoleName.setValue("");
         txtRoleDesc.setValue("");
     }
 
+    /**
+     * Highlights the currently selected role card on the left panel.
+     * Removes the "selected" CSS class from all other cards.
+     *
+     * @param selectedRoleId the role to highlight, or null to clear all highlights
+     */
     private void refreshSelectionHighlight(Long selectedRoleId) {
         for (Component child : roleListContainer.getChildren()) {
-            if (child instanceof Div item) {
-                Object itemRoleId = item.getAttribute("roleId");
-                boolean isSelected = selectedRoleId != null && selectedRoleId.equals(itemRoleId);
-                item.setSclass(isSelected ? "role-item selected" : "role-item");
+            if (child instanceof Div card) {
+                Object cardRoleId = card.getAttribute("roleId");
+                boolean isSelected = selectedRoleId != null && selectedRoleId.equals(cardRoleId);
+                card.setSclass(isSelected ? "role-item selected" : "role-item");
             }
         }
     }
 
+    // Shows an error popup with the given message
     private void showError(String message) {
         Messagebox.show(message, "Error", Messagebox.OK, Messagebox.ERROR);
     }

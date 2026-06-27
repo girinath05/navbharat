@@ -2,6 +2,13 @@
    COMBINED DASHBOARD + ANALYTICS
    Extends cts-content / cts-card / cts-page-title
    from dashboard.css. Do not duplicate those rules here.
+
+   Design language aligned with outwardDashboard.css:
+   gradient stat cards w/ icon, pill-style filter bar,
+   navy listbox header, rounded status chips, manual
+   prev/next pagination. Prefix kept as cts- per app
+   convention; tokens (colors, radii, spacing) matched
+   to the od- components so both screens read as one app.
    ================================================== */
 
 .cts-dash-topbar {
@@ -23,36 +30,53 @@
     margin: 28px 0 12px;
 }
 
-/* ---------- KPI cards (top row) ---------- */
+/* ==================================================
+   KPI / STAT CARDS — gradient + icon, matches
+   od-stat-card / od-card-indigo etc.
+   ================================================== */
 .cts-kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
+    display: flex;
+    gap: 18px;
 }
 
 .cts-kpi-card {
+    flex: 1;
     border-radius: 12px;
-    padding: 18px 20px;
-    color: #fff;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 80px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
 .cts-kpi-card .cts-kpi-num {
-    font-size: 30px;
+    font-size: 36px;
     font-weight: 700;
-    line-height: 1.1;
+    color: #ffffff !important;
+    line-height: 1;
+    display: block;
 }
 
 .cts-kpi-card .cts-kpi-label {
     font-size: 13px;
-    margin-top: 4px;
-    opacity: 0.9;
+    color: rgba(255, 255, 255, 0.88);
+    margin-top: 6px;
+    font-weight: 500;
 }
 
-.cts-kpi-blue  { background: #2962d6; }
-.cts-kpi-teal  { background: #15a07a; }
-.cts-kpi-amber { background: #e88a1d; }
-.cts-kpi-red   { background: #d6493c; }
+.cts-kpi-icon {
+    font-size: 30px;
+    opacity: 0.85;
+    color: #ffffff;
+}
+
+/* Gradients reused verbatim from outwardDashboard.css
+   stat cards so the two dashboards share a palette */
+.cts-kpi-blue  { background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); }
+.cts-kpi-teal  { background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); }
+.cts-kpi-amber { background: linear-gradient(135deg, #d97706 0%, #b45309 100%); }
+.cts-kpi-red   { background: linear-gradient(135deg, #e11d48 0%, #be123c 100%); }
 
 /* ---------- module panels (inward / outward) ---------- */
 .cts-panel-grid {
@@ -78,8 +102,8 @@
     border-radius: 50%;
 }
 
-.cts-dot-blue { background: #2962d6; }
-.cts-dot-teal { background: #15a07a; }
+.cts-dot-blue { background: #4f46e5; }
+.cts-dot-teal { background: #0d9488; }
 
 /* ---------- mini stat table inside panel cards ---------- */
 .cts-mini-table {
@@ -102,40 +126,261 @@
 }
 
 .cts-mini-danger {
-    color: #d6493c;
+    color: #be123c;
 }
 
-/* ---------- recent batches table ---------- */
-.cts-recent-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
+/* ==================================================
+   RECENT BATCHES — list card shell matches
+   od-list-card / od-list-card-header exactly.
+   ================================================== */
+.cts-list-card {
+    background: #ffffff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+    margin-top: 16px;
 }
 
-.cts-recent-table th {
-    text-align: left;
-    color: #6b7a99;
-    font-weight: 600;
-    padding: 8px 6px;
-    border-bottom: 2px solid #eef1f6;
+.cts-list-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 14px;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e8edf4;
 }
 
-.cts-recent-table td {
-    padding: 9px 6px;
-    border-bottom: 1px solid #f3f5f9;
+.cts-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    min-width: 0;
 }
 
+.cts-list-card-title {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    color: #1a2b4a !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+
+.cts-card-hint {
+    font-size: 12px !important;
+    color: #8896b0 !important;
+    white-space: nowrap !important;
+    margin-left: 8px !important;
+}
+
+/* ---------- pill filter bar — same tokens as od-filter-bar ---------- */
+.cts-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+}
+
+.cts-search-box,
+.cts-search-box.z-textbox {
+    width: 180px !important;
+    height: 30px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 7px !important;
+    background: #f8fafc !important;
+    color: #475569 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    padding: 0 14px !important;
+    box-sizing: border-box !important;
+}
+
+.cts-search-box:focus,
+.cts-search-box.z-textbox:focus {
+    border-color: #1a3a6e !important;
+    background: #ffffff !important;
+    outline: none !important;
+}
+
+.cts-module-combo,
+.cts-status-combo {
+    width: 150px !important;
+}
+
+.cts-module-combo .z-combobox-input,
+.cts-status-combo .z-combobox-input {
+    height: 30px !important;
+    border-top: 1px solid #cbd5e1 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    border-left: 1px solid #cbd5e1 !important;
+    border-right: none !important;
+    border-radius: 7px !important;
+    background: #f8fafc !important;
+    padding: 0 12px !important;
+    box-shadow: none !important;
+}
+
+.cts-module-combo .z-combobox-button,
+.cts-status-combo .z-combobox-button {
+    width: 30px !important;
+    height: 30px !important;
+    border-left: none !important;
+    border-radius: 0 7px 7px 0 !important;
+    background: #f8fafc !important;
+    box-shadow: none !important;
+}
+
+.cts-clear-btn,
+.cts-clear-btn.z-button {
+    width: 80px !important;
+    min-width: 80px !important;
+    height: 30px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 7px !important;
+    background: #f8fafc !important;
+    color: #64748b !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    padding: 0 12px !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: normal !important;
+    cursor: pointer !important;
+}
+
+.cts-clear-btn:hover,
+.cts-clear-btn.z-button:hover {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border-color: #fca5a5 !important;
+}
+
+/* ---------- recent batches listbox — navy header like Outward ---------- */
+.cts-recent-table.z-listbox {
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+}
+
+.cts-recent-table .z-listhead .z-listheader,
+.cts-recent-table .z-listhead .z-listheader-cnt,
+.cts-recent-table .z-listhead .z-listheader-body {
+    background: #1a2b4a !important;
+    background-image: none !important;
+    border: none !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.22) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    letter-spacing: 0.4px !important;
+    text-transform: uppercase !important;
+    padding: 8px 10px !important;
+    text-align: left !important;
+    vertical-align: middle !important;
+}
+
+.cts-recent-table .z-listhead .z-listheader:last-child {
+    border-right: none !important;
+}
+
+.cts-recent-table .z-listitem {
+    border: none !important;
+}
+
+.cts-recent-table .z-listcell,
+.cts-recent-table .z-listcell-content {
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    color: #2d3a52 !important;
+    padding: 9px 10px !important;
+    border-bottom: 1px solid #f3f5f9 !important;
+}
+
+.cts-recent-table .z-listitem:hover .z-listcell {
+    background: #f9fbff !important;
+}
+
+/* ---------- status chips — same shape language as Outward's .chip ---------- */
 .cts-badge {
-    font-size: 12px;
+    display: inline-block;
+    font-size: 10px;
     padding: 3px 10px;
     border-radius: 20px;
-    font-weight: 600;
+    font-weight: 700;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.4;
+    text-align: center;
+    box-sizing: border-box;
 }
 
-.cts-badge-pending  { background: #fdeccb; color: #8a5a05; }
-.cts-badge-verified { background: #cdeee2; color: #0d6b4d; }
+.cts-badge-pending  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+.cts-badge-verified { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
 
-/* ---------- analytics filter row ---------- */
+/* ---------- pagination bar — identical structure to od-pagination-bar ---------- */
+.cts-pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 20px;
+    border-top: 1px solid #e8edf4;
+    background: #fafbfd;
+}
+
+.cts-pagination-left {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.cts-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cts-page-btn,
+.cts-page-btn.z-button {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 7px !important;
+    padding: 5px 13px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    min-width: 50px !important;
+}
+
+.cts-page-btn:hover,
+.cts-page-btn.z-button:hover {
+    background: #e2e8f0 !important;
+}
+
+.cts-page-btn.z-button-disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    color: #94a3b8 !important;
+}
+
+.cts-page-info {
+    font-size: 13px !important;
+    color: #64748b !important;
+    min-width: 90px !important;
+    text-align: center !important;
+}
+
+/* ---------- analytics filter row (range combo) ---------- */
 .cts-filter-row {
     display: flex;
     justify-content: space-between;
@@ -145,6 +390,14 @@
 
 .cts-filter-row .cts-section-title {
     margin: 0;
+}
+
+.cts-filter-row .z-combobox-input {
+    height: 30px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 7px !important;
+    background: #f8fafc !important;
+    font-size: 13px !important;
 }
 
 /* ---------- analytics metric cards ---------- */
@@ -170,6 +423,7 @@
     font-size: 22px;
     font-weight: 700;
     margin-top: 4px;
+    color: #1a2b4a;
 }
 
 /* ---------- chart cards ---------- */
@@ -181,6 +435,7 @@
     font-size: 14px;
     font-weight: 600;
     margin-bottom: 10px;
+    color: #1a2b4a;
 }
 
 .cts-chart-box {
@@ -294,14 +549,14 @@
 .cts-insight-mini-table td:last-child {
     text-align: right;
     font-weight: 600;
-    color: #d6493c;
+    color: #be123c;
 }
 
 .cts-insight-mini-table tr + tr td {
     border-top: 1px solid #eef1f6;
 }
 
-/* ---------- chatbot widget ---------- */
+/* ---------- chatbot widget (unchanged from prior version) ---------- */
 .cts-chatbot-fab {
     position: fixed;
     bottom: 24px;
@@ -309,11 +564,11 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: #2962d6;
+    background: #4f46e5;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 14px rgba(41, 98, 214, 0.4);
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
     cursor: pointer;
     z-index: 999;
 }
@@ -338,7 +593,7 @@
 }
 
 .cts-chatbot-header {
-    background: #2962d6;
+    background: #1a2b4a;
     color: white;
     padding: 14px 16px;
     display: flex;
@@ -385,7 +640,7 @@
 }
 
 .cts-chat-msg-user {
-    background: #2962d6;
+    background: #4f46e5;
     color: white;
     align-self: flex-end;
     border-bottom-right-radius: 4px;
@@ -406,4 +661,8 @@
 
 .cts-chatbot-send-btn {
     flex-shrink: 0;
+    background: #4f46e5 !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 6px !important;
 }

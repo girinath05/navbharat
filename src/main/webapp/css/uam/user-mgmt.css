@@ -515,6 +515,14 @@
   color: #8a5f00;
   border: 1px solid #f0d080;
 }
+/* Shown in the Actions column for the logged-in user's own row */
+.badge-self {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  font-style: italic;
+  cursor: default;
+}
 
 /* ── Slide-in drawer ─────────────────────────────────────── */
 .drawer-overlay {

@@ -20,54 +20,58 @@ public class AccessControlFilter implements Filter {
 
     private static final Logger LOG = LoggerFactory.getLogger(AccessControlFilter.class);
 
+    // Runs once when the filter is registered
     @Override
     public void init(FilterConfig filterConfig) {
         LOG.info("AccessControlFilter initialized");
     }
 
+    // Runs on every request — checks if the user is allowed to access the requested page
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        
+
         if (!(request instanceof HttpServletRequest httpRequest)
                 || !(response instanceof HttpServletResponse httpResponse)) {
             chain.doFilter(request, response);
             return;
         }
-        //it takes out context path from this Navbharat/zul/login.zul  
+
+        // Strip context path so we get just /zul/login.zul instead of /Navbharat/zul/login.zul
         String requestPath = stripContextPath(httpRequest.getRequestURI(), httpRequest.getContextPath());
 
-        // to skip internal request like css js,zkau etc
+        // Skip access checks for CSS, JS, images, and ZK internal requests
         if (isStaticOrInternalRequest(requestPath)) {
             chain.doFilter(request, response);
             return;
         }
-        //session is not created then it will give null and if we write true then it will create one new session in every requese
-        HttpSession session = httpRequest.getSession(false);
+
+        // Get current user from session — passing false so we don't create a new session per request
+        HttpSession session  = httpRequest.getSession(false);
         User currentUser = session == null ? null
                 : (User) session.getAttribute(SecurityUtil.SESSION_USER_KEY);
 
-        // Allow the request only when the current user has access to the page
+        // Allow the request if the user has permission for this page
         if (SecurityUtil.canAccessPage(requestPath, currentUser)) {
             chain.doFilter(request, response);
             return;
         }
 
-        //if user is not logged then it sets false
         boolean isLoggedIn = currentUser != null;
-        
-        //if user is not logged then it redirect to login page
+
+        // Not logged in → send to login page
         if (!isLoggedIn) {
             httpResponse.sendRedirect(httpRequest.getContextPath() + "/zul/login.zul");
             return;
         }
 
-        // Logged-in users should get a clear forbidden response for the app shell
+        // Logged in but trying to access the app shell directly → 403 Forbidden
         if ("/zul/app.zul".equals(requestPath)) {
             httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
+        // Logged in but no permission for the page → redirect to login with access denied message
         httpResponse.sendRedirect(httpRequest.getContextPath() + "/zul/login.zul?error=access_denied");
     }
 
@@ -76,6 +80,7 @@ public class AccessControlFilter implements Filter {
         // no-op
     }
 
+    // Returns true for static files and ZK internal requests that should skip access checks
     private static boolean isStaticOrInternalRequest(String path) {
         return path == null
                 || path.startsWith("/zkau")
@@ -93,10 +98,9 @@ public class AccessControlFilter implements Filter {
                 || path.endsWith(".wpd");
     }
 
+    // Removes the app context path prefix from the full URI to get just the page path
     private static String stripContextPath(String requestUri, String contextPath) {
-        if (requestUri == null) {
-            return "";
-        }
+        if (requestUri == null) return "";
 
         if (contextPath != null && !contextPath.isBlank() && requestUri.startsWith(contextPath)) {
             return requestUri.substring(contextPath.length());

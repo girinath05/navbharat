@@ -1,6 +1,8 @@
 package com.cts.scheduler;
 
 import com.cts.uam.dao.UserDAO;
+import com.cts.uam.dao.UserDAOImpl;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +26,7 @@ public class UserUnlockScheduler {
         return t;
     });
 
-    private final UserDAO userDAO = new UserDAO();
+    private final UserDAO userDAO = new UserDAOImpl();
 
     public void start() {
         scheduler.scheduleAtFixedRate(this::unlockExpired, INTERVAL_SECONDS, INTERVAL_SECONDS, TimeUnit.SECONDS);

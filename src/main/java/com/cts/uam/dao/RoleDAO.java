@@ -1,230 +1,87 @@
 package com.cts.uam.dao;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.hibernate.Session;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.cts.uam.enums.RoleStatus;
 import com.cts.uam.model.Permission;
 import com.cts.uam.model.Role;
-import com.cts.util.HibernateUtil;
 
-public class RoleDAO {
+/**
+ * RoleDAO - defines all database operations for Roles and Permissions.
+ *
+ * Implementation: RoleDAOImpl
+ *
+ * Covers:
+ * - Load all permissions (grouped by module for the permission tree UI)
+ * - Search and filter roles
+ * - Create a new role in PENDING state
+ * - Approve or reject a pending role
+ * - Activate or deactivate a role
+ * - Update a role's description and permissions
+ */
+public interface RoleDAO {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RoleDAO.class);
+        // ── Permissions ───────────────────────────────────────────────
 
-    // ── Permissions ───────────────────────────────────────────────
+        // Returns all permissions from DB, grouped by module name.
+        // Used to build the permission tree in the role editor UI.
+        Map<String, List<Permission>> getPermissionsGroupedByModule();
 
-    /** All permissions grouped by module name — for permission tree UI. */
-    public Map<String, List<Permission>> getPermissionsGroupedByModule() {
-        try (Session session = HibernateUtil.getSession()) {
-            List<Permission> allPermissions = session.createNativeQuery(
-                    "SELECT * FROM cts_permissions ORDER BY module, display_name",
-                    Permission.class).list();
+        // ── Role Queries ──────────────────────────────────────────────
 
-            Map<String, List<Permission>> grouped = new LinkedHashMap<>();
-            for (Permission permission : allPermissions) {
-                String module = permission.getModule();
+        // Returns all roles except PENDING and REJECTED (shown in the main role list)
+        List<Role> getActiveAndInactiveRoles();
 
-                if (!grouped.containsKey(module)) {
-                    grouped.put(module, new ArrayList<>());
-                }
+        // Search roles by name or description, with pagination (excludes
+        // PENDING/REJECTED)
+        List<Role> searchRoles(String query, int offset, int limit);
 
-                grouped.get(module).add(permission);
-            }
-            return grouped;
-        }
-    }
+        // Count of roles matching the search query (for pagination math)
+        long countRoles(String query);
 
-    // ── Role Queries ──────────────────────────────────────────────
+        // Returns all roles waiting for checker approval (status = PENDING)
+        List<Role> getPendingRoles();
 
-    /** All roles visible in main list — excludes PENDING and REJECTED. */
-    public List<Role> getActiveAndInactiveRoles() {
-        try (Session session = HibernateUtil.getSession()) {
-            return session.createNativeQuery(
-                    "SELECT * FROM cts_roles WHERE status NOT IN (:pending, :rejected) ORDER BY role_name",
-                    Role.class)
-                    .setParameter("pending", RoleStatus.PENDING.name())
-                    .setParameter("rejected", RoleStatus.REJECTED.name())
-                    .list();
-        }
-    }
+        // Same but paginated
+        List<Role> getPendingRoles(int offset, int limit);
 
-    /** Roles waiting for checker approval. */
-    public List<Role> getPendingRoles() {
-        try (Session session = HibernateUtil.getSession()) {
-            return session.createNativeQuery(
-                    "SELECT * FROM cts_roles WHERE status = :pending ORDER BY role_name",
-                    Role.class)
-                    .setParameter("pending", RoleStatus.PENDING.name())
-                    .list();
-        }
-    }
+        // Count of pending roles (for pagination and badge display)
+        long countPendingRoles();
 
-    public Role findByName(String roleName) {
-        try (Session session = HibernateUtil.getSession()) {
-            return session.createNativeQuery(
-                    "SELECT * FROM cts_roles WHERE role_name = :name", Role.class)
-                    .setParameter("name", roleName)
-                    .uniqueResult();
-        }
-    }
+        // Find one role by exact name - returns null if not found
+        Role findByName(String roleName);
 
-    public Role findById(Long roleId) {
-        try (Session session = HibernateUtil.getSession()) {
-            return session.get(Role.class, roleId);
-        }
-    }
+        // Find one role by numeric DB id - returns null if not found
+        Role findById(Long roleId);
 
-    /** Permission keys currently assigned to a role. */
-    //here is performing n+1 query
-    public Set<String> getAssignedPermissionKeys(Long roleId) {
-        try (Session session = HibernateUtil.getSession()) {
-            List<String> keys = session.createNativeQuery(
-                    "SELECT permission_key FROM cts_role_permissions WHERE role_id = :roleId",
-                    String.class)
-                    .setParameter("roleId", roleId)
-                    .list();
-            return new HashSet<>(keys);
-        }
-    }
+        // Returns the set of permission keys currently assigned to a given role
+        Set<String> getAssignedPermissionKeys(Long roleId);
 
-    // ── Create (PENDING) ──────────────────────────────────────────
+        // ── Create (PENDING) ──────────────────────────────────────────
 
-    public void insertRoleAsPending(String roleName, String description,
-            Set<String> permissionKeys, String createdBy) {
-        try (Session session = HibernateUtil.getSession()) {
-            session.beginTransaction();
+        // Insert a new role with PENDING status and assign its permissions
+        void insertRoleAsPending(String roleName, String description,
+                        Set<String> permissionKeys, String createdBy);
 
-            Role role = new Role();
-            role.setRoleName(roleName);
-            role.setDescription(description);
-            role.setStatus(RoleStatus.PENDING);
-            role.setCreatedBy(createdBy);
-            session.persist(role);
-            session.flush();
+        // ── Approve / Reject ──────────────────────────────────────────
 
-            replacePermissions(session, role.getId(), permissionKeys);
-            session.getTransaction().commit();
-            LOG.info("RoleDAO: role '{}' inserted as PENDING by '{}'", roleName, createdBy);
-        }
-    }
+        // Approve a PENDING role -> status becomes ACTIVE
+        void approveRole(long roleId);
 
-    // ── Approve / Reject ──────────────────────────────────────────
+        // Reject a PENDING role -> status becomes REJECTED, reason is stored
+        void rejectRole(long roleId, String rejectionReason);
 
-    /** Approve PENDING role → ACTIVE. */
-    public void approveRole(long roleId) {
-        try (Session session = HibernateUtil.getSession()) {
-            session.beginTransaction();
+        // ── Status Actions ────────────────────────────────────────────
 
-            Role role = requirePendingRole(session, roleId);
-            role.setStatus(RoleStatus.ACTIVE);
-            session.merge(role);
-            session.getTransaction().commit();
-        }
-    }
+        // Directly set a role's status to ACTIVE or INACTIVE (no maker-checker needed)
+        void setRoleStatus(long roleId, RoleStatus newStatus);
 
-    /** Reject PENDING role → REJECTED. */
-    public void rejectRole(long roleId, String rejectionReason) {
-        try (Session session = HibernateUtil.getSession()) {
-            session.beginTransaction();
+        // ── Update ────────────────────────────────────────────────────
 
-            Role role = requirePendingRole(session, roleId);
-            role.setStatus(RoleStatus.REJECTED);
-            role.setRejectedReason(rejectionReason);
-            session.merge(role);
-            session.getTransaction().commit();
-            LOG.info("RoleDAO: role '{}' REJECTED — reason: {}", role.getRoleName(), rejectionReason);
-        }
-    }
-
-    // ── Status Actions ────────────────────────────────────────────
-
-    public void setRoleStatus(long roleId, RoleStatus newStatus) {
-        try (Session session = HibernateUtil.getSession()) {
-            session.beginTransaction();
-
-            if (newStatus == RoleStatus.INACTIVE) {
-                blockIfActiveUsersExist(session, roleId);
-            }
-
-            Role role = session.get(Role.class, roleId);
-            if (role == null) {
-                throw new IllegalStateException("Role #" + roleId + " not found");
-            }
-
-            switch (newStatus) {
-                case ACTIVE -> role.setStatus(RoleStatus.ACTIVE);
-                case INACTIVE -> role.setStatus(RoleStatus.INACTIVE);
-                default -> throw new IllegalArgumentException("Unsupported role status change: " + newStatus);
-            }
-
-            session.merge(role);
-            session.getTransaction().commit();
-        }
-    }
-
-    // ── Private Helpers ───────────────────────────────────────────
-
-    private void replacePermissions(Session session, long roleId, Set<String> permissionKeys) {
-        session.createNativeQuery("DELETE FROM cts_role_permissions WHERE role_id = ?1")
-                .setParameter(1, roleId)
-                .executeUpdate();
-
-        for (String key : permissionKeys) {
-            session.createNativeQuery(
-                    "INSERT INTO cts_role_permissions(role_id, permission_key) " +
-                            "VALUES(?1, ?2) ON CONFLICT DO NOTHING")
-                    .setParameter(1, roleId)
-                    .setParameter(2, key)
-                    .executeUpdate();
-        }
-    }
-
-    public void updateRoleDirectly(long roleId, String newDescription, Set<String> newPermissionKeys) {
-        try (Session session = HibernateUtil.getSession()) {
-            session.beginTransaction();
-
-            Role role = session.get(Role.class, roleId);
-            if (role == null)
-                throw new IllegalStateException("Role #" + roleId + " not found");
-
-            role.setDescription(newDescription);
-            session.merge(role);
-
-            replacePermissions(session, roleId, newPermissionKeys);
-
-            session.getTransaction().commit();
-        }
-    }
-
-    private Role requirePendingRole(Session session, long roleId) {
-        Role role = session.get(Role.class, roleId);
-        if (role == null)
-            throw new IllegalStateException("Role #" + roleId + " not found");
-        if (role.getStatus() != RoleStatus.PENDING)
-            throw new IllegalStateException("Role #" + roleId + " is not PENDING");
-        return role;
-    }
-
-    private void blockIfActiveUsersExist(Session session, long roleId) {
-        long activeUserCount = ((Number) session.createNativeQuery(
-                "SELECT COUNT(*) FROM cts_users " +
-                        "WHERE role_id = :roleId " +
-                        "AND status NOT IN ('TERMINATED','DISABLED','REJECTED','PENDING')")
-                .setParameter("roleId", roleId)
-                .uniqueResult()).longValue();
-
-        if (activeUserCount > 0)
-            throw new IllegalStateException(
-                    "Cannot disable role #" + roleId + ": "
-                            + activeUserCount + " active user(s) still assigned. Reassign them first.");
-    }
+        // Update an existing role's description and replace its permission set (no
+        // approval needed)
+        void updateRoleDirectly(long roleId, String newDescription,
+                        Set<String> newPermissionKeys);
 }

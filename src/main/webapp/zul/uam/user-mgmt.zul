@@ -57,7 +57,7 @@
                                     <comboitem label="Disabled"         value="DISABLED"/>
                                     <comboitem label="Locked"           value="LOCKED"/>
                                     <comboitem label="Terminated"       value="TERMINATED"/>
-                                    <comboitem label="Pending Approval" value="PENDING_APPROVAL"/>
+
                                 </combobox>
                             </div>
                         </div>
