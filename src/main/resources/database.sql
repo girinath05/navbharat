@@ -121,6 +121,7 @@ INSERT INTO cts_permissions (permission_key, display_name, module) VALUES
 
     -- ── CLEARING — Outward ───────────────────────────────────────
     ('OUTWARD_DRAFT_BATCHES',           'Draft Batches',                    'Outward'),
+    ('OUTWARD_BATCH_DETAIL', 'Batch details', 'Outward'),
     ('OUTWARD_PENDING_BATCHES',        'Pending Batches',        'Outward'),
     ('OUTWARD_SUBMITTED_BATCHES',       'Submitted Batches',                'Outward'),
     ('OUTWARD_VERIFICATION_ONE',        'Verification I',                   'Outward'),
@@ -202,6 +203,7 @@ SELECT (SELECT id FROM cts_roles WHERE role_name = 'OUTWARD_OPS'), unnest(ARRAY[
     'GENERAL_DASHBOARD',
     'OUTWARD_DASHBOARD',
     'OUTWARD_DRAFT_BATCHES',
+    'OUTWARD_BATCH_DETAIL',
     'OUTWARD_PENDING_BATCHES',
     'OUTWARD_SUBMITTED_BATCHES',
     'OUTWARD_VERIFICATION_ONE',
