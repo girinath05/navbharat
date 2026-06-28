@@ -19,6 +19,7 @@ import org.zkoss.zul.Textbox;
 
 import com.cts.uam.model.Permission;
 import com.cts.uam.model.Role;
+import com.cts.uam.service.RoleService;
 import com.cts.uam.service.RoleServiceImpl;
 import com.cts.util.SecurityUtil;
 
@@ -105,7 +106,7 @@ public class RoleManagementComposer extends SelectorComposer<Component> {
     private int currentPage = 0; // which page of the role list is showing
     private long totalRoleCount = 0; // total roles matching current search query
 
-    private final RoleServiceImpl roleService = new RoleServiceImpl();
+    private final RoleService roleService = new RoleServiceImpl();
 
     // ── INIT ──────────────────────────────────────────────────────
 

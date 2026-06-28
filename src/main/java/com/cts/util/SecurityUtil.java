@@ -332,8 +332,8 @@ public final class SecurityUtil {
         Map<String, String> p = new LinkedHashMap<>();
 
         // ── MAIN MENU ────────────────────────────────────────────────────────
-        p.put("/zul/dashboard.zul", "DASHBOARD_VIEW");
-        p.put("/zul/outward/outwardDashboard.zul", "OUTWARD_DASHBOARD_VIEW");
+        p.put("/zul/dashboard.zul", "GENERAL_DASHBOARD");
+        p.put("/zul/outward/outwardDashboard.zul", "OUTWARD_DASHBOARD");
 
         // The "Inward Dashboard" accordion header in the sidebar has no permission —
         // it is just a visual toggle. The three items inside it each have their own
@@ -344,11 +344,11 @@ public final class SecurityUtil {
 
         // ── CLEARING — Outward ───────────────────────────────────────────────
         p.put("/zul/outward/draft-batches.zul", "OUTWARD_DRAFT_BATCHES");
-        p.put("/zul/outward/pending-batches.zul", "OUTWARD_BATCH_MANAGEMENT");
+        p.put("/zul/outward/pending-batches.zul", "OUTWARD_PENDING_BATCHES");
         p.put("/zul/outward/submitted-batches.zul", "OUTWARD_SUBMITTED_BATCHES");
         p.put("/zul/outward/verification-I.zul", "OUTWARD_VERIFICATION_ONE");
         p.put("/zul/outward/verification-II.zul", "OUTWARD_VERIFICATION_TWO");
-        p.put("/zul/outward/cxf-cxbf.zul", "OUTWARD_CBS_EXPORT");
+        p.put("/zul/outward/cxf-cxbf.zul", "OUTWARD_CXF_CIBF_GENERATION");
 
         // ── CLEARING — Inward ────────────────────────────────────────────────
         p.put("/zul/inward/clearing/uploadCheques.zul", "INWARD_UPLOAD_CHEQUES");
