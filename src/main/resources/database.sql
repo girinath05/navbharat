@@ -111,8 +111,8 @@ CREATE INDEX idx_audit_time     ON cts_audit_log(event_time);
 INSERT INTO cts_permissions (permission_key, display_name, module) VALUES
 
     -- ── MAIN MENU ────────────────────────────────────────────────
-    ('DASHBOARD_VIEW',                  'View Dashboard',                   'Dashboard'),
-    ('OUTWARD_DASHBOARD_VIEW',          'View Outward Dashboard',           'Outward'),
+    ('GENERAL_DASHBOARD',                  'General Dashboard',                   'Dashboard'),
+    ('OUTWARD_DASHBOARD',          'Outward Dashboard',           'Outward'),
 
     -- Inward Dashboard (sub-items; accordion header has no perm)
     ('INWARD_MAKER_DASHBOARD_VIEW',     'Inward Maker Dashboard',           'Inward'),
@@ -121,26 +121,26 @@ INSERT INTO cts_permissions (permission_key, display_name, module) VALUES
 
     -- ── CLEARING — Outward ───────────────────────────────────────
     ('OUTWARD_DRAFT_BATCHES',           'Draft Batches',                    'Outward'),
-    ('OUTWARD_BATCH_MANAGEMENT',        'Batch Management (Pending)',        'Outward'),
+    ('OUTWARD_PENDING_BATCHES',        'Pending Batches',        'Outward'),
     ('OUTWARD_SUBMITTED_BATCHES',       'Submitted Batches',                'Outward'),
     ('OUTWARD_VERIFICATION_ONE',        'Verification I',                   'Outward'),
     ('OUTWARD_VERIFICATION_TWO',        'Verification II',                  'Outward'),
-    ('OUTWARD_CBS_EXPORT',              'CXF / CXBF Export',                'Outward'),
+    ('OUTWARD_CXF_CIBF_GENERATION',              'CXF-CIBF Generation',                'Outward'),
 
     -- ── CLEARING — Inward ────────────────────────────────────────
     ('INWARD_UPLOAD_CHEQUES',           'Upload Cheques',                   'Inward'),
     ('INWARD_RETURNED_CHEQUES',         'Returned Cheques',                 'Inward'),
-    ('INWARD_RESUBMITTED_VI',           'Resubmitted Cheques by VI',        'Inward'),
-    ('INWARD_RESUBMITTED_V2',           'Resubmitted Cheques by V2',        'Inward'),
+    ('INWARD_RESUBMITTED_VI',           'Resubmitted Cheques at V-I',        'Inward'),
+    ('INWARD_RESUBMITTED_V2',           'Resubmitted Cheques at V-II',        'Inward'),
     ('INWARD_REFERRED_CHEQUES',         'Referred Cheques',                 'Inward'),
 
     -- ── REPORTS — Outward ────────────────────────────────────────
-    ('OUTWARD_CXF_REPORT',              'CXF Report',                       'Outward'),
-    ('OUTWARD_BATCH_SUMMARY',           'Batch Summary Report',             'Outward'),
+    ('OUTWARD_CXF_REPORT',              'CXF-CIBF Report',                       'Outward'),
+    ('OUTWARD_BATCH_SUMMARY',           'Batch Summary',             'Outward'),
     ('OUTWARD_CHEQUE_LEVEL',            'Cheque Level Report',              'Outward'),
 
     -- ── REPORTS — Inward ─────────────────────────────────────────
-    ('INWARD_REPORT_SUMMARY',           'Inward Report Summary',            'Inward'),
+    ('INWARD_REPORT_SUMMARY',           'Report Summary',            'Inward'),
 
     -- ── SETTINGS — UAM ───────────────────────────────────────────
     ('UAM_ROLE_MGMT',                   'Role Management',                  'User Administration'),
@@ -174,7 +174,7 @@ FROM   cts_permissions;
 -- ── UAM_ADMIN ────────────────────────────────────────────────────
 INSERT INTO cts_role_permissions (role_id, permission_key)
 SELECT (SELECT id FROM cts_roles WHERE role_name = 'UAM_ADMIN'), unnest(ARRAY[
-    'DASHBOARD_VIEW',
+    'GENERAL_DASHBOARD',
     'UAM_ROLE_MGMT',
     'UAM_USER_MGMT',
     'UAM_PENDING_APPROVAL',
@@ -184,7 +184,7 @@ SELECT (SELECT id FROM cts_roles WHERE role_name = 'UAM_ADMIN'), unnest(ARRAY[
 -- ── INWARD_OPS ───────────────────────────────────────────────────
 INSERT INTO cts_role_permissions (role_id, permission_key)
 SELECT (SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), unnest(ARRAY[
-    'DASHBOARD_VIEW',
+    'GENERAL_DASHBOARD',
     'INWARD_MAKER_DASHBOARD_VIEW',
     'INWARD_VERIFIER1_DASHBOARD_VIEW',
     'INWARD_VERIFIER2_DASHBOARD_VIEW',
@@ -199,14 +199,14 @@ SELECT (SELECT id FROM cts_roles WHERE role_name = 'INWARD_OPS'), unnest(ARRAY[
 -- ── OUTWARD_OPS ──────────────────────────────────────────────────
 INSERT INTO cts_role_permissions (role_id, permission_key)
 SELECT (SELECT id FROM cts_roles WHERE role_name = 'OUTWARD_OPS'), unnest(ARRAY[
-    'DASHBOARD_VIEW',
-    'OUTWARD_DASHBOARD_VIEW',
+    'GENERAL_DASHBOARD',
+    'OUTWARD_DASHBOARD',
     'OUTWARD_DRAFT_BATCHES',
-    'OUTWARD_BATCH_MANAGEMENT',
+    'OUTWARD_PENDING_BATCHES',
     'OUTWARD_SUBMITTED_BATCHES',
     'OUTWARD_VERIFICATION_ONE',
     'OUTWARD_VERIFICATION_TWO',
-    'OUTWARD_CBS_EXPORT',
+    'OUTWARD_CXF_CIBF_GENERATION',
     'OUTWARD_CXF_REPORT',
     'OUTWARD_BATCH_SUMMARY',
     'OUTWARD_CHEQUE_LEVEL'
@@ -215,8 +215,7 @@ SELECT (SELECT id FROM cts_roles WHERE role_name = 'OUTWARD_OPS'), unnest(ARRAY[
 -- ── VIEWER : dashboards + reports only ───────────────────────────
 INSERT INTO cts_role_permissions (role_id, permission_key)
 SELECT (SELECT id FROM cts_roles WHERE role_name = 'VIEWER'), unnest(ARRAY[
-    'DASHBOARD_VIEW',
-    'OUTWARD_DASHBOARD_VIEW',
+    'GENERAL_DASHBOARD',
     'INWARD_MAKER_DASHBOARD_VIEW',
     'INWARD_VERIFIER1_DASHBOARD_VIEW',
     'INWARD_VERIFIER2_DASHBOARD_VIEW',
@@ -229,7 +228,7 @@ SELECT (SELECT id FROM cts_roles WHERE role_name = 'VIEWER'), unnest(ARRAY[
 -- ── TEMP_AUDITOR (PENDING — visible to checker on approval) ──────
 INSERT INTO cts_role_permissions (role_id, permission_key)
 SELECT (SELECT id FROM cts_roles WHERE role_name = 'TEMP_AUDITOR'), unnest(ARRAY[
-    'DASHBOARD_VIEW',
+    'GENERAL_DASHBOARD',
     'INWARD_REPORT_SUMMARY',
     'OUTWARD_CXF_REPORT'
 ]);

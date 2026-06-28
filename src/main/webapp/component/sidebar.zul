@@ -24,7 +24,7 @@
     </div>
 
     <div id="menuDashboard" sclass="cts-menu-item">
-        <custom-attributes perm="DASHBOARD_VIEW"
+        <custom-attributes perm="GENERAL_DASHBOARD"
             page="/zul/dashboard.zul" />
         <div sclass="cts-row">
             <div sclass="cts-icon-badge cts-icon-home">
@@ -35,7 +35,7 @@
     </div>
 
     <div id="menuOutwardDashboard" sclass="cts-menu-item">
-        <custom-attributes perm="OUTWARD_DASHBOARD_VIEW"
+        <custom-attributes perm="OUTWARD_DASHBOARD"
             page="/zul/outward/outwardDashboard.zul" />
         <div sclass="cts-row">
             <div sclass="cts-icon-badge cts-icon-outward">
@@ -115,7 +115,7 @@
             </div>
         </div>
         <div id="menuPendingBatches" sclass="cts-menu-item">
-            <custom-attributes perm="OUTWARD_BATCH_MANAGEMENT"
+            <custom-attributes perm="OUTWARD_PENDING_BATCHES"
                 page="/zul/outward/pending-batches.zul" />
             <div sclass="cts-sub-row">
                 <label sclass="cts-sub-label" value="Pending Batches" />
@@ -143,7 +143,7 @@
             </div>
         </div>
         <div id="menuCxfCibf" sclass="cts-menu-item">
-            <custom-attributes perm="OUTWARD_CBS_EXPORT"
+            <custom-attributes perm="OUTWARD_CXF_CIBF_GENERATION"
                 page="/zul/outward/cxf-cxbf.zul" />
             <div sclass="cts-sub-row">
                 <label sclass="cts-sub-label" value="CXF-CIBF Generation" />
