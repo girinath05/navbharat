@@ -344,12 +344,13 @@ public final class SecurityUtil {
 
         // ── CLEARING — Outward ───────────────────────────────────────────────
         p.put("/zul/outward/draft-batches.zul", "OUTWARD_DRAFT_BATCHES");
+        p.put("/zul/outward/batch-detail.zul", "OUTWARD_BATCH_DETAIL");
         p.put("/zul/outward/pending-batches.zul", "OUTWARD_PENDING_BATCHES");
         p.put("/zul/outward/submitted-batches.zul", "OUTWARD_SUBMITTED_BATCHES");
         p.put("/zul/outward/verification-I.zul", "OUTWARD_VERIFICATION_ONE");
         p.put("/zul/outward/verification-II.zul", "OUTWARD_VERIFICATION_TWO");
         p.put("/zul/outward/cxf-cxbf.zul", "OUTWARD_CXF_CIBF_GENERATION");
-
+        
         // ── CLEARING — Inward ────────────────────────────────────────────────
         p.put("/zul/inward/clearing/uploadCheques.zul", "INWARD_UPLOAD_CHEQUES");
         p.put("/zul/inward/clearing/returnedCheques.zul", "INWARD_RETURNED_CHEQUES");
